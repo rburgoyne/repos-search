@@ -75,11 +75,12 @@ reposSearchSubmit = function(ev) {
 };
 
 reposSearchStart = function() {
+	var query = $('#repos-search-input').val();
+	if (!query) return;
 	// create search result container
 	reposSearchClose();
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
-	var query = $('#repos-search-input').val();
 	var titles = $('<div id="repos-search-titles"/>');
 	reposSearchTitles(query, titles);
 	// build results layout
