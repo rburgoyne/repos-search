@@ -186,5 +186,11 @@ reposSearchPresentItem = function(json) {
 	if (json.title && json.title != m[3]) {
 		$('<span class="repos-search-resulttitle">').text('  ' + json.title).appendTo(li);
 	}
+	// file class and file-extension class for icons (compatible with Repos Style)
+	li.addClass('file');
+	var d = m[3].lastIndexOf('.');
+	if (d > 0 && d > m[3].length - 7) {
+		li.addClass('file-' + m[3].substr(d+1));
+	}
 	return li;
 };
