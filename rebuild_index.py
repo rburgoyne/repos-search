@@ -1,5 +1,8 @@
 #!/usr/bin/env python
-""" index all revisions in a repository """
+""" Index all revisions in a repository 
+(c) Staffan Olsson repossearch.com
+$LastChangedRevision$
+"""
 
 from optparse import OptionParser
 from commands import getoutput

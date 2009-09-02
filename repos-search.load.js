@@ -1,8 +1,8 @@
 /*
- * Repos Search GUI
+ * Repos Search GUI (c) Staffan Olsson repossearch.com
  * Include in Repos Style header to get a search box in the menu bar.
  * Requires jQuery 1.3+
- * $LastChangedRevision: 4475 $
+ * $LastChangedRevision$
  */
 
 // minimal style, enough for css theming to be optional

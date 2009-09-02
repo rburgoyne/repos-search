@@ -1,5 +1,6 @@
-""" mod_python.publisher service that proxies searches
-$LastChangedRevision: 4473 $
+""" mod_python.publisher service that proxies searches 
+(c) Staffan Olsson repossearch.com
+$LastChangedRevision$
 """
 
 import sys
