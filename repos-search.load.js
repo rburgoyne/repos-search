@@ -20,7 +20,7 @@ reposSearchDialogCss = {
 	left: 30,
 	right: 30,
 	bottom: 30,
-	opacity: .9,
+	opacity: 0.9,
 	paddingLeft: 30,
 	paddingRight: 30,
 	backgroundColor: '#fff',
@@ -29,7 +29,7 @@ reposSearchDialogCss = {
 reposSearchDialogTitleCss = {
 	width: '100%',
 	textAlign: 'center',
-	opacity: .7,
+	opacity: 0.7
 };
 reposSearchDialogTitleLinkCss = {
 	textDecoration: 'none',
@@ -62,7 +62,7 @@ reposSearchShow = function() {
 
 reposSearchClose = function() {
 	$('#repos-search-dialog').remove();
-}
+};
 
 reposSearchSubmit = function(ev) {
 	ev.stopPropagation();
@@ -72,8 +72,8 @@ reposSearchSubmit = function(ev) {
 		if (window.console) console.error('Repos Search error', e);
 	}
 	return false; // don't submit form	
-}
-	
+};
+
 reposSearchStart = function() {
 	// create search result container
 	reposSearchClose();
@@ -117,11 +117,11 @@ reposSearchStart = function() {
 
 reposSearchTitles = function(query, resultDiv) {
 	reposSearchAjax('/repos-search/?q=title:' + encodeURIComponent(query), resultDiv);
-}
+};
 
 reposSearchFulltext = function(query, resultDiv) {
 	reposSearchAjax('/repos-search/?q=text:' + encodeURIComponent(query), resultDiv);
-}
+};
 
 reposSearchAjax = function(url, resultContainer) {
 	// provide navigation info for search filtering
@@ -151,8 +151,8 @@ reposSearchAjax = function(url, resultContainer) {
 reposSearchResults = function(json, resultContainer) {
 	resultContainer.empty();
 	console.log(json);
-	var num = json.response.numFound;
-	if (num == 0) {
+	var num = parseInt(json.response.numFound, 10);
+	if (num === 0) {
 		$('<p>No matches found</p>').appendTo(resultContainer);
 		resultContainer.trigger('repos-search-noresults');
 		return;
