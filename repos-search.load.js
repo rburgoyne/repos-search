@@ -29,7 +29,6 @@ reposSearchDialogCss = {
 reposSearchDialogTitleCss = {
 	width: '100%',
 	textAlign: 'center',
-	opacity: 0.7
 };
 reposSearchDialogTitleLinkCss = {
 	textDecoration: 'none',
@@ -39,7 +38,8 @@ reposSearchCloseCss = {
 	textAlign: 'right',
 	float: 'right',
 	fontSize: '82.5%',
-	cursor: 'pointer'
+	cursor: 'pointer',
+	color: '#333'
 };
 reposSearchListCss = {
 	listStyleType: 'none',
@@ -54,10 +54,23 @@ reposSearchShow = function() {
 	// the page that includes Repos Search can provide an element with
 	// class "repos-search-container" to control the placement of the input box
 	var container = $('.repos-search-container').add('#commandbar').add('body').eq(0);
-	var box = $('<input id="repos-search-input" type="text" size="20" name="q"/>').css(reposSearchInputCss);
+	var box = $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss);
 	var form = $('<form id="repos-search-form" action="/repos-search/"><input type="submit" style="display:none"/></form>').append(box);
 	form.css(reposSearchFormCss).appendTo(container); // TODO display settings should be set in css
-	form.submit(reposSearchSubmit);
+	// urlMode appends the query to browser's location so back button is supported
+	// urlMode works if the page has no other query parameters
+	var urlMode = true;
+	if (urlMode) {
+		console.log(location.search);
+		var s = location.search.indexOf('repossearch=');
+		if (s > 0) {
+			$('#repos-search-input').val(decodeURI(location.search.substr(s + 12)));
+			reposSearchSubmit();
+		}
+		form.attr('method', 'GET').attr('action','');
+	} else {
+		form.submit(reposSearchSubmit);
+	}
 };
 
 reposSearchClose = function() {
@@ -65,7 +78,7 @@ reposSearchClose = function() {
 };
 
 reposSearchSubmit = function(ev) {
-	ev.stopPropagation();
+	ev && ev.stopPropagation();
 	try {
 		reposSearchStart();
 	} catch (e) {
