@@ -132,11 +132,11 @@ reposSearchStart = function() {
 };
 
 reposSearchTitles = function(query, resultDiv) {
-	reposSearchAjax('/repos-search/?q=title:' + encodeURIComponent(query), resultDiv);
+	reposSearchAjax('/repos-search/?repossearch=title:' + encodeURIComponent(query), resultDiv);
 };
 
 reposSearchFulltext = function(query, resultDiv) {
-	reposSearchAjax('/repos-search/?q=text:' + encodeURIComponent(query), resultDiv);
+	reposSearchAjax('/repos-search/?repossearch=text:' + encodeURIComponent(query), resultDiv);
 };
 
 reposSearchAjax = function(url, resultContainer) {
