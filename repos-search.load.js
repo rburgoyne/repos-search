@@ -32,14 +32,14 @@ reposSearchDialogTitleCss = {
 };
 reposSearchDialogTitleLinkCss = {
 	textDecoration: 'none',
-	color: '#333'
+	color: '#666'
 };
 reposSearchCloseCss = {
 	textAlign: 'right',
 	float: 'right',
 	fontSize: '82.5%',
 	cursor: 'pointer',
-	color: '#333'
+	color: '#666'
 };
 reposSearchListCss = {
 	listStyleType: 'none',
@@ -55,7 +55,7 @@ reposSearchShow = function() {
 	// class "repos-search-container" to control the placement of the input box
 	var container = $('.repos-search-container').add('#commandbar').add('body').eq(0);
 	var box = $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss);
-	var form = $('<form id="repos-search-form" action="/repos-search/"><input type="submit" style="display:none"/></form>').append(box);
+	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>').append(box);
 	form.css(reposSearchFormCss).appendTo(container); // TODO display settings should be set in css
 	// urlMode appends the query to browser's location so back button is supported
 	// urlMode works if the page has no other query parameters
@@ -64,7 +64,9 @@ reposSearchShow = function() {
 		console.log(location.search);
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
-			$('#repos-search-input').val(decodeURI(location.search.substr(s + 12)));
+			// repossearch is the last query parameter
+			var q = decodeURIComponent(location.search.substr(s + 12).replace('+',' '));
+			$('#repos-search-input').val(q);
 			reposSearchSubmit();
 		}
 		form.attr('method', 'GET').attr('action','');
@@ -104,9 +106,9 @@ reposSearchStart = function() {
 	dialog.append(title);
 	title.append(close);
 	//dialog.append('<h1>Search results</h1>'); // would be better as title bar
-	$('<h2/>').text('Titles matching "' + query + '"').appendTo(dialog);
+	$('<h2/>').text('Titles matching ').append($('<em/>').text(query)).appendTo(dialog);
 	dialog.append(titles);
-	var fulltexth = $('<h2/>').text('Documents containing "' + query + '"').hide();
+	var fulltexth = $('<h2/>').text('Documents containing ').append($('<em/>').text(query)).hide();
 	var fulltext = $('<div id="repos-search-fulltext"/>');
 	var enablefulltext = $('<input id="repos-search-fulltext-enable" type="checkbox">').change(function() {
 		if ($(this).is(':checked')) {
