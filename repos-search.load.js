@@ -191,7 +191,7 @@ reposSearchPresentItem = function(json) {
 	li.addClass('file');
 	var d = m[3].lastIndexOf('.');
 	if (d > 0 && d > m[3].length - 7) {
-		li.addClass('file-' + m[3].substr(d+1));
+		li.addClass('file-' + m[3].substr(d+1).toLowerCase());
 	}
 	return li;
 };

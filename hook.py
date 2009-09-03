@@ -21,14 +21,12 @@ parser = OptionParser()
 parser.add_option("-p", "--repository", dest="repo",
     help="A local repository path")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
-    help="Set to false to disable indexing of paths prefixed with repo name (i.e. @base)."
+    help="Set to disable indexing of paths prefixed with repo name (i.e. @base)."
         + " If the index is not for SVNParentPath repsitories, this makes paths easier to read.")
 parser.add_option("-r", "--revision", dest="rev",
     help="Committed revision")
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
     help="The loglevel (standard Log4J levels, lowercase). Defaults to %default.")
-parser.add_option("", "--cloglevel", dest="cloglevel", default="info",
-    help="The console loglevel (standard Log4J levels, lowercase). Defaults to %default.")
 parser.add_option("", "--svnlook", dest="svnlook", default="/usr/bin/svnlook",
     help="The svnlook command, default: %default")
 parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
