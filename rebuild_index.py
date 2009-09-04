@@ -11,7 +11,7 @@ import sys
 
 parser = OptionParser()
 # all arguments will be forwarded to the indexer, except -i
-parser.add_option("", "--indexer", dest="indexer", default="hook.py",
+parser.add_option("", "--indexer", dest="indexer", default="svnhook.py",
                   help="Execution path to the indexing script. "
                   + "Optional but if set it must be the first argument. Default: %default")
 parser.add_option("-p", "--repository", dest="repo",
