@@ -11,7 +11,7 @@ reposSearchFormCss = {
 	marginLeft: 10
 };
 reposSearchInputCss = {
-	
+	background: "white url('/repos-search/magnifier.png') no-repeat right"
 };
 reposSearchDialogCss = {
 	position: 'absolute',
@@ -61,7 +61,6 @@ reposSearchShow = function() {
 	// urlMode works if the page has no other query parameters
 	var urlMode = true;
 	if (urlMode) {
-		console.log(location.search);
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
 			// repossearch is the last query parameter
@@ -77,6 +76,7 @@ reposSearchShow = function() {
 
 reposSearchClose = function() {
 	$('#repos-search-dialog').remove();
+	$('#repos-search-input').val('');
 };
 
 reposSearchSubmit = function(ev) {
@@ -173,7 +173,6 @@ reposSearchAjax = function(url, resultContainer) {
 
 reposSearchResults = function(json, resultContainer) {
 	resultContainer.empty();
-	console.log(json);
 	var num = parseInt(json.response.numFound, 10);
 	if (num === 0) {
 		$('<p>No matches found</p>').appendTo(resultContainer);
