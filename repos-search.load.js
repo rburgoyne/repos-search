@@ -131,20 +131,27 @@ reposSearchStart = function() {
 	$().trigger('repos-search-started', [dialog[0], titles[0], fulltext[0]]);
 };
 
+reposSearchIdPrefix = ''; // if prefix is set in hook this must be the same, for use in id queries
+
 reposSearchTitles = function(query, resultDiv) {
-	reposSearchAjax('/repos-search/?repossearch=title:' + encodeURIComponent(query), resultDiv);
+	// if IdPrefix is not set we can use repository base
+	reposSearchIdPrefix = reposSearchIdPrefix ||
+		$('meta[name=repos-base]').attr('content') + '/';
+	// serach on title or part of path
+	reposSearchAjax('/repos-search/?repossearch=title' + encodeURIComponent(':' + query)
+			+ encodeURIComponent(' OR id:' + reposSearchIdPrefix + '*' + query + '*'), resultDiv);
 };
 
 reposSearchFulltext = function(query, resultDiv) {
-	reposSearchAjax('/repos-search/?repossearch=text:' + encodeURIComponent(query), resultDiv);
+	reposSearchAjax('/repos-search/?repossearch=text' + encodeURIComponent(':' + query), resultDiv);
 };
 
 reposSearchAjax = function(url, resultContainer) {
 	// provide navigation info for search filtering
-	var mb = $('meta[name=repos-base]');
-	if (mb.size()) url += '&base=' + encodeURIComponent(mb.attr('content'));
-	var mt = $('meta[name=repos-target]');
-	if (mb.size()) url += '&target=' + encodeURIComponent(mt.attr('content'));
+	var target = $('meta[name=repos-target]').attr('content');
+	var base = $('meta[name=repos-base]').attr('content');
+	if (target) url += '&target=' + encodeURIComponent(target);
+	if (base) url += '&base=' + encodeURIComponent(base);
 	// query
 	resultContainer.addClass('loading'); // this requires a css so we'll also append image
 	resultContainer.append('<img class="loading" src="/repos-search/loading.gif" alt="loading"/>');
