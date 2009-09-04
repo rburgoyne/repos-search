@@ -74,9 +74,10 @@ reposSearchShow = function() {
 	}
 };
 
-reposSearchClose = function() {
+reposSearchClose = function(ev) {
 	$('#repos-search-dialog').remove();
-	$('#repos-search-input').val('');
+	// clear input if this is a user event
+	if (ev) $('#repos-search-input').val('');
 };
 
 reposSearchSubmit = function(ev) {
@@ -93,7 +94,7 @@ reposSearchStart = function() {
 	var query = $('#repos-search-input').val();
 	if (!query) return;
 	// create search result container
-	reposSearchClose();
+	reposSearchClose(false);
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
 	var titles = $('<div id="repos-search-titles"/>');
