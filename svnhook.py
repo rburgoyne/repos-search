@@ -23,6 +23,7 @@ parser.add_option("-p", "--repository", dest="repo",
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
     help="Set to disable indexing of paths prefixed with repo name (i.e. @base)."
         + " If the index is not for SVNParentPath repsitories, this makes paths easier to read.")
+# TODO future --prefix parameter for those who want to index multiple hots or parent paths
 parser.add_option("-r", "--revision", dest="rev",
     help="Committed revision")
 parser.add_option("", "--loglevel", dest="loglevel", default="info",

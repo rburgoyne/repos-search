@@ -9,6 +9,12 @@
 body {
 	font-family: sans-serif;
 }
+a {
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
 h1, .repos-search-container {
 	float: left;
 	display: inline;
@@ -23,6 +29,9 @@ h1, h2, h3 {
 	background-color: #99CC00;
 }
 </style>
+<!-- a repo name as prefix to filename searches,
+ needed until we have a schema with tokenized copy of id field -->
+<meta name="repos-base" content="testrepo" />
 </head>
 
 <body>
