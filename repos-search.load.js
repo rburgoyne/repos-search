@@ -164,10 +164,14 @@ reposSearchAjax = function(url, resultContainer) {
 			$('.loading', resultContainer).remove();
 			reposSearchResults(json, resultContainer);
 		},
-		error: function (XMLHttpRequest, textStatus, errorThrown) {
+		error: function (xhr, textStatus, errorThrown) {
 			resultContainer.removeClass('loading');
 			$('.loading', resultContainer).remove();
-			resultContainer.text('Error ' + textStatus + ": " + errorThrown);
+			// error message
+			resultContainer.text('Got status ' + xhr.status + " " + xhr.statusText + ".");
+			resultContainer.prepend('<h3>Error</h3>');
+			// 403 is because of access control or, more likely, that index.py is not handled as DirectoryIndex
+			if (xhr.status == 403) resultContainer.append('<br />The index script at <a href="/repos-search/">/repos-search/</a> might not be configured yet.');
 		}
 	});
 };

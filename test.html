@@ -40,8 +40,11 @@ h1, h2, h3 {
 
 <div class="repos-search-container"></div>
 
+<p id="must-run-in-webserver">Repos Search is preconfigured to be found at <code>/repos-search/</code> in web server root.</p>
+
 <script type="text/javascript">
 $().ready(function() {
+	if ($('#repos-search-input').size()) $('#must-run-in-webserver').hide();
 	$('#repos-search-input').focus();
 });
 // needed during development because if there are script errors the form will submit and the script errors disappear
