@@ -79,7 +79,7 @@ reposSearchShow = function() {
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
 			// repossearch is the last query parameter
-			var q = decodeURIComponent(location.search.substr(s + 12).replace('+',' '));
+			var q = decodeURIComponent(location.search.substr(s + 12).replace(/\+/g,' '));
 			$('#repos-search-input').val(q);
 			reposSearchSubmit();
 		}
@@ -108,12 +108,13 @@ reposSearchSubmit = function(ev) {
 reposSearchStart = function() {
 	var query = $('#repos-search-input').val();
 	if (!query) return;
+	var tokens = query.match(/[^\s"']+|"[^"]+"/g);
 	// create search result container
 	reposSearchClose(false);
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
 	var titles = $('<div id="repos-search-titles"/>');
-	reposSearchTitles(query, titles);
+	reposSearchTitles(tokens, titles);
 	// build results layout
 	var title = $('<div class="repos-search-dialog-title"/>').css(reposSearchDialogTitleCss)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
@@ -130,7 +131,7 @@ reposSearchStart = function() {
 		if ($(this).is(':checked')) {
 			fulltexth.show();
 			fulltext.show();
-			reposSearchFulltext(query, fulltext);
+			reposSearchFulltext(tokens, fulltext);
 		} else {
 			fulltexth.hide();
 			fulltext.hide();
@@ -149,17 +150,24 @@ reposSearchStart = function() {
 
 reposSearchIdPrefix = ''; // if prefix is set in hook this must be the same, for use in id queries
 
-reposSearchTitles = function(query, resultDiv) {
+reposSearchTitles = function(tokens, resultDiv) {
 	// if IdPrefix is not set we can use repository base
 	reposSearchIdPrefix = reposSearchIdPrefix ||
 		$('meta[name=repos-base]').attr('content') + '/';
-	// serach on title or part of path
-	reposSearchAjax('/repos-search/?repossearch=title' + encodeURIComponent(':' + query)
-			+ encodeURIComponent(' OR id:' + reposSearchIdPrefix + '*' + query + '*'), resultDiv);
+	// search two different fields, title or part of path
+	var title = [];
+	var path = [];
+	for (i in tokens) {
+		title[i] = 'title:' + tokens[i];
+		path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
+	}
+	var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
+	reposSearchAjax('/repos-search/?repossearch=' + encodeURIComponent(query), resultDiv);
 };
 
-reposSearchFulltext = function(query, resultDiv) {
-	reposSearchAjax('/repos-search/?repossearch=text' + encodeURIComponent(':' + query), resultDiv);
+reposSearchFulltext = function(tokens, resultDiv) {
+	var query = 'text:' + tokens.join(' AND text:');
+	reposSearchAjax('/repos-search/?repossearch=' + encodeURIComponent(query), resultDiv);
 };
 
 reposSearchAjax = function(url, resultContainer) {
@@ -226,7 +234,7 @@ reposSearchPresentItem = function(json) {
 	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
 	if (json.title && json.title != m[3]) {
-		$('<span class="repos-search-resulttitle">').text('  ' + json.title).appendTo(li);
+		$('<span class="repos-search-resulttitle">').text('  ' + json.title).appendTo(li).before('<br >');
 	}
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
