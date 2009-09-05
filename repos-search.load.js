@@ -244,8 +244,7 @@ reposSearchPresentItem = function(json) {
 	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
 	if (json.title && json.title != m[3]) {
-		var title = $('<span class="repos-search-resulttitle">').text('  ' + json.title);
-		li.append(title);
+		$('<div class="repos-search-resulttitle"/>').text('  ' + json.title).appendTo(li);
 	}
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
