@@ -26,7 +26,8 @@ reposSearchFormCss = {
 	marginLeft: 10
 };
 reposSearchInputCss = {
-	background: "white url('/repos-search/magnifier.png') no-repeat right"
+	background: "white url('/repos-search/magnifier.png') no-repeat right",
+	verticalAlign: 'middle'
 };
 reposSearchDialogCss = {
 	position: 'absolute',
@@ -43,7 +44,7 @@ reposSearchDialogCss = {
 };
 reposSearchDialogTitleCss = {
 	width: '100%',
-	textAlign: 'center',
+	textAlign: 'center'
 };
 reposSearchDialogTitleLinkCss = {
 	textDecoration: 'none',
@@ -144,8 +145,17 @@ reposSearchStart = function() {
 	});
 	close.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
 	$('body').append(dialog);
+	if ($.browser.msie) reposSearchIEFix(dialog);
 	// publish page wide event so extensions can get hold of search events
 	$().trigger('repos-search-started', [dialog[0], titles[0], fulltext[0]]);
+};
+
+reposSearchIEFix = function(dialog) {
+	// is there jQuery feature detection for checkbox onchange event?
+	$('input[type=checkbox]', dialog).click(function(ev) {
+		ev.stopPropagation();
+		$(this).attr('checked', $(this).is(':checked')).trigger('change');
+	});
 };
 
 reposSearchIdPrefix = ''; // if prefix is set in hook this must be the same, for use in id queries
@@ -157,7 +167,7 @@ reposSearchTitles = function(tokens, resultDiv) {
 	// search two different fields, title or part of path
 	var title = [];
 	var path = [];
-	for (i in tokens) {
+	for (i = 0; i < tokens.length; i++) {
 		title[i] = 'title:' + tokens[i];
 		path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
 	}
@@ -234,7 +244,8 @@ reposSearchPresentItem = function(json) {
 	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
 	if (json.title && json.title != m[3]) {
-		$('<span class="repos-search-resulttitle">').text('  ' + json.title).appendTo(li).before('<br >');
+		var title = $('<span class="repos-search-resulttitle">').text('  ' + json.title);
+		li.append(title);
 	}
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
