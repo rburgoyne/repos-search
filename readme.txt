@@ -1,6 +1,9 @@
 Repos Search (c) Staffan Olsson reposstyle.com
 
 
+For help use the mailing list found at http://reposstyle.com/
+
+
 Installation
 ------------
 

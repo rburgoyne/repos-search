@@ -24,13 +24,19 @@ from commands import getoutput
 import os
 import sys
 
-parser = OptionParser()
+usage = """Usage: python rebuild_index.py --indexer=svnhook.py -p REPO_PATH"""
+
+parser = OptionParser(usage)
 # all arguments will be forwarded to the indexer, except -i
 parser.add_option("", "--indexer", dest="indexer", default="svnhook.py",
                   help="Execution path to the indexing script. "
                   + "Optional but if set it must be the first argument. Default: %default")
 parser.add_option("-p", "--repository", dest="repo",
                   help="Local repository path")
+
+if len(sys.argv) < 2:
+    parser.print_help()
+    sys.exit(2)
 
 # special treatment in order to keep arguments for indexer
 # found no option in OptonParser to let unknown arguments through
