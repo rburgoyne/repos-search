@@ -465,6 +465,9 @@
         alternately, change the type="ignored" to some other type e.g. "text" if you want 
         unknown fields indexed and/or stored by default --> 
    <!--dynamicField name="*" type="ignored" multiValued="true" /-->
+
+   <!-- Repos Search fileds for subversion metadata -->
+   <field name="svnrevision" type="long" indexed="true" stored="true"/>
    
  </fields>
 

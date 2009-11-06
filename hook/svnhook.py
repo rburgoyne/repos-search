@@ -79,7 +79,9 @@ def submitDelete(path):
 def submitContents(path):
     """path could be a folder so we should handle that"""
 
-    params = {"literal.id": path, "commit": "true"}
+    params = {"literal.id": path, 
+              "literal.svnrevision": options.rev,
+              "commit": "true"}
     # path should begin with slash so that base can be prepended
     # this means that for indexes containing repo name paths do not begin with slash 
     if base:
