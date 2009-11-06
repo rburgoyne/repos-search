@@ -55,7 +55,8 @@ def index(req, repossearch=None, target=None, rev=None, base=None):
 def getSettings():
     
     return {"solrhost": "localhost",
-            "solrport": 8983,
-            "solrapp": "/solr/",
-            "schema": ""}
+            # servlet container port
+            "solrport": 8080,
+            # solr webapp + core path
+            "solrapp": "/solr/svnhead/"}
 

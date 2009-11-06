@@ -46,7 +46,7 @@ parser.add_option("", "--svnlook", dest="svnlook", default="/usr/bin/svnlook",
     help="The svnlook command, default: %default")
 parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
     help="The curl command, default: %default")
-parser.add_option("", "--solr", dest="solr", default="http://localhost:8983/solr/",
+parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/svnhead/",
     help="Solr host, port and schema. Default: %default")
 
 """ global variables """
