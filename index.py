@@ -58,5 +58,6 @@ def getSettings():
             # servlet container port
             "solrport": 8080,
             # solr webapp + core path
-            "solrapp": "/solr/svnhead/"}
+            "solrapp": "/solr/",
+            "schema": "svnhead/"}
 
