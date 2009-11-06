@@ -396,6 +396,16 @@
          any data added to them will be ignored outright.  --> 
     <fieldtype name="ignored" stored="false" indexed="false" multiValued="true" class="solr.StrField" /> 
 
+	<!-- Repos Search field types -->
+
+	<!-- this removes everything that is preceded by a slash,
+	in other words it keeps only the name when given a path. -->
+	<fieldType name="nameFromPath" class="solr.TextField">
+		<analyzer>
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
+		</analyzer>
+	</fieldType>
+
  </types>
 
 
@@ -427,7 +437,9 @@
    -->
 
    <field name="id" type="string" indexed="true" stored="true" required="true" /> 
-   <field name="name" type="textgen" indexed="true" stored="true"/>
+   <!-- the exact file or folder name for wildcard searches,
+		set by copyField from id -->
+   <field name="name" type="nameFromPath" indexed="true" stored="true"/>
 
 
    <!-- Common metadata fields, named specifically to match up with
@@ -467,6 +479,7 @@
    <!--dynamicField name="*" type="ignored" multiValued="true" /-->
 
    <!-- Repos Search fileds for subversion metadata -->
+   <field name="nameExact" type="nameFromPath" indexed="true" stored="false"/>   
    <field name="svnrevision" type="long" indexed="true" stored="true"/>
    
  </fields>
@@ -486,8 +499,8 @@
         is added to the index.  It's used either to index the same field differently,
         or to add multiple fields to the same field for easier/faster searching.  -->
 
-   <copyField source="name" dest="text"/>
-	
+   <copyField source="id" dest="name"/>
+   
    <!-- Above, multiple source fields are copied to the [text] field. 
 	  Another way to map multiple source fields to the same 
 	  destination field is to use the dynamic field syntax. 

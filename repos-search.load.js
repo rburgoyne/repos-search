@@ -158,20 +158,28 @@ reposSearchIEFix = function(dialog) {
 	});
 };
 
-reposSearchIdPrefix = ''; // if prefix is set in hook this must be the same, for use in id queries
+reposSearchRestrictPath = ''; // if prefix is set in hook this must be the same, for use in id queries
 
 reposSearchTitles = function(tokens, resultDiv) {
-	// if IdPrefix is not set we can use repository base
-	reposSearchIdPrefix = reposSearchIdPrefix ||
-		$('meta[name=repos-base]').attr('content') + '/';
+	// Restrict hits to same repository if meta is set 
+	// and unless a restriction is already configured
+	var reposBase = $('meta[name=repos-base]').attr('content');
+	reposSearchRestrictPath = reposSearchRestrictPath || reposBase + '/*';
 	// search two different fields, title or part of path
 	var title = [];
 	var path = [];
 	for (i = 0; i < tokens.length; i++) {
 		title[i] = 'title:' + tokens[i];
-		path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
+		//path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
+		// Name ending with wildcard by default is reasonable because exact
+		// filenames with extension will rarely produce false positives anyway
+		path[i] = 'name:' + tokens[i] + '*';
 	}
+	// currently tokens are ANDed together which might be too restrictive on name searches
 	var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
+	if (reposSearchRestrictPath) {
+		query = "id:" + reposSearchRestrictPath + " AND (" + query + ")";
+	}
 	reposSearchAjax('/repos-search/?repossearch=' + encodeURIComponent(query), resultDiv);
 };
 
