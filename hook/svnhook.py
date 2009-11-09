@@ -29,6 +29,7 @@ from subprocess import PIPE
 import re
 from tempfile import NamedTemporaryFile
 from urllib import urlencode
+import xml.dom.minidom
 
 """ hook options """
 parser = OptionParser()
@@ -72,6 +73,16 @@ ch.setLevel(level)
 ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
 logger.addHandler(ch)
 
+def getProplist(repo, rev, path):
+    xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % rev, repo, path], stdout=PIPE).communicate()[0]
+    return proplistToDict(xml)
+
+def proplistToDict(xmlsource):
+    dom = xml.dom.minidom.parseString(xmlsource)
+    p = dict()
+    for n in dom.getElementsByTagName('property'):
+        p[n.getAttribute('name')] = n.firstChild and n.firstChild.nodeValue
+    return p
 
 def submitDelete(path):
     logger.warn('Delete not implemented. File %s will remain in search index.' % path)
@@ -86,6 +97,10 @@ def submitContents(path):
     # this means that for indexes containing repo name paths do not begin with slash 
     if base:
         params["literal.id"] = base + params["literal.id"]
+
+    props = getProplist(options.repo, rev, path)
+    for p in props.keys():
+        params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p]
 
     cat = NamedTemporaryFile('wb')
     logger.debug("Writing %s to temp %s" % (path, cat.name))    
