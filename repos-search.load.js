@@ -164,7 +164,7 @@ reposSearchTitles = function(tokens, resultDiv) {
 	// Restrict hits to same repository if meta is set 
 	// and unless a restriction is already configured
 	var reposBase = $('meta[name=repos-base]').attr('content');
-	reposSearchRestrictPath = reposSearchRestrictPath || reposBase + '/*';
+	reposSearchRestrictPath = reposSearchRestrictPath || reposBase && reposBase + '/*';
 	// search two different fields, title or part of path
 	var title = [];
 	var path = [];

@@ -403,7 +403,8 @@
 	<fieldType name="nameFromPath" class="solr.TextField">
 		<analyzer>
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
-		</analyzer>
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>		
 	</fieldType>
 
  </types>
