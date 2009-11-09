@@ -437,9 +437,9 @@
    -->
 
    <field name="id" type="string" indexed="true" stored="true" required="true" /> 
-   <!-- the exact file or folder name for wildcard searches,
-		set by copyField from id -->
-   <field name="name" type="nameFromPath" indexed="true" stored="true"/>
+   <!-- Exact file or folder name for wildcard searches, set by copyField from id.
+   		With copyField, stored="true" is not used because it returns same as id -->
+   <field name="name" type="nameFromPath" indexed="true" stored="false"/>
 
 
    <!-- Common metadata fields, named specifically to match up with
