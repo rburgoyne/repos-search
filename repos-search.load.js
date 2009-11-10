@@ -180,12 +180,12 @@ reposSearchTitles = function(tokens, resultDiv) {
 	if (reposSearchRestrictPath) {
 		query = "id:" + reposSearchRestrictPath + " AND (" + query + ")";
 	}
-	reposSearchAjax('/repos-search/?repossearch=' + encodeURIComponent(query), resultDiv);
+	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query), resultDiv);
 };
 
 reposSearchFulltext = function(tokens, resultDiv) {
 	var query = 'text:' + tokens.join(' AND text:');
-	reposSearchAjax('/repos-search/?repossearch=' + encodeURIComponent(query), resultDiv);
+	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query), resultDiv);
 };
 
 reposSearchAjax = function(url, resultContainer) {

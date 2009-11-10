@@ -24,9 +24,9 @@ from mod_python import apache
 import httplib
 import urllib
 
-def index(req, repossearch=None, target=None, rev=None, base=None):
+def index(req, q=None, target=None, rev=None, base=None):
     
-    if not repossearch:
+    if not q:
         return "Query ('repossearch' parameter) is required"
     # target and rev is currently not used but repos gui is encouraged to send it 
 
@@ -34,7 +34,7 @@ def index(req, repossearch=None, target=None, rev=None, base=None):
     
     # http.client in python 3.x
     url = settings["solrapp"] + settings["schema"] + "select/"
-    params = {"version": "2.2", "wt":"json", "q": repossearch, "start": 0, "rows": 10, "indent": "on"}
+    params = {"version": "2.2", "wt":"json", "q": q, "start": 0, "rows": 10, "indent": "on"}
     # filter on repository for SVNParentPath setups
     if base:
         params["fq"] = "id:%s/*" % base
