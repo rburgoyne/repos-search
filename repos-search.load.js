@@ -158,13 +158,10 @@ reposSearchIEFix = function(dialog) {
 	});
 };
 
-reposSearchRestrictPath = ''; // if prefix is set in hook this must be the same, for use in id queries
-
 reposSearchTitles = function(tokens, resultDiv) {
-	// Restrict hits to same repository if meta is set 
-	// and unless a restriction is already configured
+	// Get search context from page metadata
 	var reposBase = $('meta[name=repos-base]').attr('content');
-	reposSearchRestrictPath = reposSearchRestrictPath || reposBase && reposBase + '/*';
+	var reposTarget = $('meta[name=repos-target]').attr('content');
 	// search two different fields, title or part of path
 	var title = [];
 	var path = [];
@@ -177,10 +174,12 @@ reposSearchTitles = function(tokens, resultDiv) {
 	}
 	// currently tokens are ANDed together which might be too restrictive on name searches
 	var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
-	if (reposSearchRestrictPath) {
-		query = "id:" + reposSearchRestrictPath + " AND (" + query + ")";
-	}
-	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query), resultDiv);
+	// seach context for use in proxy
+	var context = reposTarget ? '&target=' + encodeURIComponent(reposTarget) : '';
+	// we could restrict matches to current repository in the query, but the proxy knows more about schema internals
+	context += reposBase ? '&base=' + reposBase : '';
+	// execute search
+	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query) + context, resultDiv);
 };
 
 reposSearchFulltext = function(tokens, resultDiv) {
