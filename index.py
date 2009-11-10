@@ -25,6 +25,13 @@ import httplib
 import urllib
 
 def index(req, q=None, target=None, rev=None, base=None):
+    '''
+    @param q The query to Solr.
+    @param target Not used for query, but GUI may send it to indicate the search context
+    @param rev The revision to search in.
+        The schema does not support revisions by default because it would require lots of storage space.
+    @param base Optional repository name to restrict results to current repository.
+    '''
     
     if not q:
         return "Query ('repossearch' parameter) is required"
