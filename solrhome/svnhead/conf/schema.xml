@@ -487,7 +487,10 @@
    <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
    <!-- override for specific properties -->
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
-   <field name="svnprop_svn_mime-type" type="textgen" indexed="true" stored="true"/>
+   <field name="svnprop_svn_mime-type" type="string" indexed="true" stored="true"/>
+   
+   <!-- one field to search all metadata deemed interesting -->
+   <field name="metadata" type="textgen" indexed="true" stored="false" multiValued="true"/>
    
  </fields>
 
@@ -507,6 +510,14 @@
         or to add multiple fields to the same field for easier/faster searching.  -->
 
    <copyField source="id" dest="name"/>
+   
+   <!-- metadata from tika -->
+   <copyField source="title" dest="metadata"/>
+   <copyField source="subject" dest="metadata"/>
+   <copyField source="description" dest="metadata"/>
+   <copyField source="keywords" dest="metadata"/>
+   <!-- metadata from subversion -->
+   <copyField source="svnprop_*" dest="metadata"/>
    
    <!-- Above, multiple source fields are copied to the [text] field. 
 	  Another way to map multiple source fields to the same 
