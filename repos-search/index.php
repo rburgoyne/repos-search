@@ -15,7 +15,8 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 
-Proxies searces to Solr
+Trivial proxy for Solr queries: has access to the webapp, 
+adds query defaults, filters on base if available. 
 $LastChangedRevision$
  */
 
