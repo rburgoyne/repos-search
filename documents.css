@@ -1,0 +1,95 @@
+/* style derived from docstyle.org */
+body {
+	background-color: #F4F4F4;
+	margin-left: 2%;
+	margin-right: 2%;
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+h1, h2, h3, p, ul, ol, table {
+	padding-top: 0em;
+	padding-bottom: 0.5em;
+	padding-left: 20px;
+	padding-right: 20px;
+	margin: 0px;
+	width: 720px;
+	background-color: #FFFFFF;
+	border-left: 2px solid #C4C4C4;
+	border-right: 3px solid #A4A4A4;
+}
+table {
+	padding-left: 0px;
+	padding-right: 0px;
+}
+ul, ol {
+	width: 690px;
+	padding-left: 50px;
+}
+/* text style */
+h1, h2, h3 {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-weight: normal;
+	padding-top: 1em;
+}
+h1 {
+	font-size: 2.4em;
+	font-weight: bold;
+	color: #556060;
+}
+h2, h3 {
+	color: #555555;
+}
+p, ul, ol {
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size: 0.99em;
+	color: #333333;
+}
+em {
+	font-weight: bold;
+	font-style: normal;
+	color: #666633;
+}
+code {
+	font-family: "Consolas", "Courier New", Courier, mono;
+	font-size: larger;
+}
+a {
+	color: #003399;
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+img {
+	border: 0px;	
+}
+/* inside p: align right, outside p: right of page */
+.right {
+	float: right;
+}
+#versions {
+	list-style: none;
+}
+#versions li {
+	padding-top: 0.3em;
+	padding-bottom: 0.5em;	
+}
+.revision {
+	color: #006600;
+	padding: 1px;
+	border: 1px dotted #cccc99;
+	font-family: Arial, Helvetica, sans-serif;
+}
+.username {
+	color: #663300;
+	padding-left: 18px;
+	background: url(commands/16x16/user.png) left no-repeat;
+}
+.datetime {
+	color: #666666;
+}
+#versions .datetime {
+	font-size: 82.5%;
+	margin-left: -10px;
+	margin-right: 10px;
+}

@@ -1,0 +1,103 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1" />
+<title>Repos Search - Fulltext search of documents in Subversion</title>
+<link type="text/css" rel="stylesheet" href="documents.css"/>
+<style type="text/css">
+h1 {
+	text-align: center;
+}
+table h3 {
+	width: auto;
+	border: none;
+	padding: 0px;
+}
+img.screenshot {
+	border: 1px dotted #666633;
+}
+#repos {
+	color: #666;
+}
+#search, h3, em {
+	color: #944;
+}
+#ads {
+	position: absolute;
+	top: 640px;
+	left: 820px;
+}
+ol li {
+	padding-top: .2em;
+	padding-bottom: .3em;
+}
+textarea {
+	width: 100%;
+	border: 1px solid gray;
+}
+.return {
+	font-size: smaller;
+}
+p.screenshot {
+	text-align: center;
+}
+.caption {
+	font-size: smaller;
+	font-style: italic;	
+}
+</style>
+
+</head>
+
+<body>
+<h1><span id="repos">Repos</span><span id="search">Search</span> &nbsp; &nbsp; </h1>
+<p>This Open Source project delivers <em>Fulltext search</em> to Subversion repositories.
+Document formats likr PDF and Word are supported, 
+thanks to Apache <a href="http://lucene.apache.org/solr/">Solr</a> and <a href="http://lucene.apache.org/tika/">Tika</a>.
+</p>
+
+<p class="screenshot">
+<a title="Click to enlarge" href="search_with_reposstyle.png">
+<img class="screenshot" src="search_with_reposstyle.png" width="335" height="272"/>
+</a><br />
+<span class="caption">Screenshot of Repos Search integrated into <a href="http://reposstyle.com/">Repos Style</a></span>
+</p>
+
+<h2 id="getstarted">Getting started with Repos Search beta</h2>
+<p>Jump right to the <a href="documentation.html">documentation</a>.</p>
+
+<h2>Kown issues</h2>
+<p>To be addressed before leaving beta stage:</p>
+<ul>
+<li>Deleted files are not deleted from index (they won't be in the stable release either, but the delete should be marked with a revision number)</li>
+<li>Only the top 10 results are displayed, with no link to display the rest</li>
+<li>Filename search is case sensitive</li>
+<li>For SVNParentPath, filename search needs to know the repository name. It looks for page meta containing the value of @base:<br/>
+<code>&lt;meta name="repos-base" content="{/svn/index/@base}" /&gt;</code><br />
+These tags are included in <a href="http://reposstyle.com/">Repos Style</a> since version 2.2.</li>
+<li>Old documents are not removed when rebuilding index from revision 0 (but they are overwritten)</li>
+</ul>
+
+<h2>Customizing</h2>
+<ul>
+<li>Add css for the repos-search elements</li>
+<li>Override the global objects and functions reposSearch* from the javascript</li>
+</ul>
+
+<h2 id="community">Community</h2>
+<p>During beta phase we assume integration with the sister project Repos Style. Please use that <a href="http://groups.google.com/group/reposstyle">mailing list</a>.</p>
+
+<h2>License</h2>
+<p>Repos Search is <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
+
+<p>&nbsp;</p>
+<p>&nbsp;</p>
+
+<!-- Woopra Code Start -->
+<script type="text/javascript">
+var _wh = ((document.location.protocol=='https:') ? "https://sec1.woopra.com" : "http://static.woopra.com");
+document.write(unescape("%3Cscript src='" + _wh + "/js/woopra.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<!-- Woopra Code End -->
+</body>
+</html>
