@@ -24,6 +24,17 @@
 -->
 <solr persistent="false">
 
+  <!-- 
+    This is a sample solr.xml from Repos Search (http://repossearch.com).
+	Use containing folder as -Dsolr.solr.home to run default cores.
+    
+	To add Repos Search indexing to an existing Solr instance
+	copy these schemas to your existing solr.home.
+	
+	To set custom path(s) for index storage,
+	set dataDir attributes on the core nodes.
+  -->
+
   <!--
   adminPath: RequestHandler path to manage cores.  
     If 'null' (or absent), cores will not be manageable via REST
