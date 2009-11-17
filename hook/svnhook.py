@@ -20,6 +20,28 @@ http://wiki.apache.org/solr/ExtractingRequestHandler
 $LastChangedRevision$
 """
 
+'''
+The hook is designed to index anything from the repository
+history that might be relevant to search for.
+
+Indexing performance is assumed to be of minor importance.
+Index size can be reduced by modifying the hook logic, but a
+better options is to customize the schema for example by
+settings fields to type "ignore".
+
+Comments about the "svnrev" schema are design notes, but
+indexing of revision properties and diff is not implemented yet.
+
+The hook consists of three components, kept together in a
+single script for ease of inclusino from post-commit hook:
+* Repository access
+* Handlers for changes
+* Solr communication
+* Startup from command line
+
+Use rebuild_index.py to reindex a repository from revision 0 to HEAD.
+'''
+
 import logging
 import logging.handlers
 import os
@@ -50,28 +72,117 @@ parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/svnhead/",
     help="Solr host, port and schema. Default: %default")
 
-""" global variables """
-(options, args) = parser.parse_args()
-if options.repo is None:
-    parser.print_help()
-    sys.exit(2)
+def optionsPreprocess(options):
+    '''
+    Derives additional options needed in functions below.
+    Raises exception on invalid or missing options.
+    '''
+    pass
 
-""" set up logger """
-LEVELS = {'debug': logging.DEBUG,
-          'info': logging.INFO,
-          'warning': logging.WARNING,
-          'error': logging.ERROR,
-          'critical': logging.CRITICAL}
-level = LEVELS.get(options.loglevel)
-if not level:
-    raise NameError("Invalid log level %s" % options.loglevel)
-logger = logging.getLogger("Repos Search hook")
-logger.setLevel(level)
-# console
-ch = logging.StreamHandler()
-ch.setLevel(level)
-ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-logger.addHandler(ch)
+
+### ----- hook backend to read from repository ----- ###
+
+def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
+    '''
+    Iterates through repository revision and calls the given handlers
+    for parse events: new revision and changed path in revision.
+    
+    This script is called for a single revision so there will only be one
+    call to revisionHandler.
+    '''
+    pass
+
+def repositoryDiff(options, revision, path):
+    '''
+    Returns diff for revision-1:revision as plaintext for the given path
+    '''
+    pass
+
+def repositoryGetFile(options, revision, path):
+    '''
+    Returns contents as NamedTemporaryFile that will be deleted on close()
+    '''
+    pass
+
+def repositoryGetProplist(options, revision, path):
+    '''
+    Returns proplist as dictionary with propname:value pairs
+    '''
+    pass
+
+
+### ----- event handlers for results from backend ----- ###
+
+def handleRevision(options, revision, revprops):
+    '''
+    Event handler for new historical revision in repository,
+    called in ascending revision number order.
+    
+    Revision properties should be indexed in svnrev schema at id
+    [prefix][base]/[revision number]
+    '''
+    pass
+
+def handlePathEntry(options, revision, path, action, propaction):
+    '''
+    Event handler for changed path in revision.
+    Path is unicode with leading slash, trailing slash for folders.
+    Action is one of the subversion characters [ADU] or whitespace.
+    
+    Contents and current property values should be indexed in svnhead
+    schema at [prefix][base][path]
+    
+    Diff for the path at this revision should be indexed in svnrev
+    '''
+    pass
+
+def handlePathEntryDelete(options, revision, path):
+    '''
+    Handles indexing of file deletion.
+    '''
+    pass
+
+### ----- cummunication with indexing server ----- ###
+
+def curlPathEntryAdd(options, revision, path):
+    pass
+
+def curlPathEntryUpdate(optons, revision, path):
+    pass
+
+def curlPathEntrySendContents(optons, revision, path):
+    pass
+
+def curlPathEntryDelete(options, revision, path):
+    pass
+
+
+### ----- hook start from post-commit arguments ----- ###
+
+if __name__ == '__main__':
+    """ global variables """
+    (options, args) = parser.parse_args()
+    if options.repo is None:
+        parser.print_help()
+        sys.exit(2)
+    
+    
+    """ set up logger """
+    LEVELS = {'debug': logging.DEBUG,
+              'info': logging.INFO,
+              'warning': logging.WARNING,
+              'error': logging.ERROR,
+              'critical': logging.CRITICAL}
+    level = LEVELS.get(options.loglevel)
+    if not level:
+        raise NameError("Invalid log level %s" % options.loglevel)
+    logger = logging.getLogger("Repos Search hook")
+    logger.setLevel(level)
+    # console
+    ch = logging.StreamHandler()
+    ch.setLevel(level)
+    ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    logger.addHandler(ch)
 
 def getProplist(repo, rev, path):
     xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % rev, repo, path], stdout=PIPE).communicate()[0]
@@ -123,27 +234,28 @@ def submitContents(path):
     logger.info("Successfully indexed id: %s" % params["literal.id"]);
 
 
-""" set up repository connection """
-repo = options.repo.rstrip("/")
-base = None
-if not options.nobase:
-    base = os.path.basename(repo)
-rev = long(options.rev)
-logger.info("Repository '%s' base '%s' rev %d" % (repo, base, rev))
-
-changedp = Popen([options.svnlook, "changed", "-r %d" % rev, repo], stdout=PIPE)
-changed = changedp.communicate()[0]
-
-""" read changes """
-changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
-for change in changed.splitlines():
-    m = changematch.match(change);
-    c = m.group(1)
-    p = "/" + m.group(3)
-    logger.debug("%s%s  %s" % m.groups())
-    if c is "D":
-        submitDelete(p)
-        continue
-    if c is "A" or "U":
-        submitContents(p)
+if __name__ == '__main__':
+    """ set up repository connection """
+    repo = options.repo.rstrip("/")
+    base = None
+    if not options.nobase:
+        base = os.path.basename(repo)
+    rev = long(options.rev)
+    logger.info("Repository '%s' base '%s' rev %d" % (repo, base, rev))
     
+    changedp = Popen([options.svnlook, "changed", "-r %d" % rev, repo], stdout=PIPE)
+    changed = changedp.communicate()[0]
+    
+    """ read changes """
+    changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
+    for change in changed.splitlines():
+        m = changematch.match(change);
+        c = m.group(1)
+        p = "/" + m.group(3)
+        logger.debug("%s%s  %s" % m.groups())
+        if c is "D":
+            submitDelete(p)
+            continue
+        if c is "A" or "U":
+            submitContents(p)
+        
