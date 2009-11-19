@@ -103,22 +103,19 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   This script is called for a single revision so there will only be one
   call to revisionHandler.
   '''
+  options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
   changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
   changed = changedp.communicate()[0]
-  # assuming utf8
+  # assuming utf8 system locale
   changed = changed.decode('utf8')
+  # event, revprop support not implemented
+  revisionHandler(options, options.rev, dict())
 
   changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
   for change in changed.splitlines():
     m = changematch.match(change);
-    c = m.group(1)
     p = "/" + m.group(3)
-    options.logger.debug("%s%s  %s" % m.groups())
-    if c == 'D':
-      submitDelete(p)
-      continue
-    if c == 'A' or c == 'U':
-      submitContents(p)
+    pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
 
 def repositoryDiff(options, revision, path):
     '''
@@ -150,18 +147,27 @@ def handleRevision(options, revision, revprops):
     '''
     pass
 
-def handlePathEntry(options, revision, path, action, propaction, isfile=True):
-    '''
-    Event handler for changed path in revision.
-    Path is unicode with leading slash, trailing slash for folders.
-    Action is one of the subversion characters [ADU] or whitespace.
-    
-    Contents and current property values should be indexed in svnhead
-    schema at [prefix][base][path]
-    
-    Diff for the path at this revision should be indexed in svnrev
-    '''
-    pass
+def handlePathEntry(options, revision, path, action, propaction, isfile):
+  '''
+  Event handler for changed path in revision.
+  Path is unicode with leading slash, trailing slash for folders.
+  Action is one of the subversion characters [ADU] or whitespace.
+  
+  Contents and current property values should be indexed in svnhead
+  schema at [prefix][base][path]
+  
+  Diff for the path at this revision should be indexed in svnrev
+  '''
+  if not isfile:
+    options.logger.debug('Ignoring folder %s' % path)
+    return
+  options.logger.debug("%s%s  %s" % (action, propaction, path))
+  if action == 'D':
+    submitDelete(path)
+  elif action == 'A':
+    submitContents(path)
+  elif action == 'U':
+    submitContents(path)
 
 def handlePathEntryDelete(options, revision, path):
     '''
@@ -261,6 +267,5 @@ def submitContents(path):
 if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
-  optionsPreprocess(options)    
-  options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
+  optionsPreprocess(options)
   repositoryHistoryReader(options, handleRevision, handlePathEntry)
