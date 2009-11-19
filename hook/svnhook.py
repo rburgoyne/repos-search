@@ -210,7 +210,7 @@ def submitDelete(path):
 def submitContents(path):
     """path could be a folder so we should handle that"""
 
-    path = path.encode('utf-8') # to avoid error from urlencode "UnicodeEncodeError: 'ascii' codec can't encode character u'\xf6' in position 4: ordinal not in range(128)"
+    path = path.encode('utf8') # to avoid error from urlencode "UnicodeEncodeError: 'ascii' codec can't encode character u'\xf6' in position 4: ordinal not in range(128)"
     params = {"literal.id": path, 
               "literal.svnrevision": options.rev,
               "commit": "true"}
@@ -221,7 +221,7 @@ def submitContents(path):
 
     props = getProplist(options.repo, options.rev, path)
     for p in props.keys():
-        params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p]
+        params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
 
     cat = NamedTemporaryFile('wb')
     options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
@@ -253,6 +253,8 @@ if __name__ == '__main__':
     
     changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
     changed = changedp.communicate()[0]
+    # handle locale
+    changed = changed.decode('utf8')
     
     """ read changes """
     changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
