@@ -33,7 +33,7 @@ Comments about the "svnrev" schema are design notes, but
 indexing of revision properties and diff is not implemented yet.
 
 The hook consists of three components, kept together in a
-single script for ease of inclusino from post-commit hook:
+single script for ease of inclusion from post-commit hook:
 * Repository access
 * Handlers for changes
 * Solr communication
@@ -72,13 +72,26 @@ parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/svnhead/",
     help="Solr host, port and schema. Default: %default")
 
+def getOptions():
+    (options, args) = parser.parse_args()
+    if options.repo is None:
+        print >> sys.stderr, __doc__
+        parser.print_help()
+        sys.exit(2)
+    return options
+
 def optionsPreprocess(options):
     '''
     Derives additional options needed in functions below.
     Raises exception on invalid or missing options.
     '''
-    pass
-
+    # normalize repository path
+    options.repo = options.repo.rstrip("/")
+    # derive base from repo path
+    if not options.nobase:
+        options.base = os.path.basename(options.repo)
+    # only numeric revisions supported
+    options.rev = long(options.rev)
 
 ### ----- hook backend to read from repository ----- ###
 
@@ -110,7 +123,6 @@ def repositoryGetProplist(options, revision, path):
     '''
     pass
 
-
 ### ----- event handlers for results from backend ----- ###
 
 def handleRevision(options, revision, revprops):
@@ -123,7 +135,7 @@ def handleRevision(options, revision, revprops):
     '''
     pass
 
-def handlePathEntry(options, revision, path, action, propaction):
+def handlePathEntry(options, revision, path, action, propaction, isfile=True):
     '''
     Event handler for changed path in revision.
     Path is unicode with leading slash, trailing slash for folders.
@@ -159,15 +171,11 @@ def curlPathEntryDelete(options, revision, path):
 
 ### ----- hook start from post-commit arguments ----- ###
 
-if __name__ == '__main__':
-    """ global variables """
-    (options, args) = parser.parse_args()
-    if options.repo is None:
-        parser.print_help()
-        sys.exit(2)
-    
-    
-    """ set up logger """
+def getLogger(options):    
+    """ 
+    Set up logger based on options 
+    and store the instance in options.logger
+    """
     LEVELS = {'debug': logging.DEBUG,
               'info': logging.INFO,
               'warning': logging.WARNING,
@@ -183,7 +191,8 @@ if __name__ == '__main__':
     ch.setLevel(level)
     ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
     logger.addHandler(ch)
-
+    options.logger = logger
+    
 def getProplist(repo, rev, path):
     xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % rev, repo, path], stdout=PIPE).communicate()[0]
     return proplistToDict(xml)
@@ -192,58 +201,57 @@ def proplistToDict(xmlsource):
     dom = xml.dom.minidom.parseString(xmlsource)
     p = dict()
     for n in dom.getElementsByTagName('property'):
-        p[n.getAttribute('name')] = n.firstChild and n.firstChild.nodeValue
+        p[n.getAttribute('name')] = n.firstChild and n.firstChild.nodeValue or ''
     return p
 
 def submitDelete(path):
-    logger.warn('Delete not implemented. File %s will remain in search index.' % path)
+    options.logger.warn('Delete not implemented. File %s will remain in search index.' % path)
 
 def submitContents(path):
     """path could be a folder so we should handle that"""
 
+    path = path.encode('utf-8') # to avoid error from urlencode "UnicodeEncodeError: 'ascii' codec can't encode character u'\xf6' in position 4: ordinal not in range(128)"
     params = {"literal.id": path, 
               "literal.svnrevision": options.rev,
               "commit": "true"}
     # path should begin with slash so that base can be prepended
     # this means that for indexes containing repo name paths do not begin with slash 
-    if base:
-        params["literal.id"] = base + params["literal.id"]
+    if options.base:
+        params["literal.id"] = options.base + params["literal.id"]
 
-    props = getProplist(options.repo, rev, path)
+    props = getProplist(options.repo, options.rev, path)
     for p in props.keys():
         params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p]
 
     cat = NamedTemporaryFile('wb')
-    logger.debug("Writing %s to temp %s" % (path, cat.name))    
-    catp = Popen([options.svnlook, "cat", "-r %d" % rev, repo, path], stdout=cat)
+    options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
+    catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
     catp.communicate()
     if not catp.returncode is 0:
-        logger.debug("Cat failed for %s. It must be a folder." % (path))
+        options.logger.debug("Cat failed for %s. It must be a folder." % (path))
         return
 
     # post contents with curl as in solr example
     cat.flush()
     curl = options.curl
-    if logger.getEffectiveLevel() is logging.DEBUG:
+    if options.logger.getEffectiveLevel() is logging.DEBUG:
         curl = curl + " -v"
     result = os.system("%s '%supdate/extract?%s' -F 'myfile=@%s'"
               % (curl, options.solr, urlencode(params), cat.name))
     if result:
         raise NameError("Failed to submit document to index, got %d" % result)
     cat.close()
-    logger.info("Successfully indexed id: %s" % params["literal.id"]);
-
+    options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
 
 if __name__ == '__main__':
     """ set up repository connection """
-    repo = options.repo.rstrip("/")
-    base = None
-    if not options.nobase:
-        base = os.path.basename(repo)
-    rev = long(options.rev)
-    logger.info("Repository '%s' base '%s' rev %d" % (repo, base, rev))
+    options = getOptions()
+    getLogger(options)
+    optionsPreprocess(options)
     
-    changedp = Popen([options.svnlook, "changed", "-r %d" % rev, repo], stdout=PIPE)
+    options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
+    
+    changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
     changed = changedp.communicate()[0]
     
     """ read changes """
@@ -252,7 +260,7 @@ if __name__ == '__main__':
         m = changematch.match(change);
         c = m.group(1)
         p = "/" + m.group(3)
-        logger.debug("%s%s  %s" % m.groups())
+        options.logger.debug("%s%s  %s" % m.groups())
         if c is "D":
             submitDelete(p)
             continue
