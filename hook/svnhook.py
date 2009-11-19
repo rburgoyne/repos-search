@@ -96,14 +96,29 @@ def optionsPreprocess(options):
 ### ----- hook backend to read from repository ----- ###
 
 def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
-    '''
-    Iterates through repository revision and calls the given handlers
-    for parse events: new revision and changed path in revision.
-    
-    This script is called for a single revision so there will only be one
-    call to revisionHandler.
-    '''
-    pass
+  '''
+  Iterates through repository revision and calls the given handlers
+  for parse events: new revision and changed path in revision.
+  
+  This script is called for a single revision so there will only be one
+  call to revisionHandler.
+  '''
+  changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
+  changed = changedp.communicate()[0]
+  # assuming utf8
+  changed = changed.decode('utf8')
+
+  changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
+  for change in changed.splitlines():
+    m = changematch.match(change);
+    c = m.group(1)
+    p = "/" + m.group(3)
+    options.logger.debug("%s%s  %s" % m.groups())
+    if c == 'D':
+      submitDelete(p)
+      continue
+    if c == 'A' or c == 'U':
+      submitContents(p)
 
 def repositoryDiff(options, revision, path):
     '''
@@ -244,28 +259,8 @@ def submitContents(path):
     options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
 
 if __name__ == '__main__':
-    """ set up repository connection """
-    options = getOptions()
-    getLogger(options)
-    optionsPreprocess(options)
-    
-    options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
-    
-    changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
-    changed = changedp.communicate()[0]
-    # handle locale
-    changed = changed.decode('utf8')
-    
-    """ read changes """
-    changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
-    for change in changed.splitlines():
-        m = changematch.match(change);
-        c = m.group(1)
-        p = "/" + m.group(3)
-        options.logger.debug("%s%s  %s" % m.groups())
-        if c is "D":
-            submitDelete(p)
-            continue
-        if c is "A" or "U":
-            submitContents(p)
-        
+  options = getOptions()
+  getLogger(options)
+  optionsPreprocess(options)    
+  options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
+  repositoryHistoryReader(options, handleRevision, handlePathEntry)
