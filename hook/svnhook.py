@@ -54,6 +54,8 @@ import re
 from tempfile import NamedTemporaryFile
 from urllib import urlencode
 import xml.dom.minidom
+import httplib
+from urlparse import urlparse
 
 """ hook options """
 parser = OptionParser()
@@ -194,7 +196,7 @@ def handleFileDelete(options, revision, path):
   '''
   Handles indexing of file deletion.
   '''
-  options.logger.warn('Delete not implemented. File %s will remain in search index.' % path)
+  indexDelete_curl(options, revision, path)
 
 def handleFileAdd(options, revision, path):
   indexSubmitFile_curl(options, revision, path)
@@ -215,9 +217,28 @@ def indexGetId(options, revision, path):
   return id  
 
 def indexDelete_curl(options, revision, path):
-  raise NameError('not implemented')
+  schema = options.solr + options.schemahead + '/'
+  id = indexGetId(options, revision, path)
+  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>parentId:%s</id></delete>' % id
+  u = urlparse(schema)
+  h = httplib.HTTPConnection(u.netloc)
+  h.putrequest('POST', u.path + 'update')
+  h.putheader('content-type', 'text/xml; charset=UTF-8')
+  h.putheader('content-length', str(len(doc)))
+  h.endheaders()
+  h.send(doc)
+  response = h.getresponse()
+  responseBody = response.read()
+  h.close()
+  if response.status == 200:
+    options.logger.info("Deleted from index %s" % id)
+    options.logger.warn('Delete has not been tested')
+  else:
+    options.logger.error("%d %s" % (response.status, responseBody))
+  indexCommmit(options, schema)
 
 def indexSubmitFile_curl(optons, revision, path):
+  schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
   params = {"literal.id": id.encode('utf8'), 
             "literal.svnrevision": revision,
@@ -227,7 +248,6 @@ def indexSubmitFile_curl(optons, revision, path):
   for p in props.keys():
     params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
 
-  schema = options.solr + options.schemahead + '/'
   contents = repositoryGetFile(options, revision, path)
   curlp = check_call(getCurlCommand(options) + [
          '%supdate/extract?%s' % (schema, urlencode(params)),
@@ -242,6 +262,22 @@ def getCurlCommand(options):
   if options.logger.getEffectiveLevel() is logging.DEBUG:
     curl = curl + ['-v']
   return curl
+
+def indexCommmit(options, schema):
+  '''
+  Issues commit command to Solr to make recent indexing searchable.
+  '''
+  u = urlparse(schema)
+  h = httplib.HTTPConnection(u.netloc)
+  h.putrequest('POST', u.path +'update')
+  h.putheader('content-type', 'text/xml; charset=UTF-8')
+  h.putheader('content-length', 9)
+  h.endheaders()
+  h.send('<commit/>')
+  c = h.getresponse()
+  c.read()
+  h.close()
+  options.logger.debug("commit status %d" % c.status)
 
 ### ----- hook start from post-commit arguments ----- ###
 
