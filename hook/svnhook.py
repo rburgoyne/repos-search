@@ -229,16 +229,18 @@ def indexSubmitFile_curl(optons, revision, path):
 
   schema = options.solr + options.schemahead + '/'
   contents = repositoryGetFile(options, revision, path)
-  curloutput = check_call(getCurlCommand(options) + [
+  curlp = check_call(getCurlCommand(options) + [
          '%supdate/extract?%s' % (schema, urlencode(params)),
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
   options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
   
 def getCurlCommand(options):
-  curl = [options.curl]
+  curl = [options.curl, '-s', '-S']
+  # ignore output of response xml (we could also capture it using Popen to get QTime)
+  curl = curl + ['-o', '/dev/null']
   if options.logger.getEffectiveLevel() is logging.DEBUG:
-    curl = curl + [" -v"]
+    curl = curl + ['-v']
   return curl
 
 ### ----- hook start from post-commit arguments ----- ###
