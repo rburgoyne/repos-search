@@ -70,8 +70,10 @@ parser.add_option("", "--svnlook", dest="svnlook", default="/usr/bin/svnlook",
     help="The svnlook command, default: %default")
 parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
     help="The curl command, default: %default")
-parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/svnhead/",
-    help="Solr host, port and schema. Default: %default")
+parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
+    help="Solr host, port and root path. With trailing slash. Default: %default")
+parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
+    help="The fulltext schema name in solr root or multicore root. Default: %default")
 
 def getOptions():
     (options, args) = parser.parse_args()
@@ -224,9 +226,10 @@ def indexSubmitFile_curl(optons, revision, path):
   for p in props.keys():
     params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
 
+  schema = options.solr + options.schemahead + '/'
   contents = repositoryGetFile(options, revision, path)
   result = os.system("%s '%supdate/extract?%s' -F 'myfile=@%s'"
-            % (getCurlCommand(options), options.solr, urlencode(params), contents.name))
+            % (getCurlCommand(options), schema, urlencode(params), contents.name))
   if result:
       raise NameError("Failed to submit document to index, got %d" % result)
   contents.close()
