@@ -219,7 +219,7 @@ def indexGetId(options, revision, path):
 def indexDelete_curl(options, revision, path):
   schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
-  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>parentId:%s</id></delete>' % id
+  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % id
   u = urlparse(schema)
   h = httplib.HTTPConnection(u.netloc)
   h.putrequest('POST', u.path + 'update')
@@ -232,7 +232,6 @@ def indexDelete_curl(options, revision, path):
   h.close()
   if response.status == 200:
     options.logger.info("Deleted from index %s" % id)
-    options.logger.warn('Delete has not been tested')
   else:
     options.logger.error("%d %s" % (response.status, responseBody))
   indexCommmit(options, schema)
@@ -274,10 +273,10 @@ def indexCommmit(options, schema):
   h.putheader('content-length', 9)
   h.endheaders()
   h.send('<commit/>')
-  c = h.getresponse()
-  c.read()
+  r = h.getresponse()
+  r.read()
   h.close()
-  options.logger.debug("commit status %d" % c.status)
+  options.logger.debug("commit status %d" % r.status)
 
 ### ----- hook start from post-commit arguments ----- ###
 
