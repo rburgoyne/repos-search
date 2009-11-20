@@ -42,6 +42,7 @@ single script for ease of inclusion from post-commit hook:
 Use rebuild_index.py to reindex a repository from revision 0 to HEAD.
 '''
 
+import sys
 import logging
 import logging.handlers
 import os
@@ -75,7 +76,7 @@ parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr
 def getOptions():
     (options, args) = parser.parse_args()
     if options.repo is None:
-        print >> sys.stderr, __doc__
+        print(__doc__)
         parser.print_help()
         sys.exit(2)
     return options
@@ -95,6 +96,7 @@ def optionsPreprocess(options):
 
 ### ----- hook backend to read from repository ----- ###
 
+
 def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   '''
   Iterates through repository revision and calls the given handlers
@@ -110,7 +112,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   changed = changed.decode('utf8')
   # event, revprop support not implemented
   revisionHandler(options, options.rev, dict())
-
+  # parse change list into path events
   changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
   for change in changed.splitlines():
     m = changematch.match(change);
@@ -127,13 +129,29 @@ def repositoryGetFile(options, revision, path):
     '''
     Returns contents as NamedTemporaryFile that will be deleted on close()
     '''
-    pass
+    cat = NamedTemporaryFile('wb')
+    options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
+    catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
+    catp.communicate()
+    if not catp.returncode is 0:
+        options.logger.debug("Cat failed for %s. It must be a folder." % (path))
+        return
+    cat.flush()
+    return cat
 
 def repositoryGetProplist(options, revision, path):
-    '''
-    Returns proplist as dictionary with propname:value pairs
-    '''
-    pass
+  '''
+  Returns proplist as dictionary with propname:value pairs
+  '''
+  xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path], stdout=PIPE).communicate()[0]
+  return proplistToDict(xml)
+
+def proplistToDict(xmlsource):
+  dom = xml.dom.minidom.parseString(xmlsource)
+  p = dict()
+  for n in dom.getElementsByTagName('property'):
+    p[n.getAttribute('name')] = n.firstChild and n.firstChild.nodeValue or ''
+  return p
 
 ### ----- event handlers for results from backend ----- ###
 
@@ -163,32 +181,62 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
     return
   options.logger.debug("%s%s  %s" % (action, propaction, path))
   if action == 'D':
-    submitDelete(path)
+    handleFileDelete(options, options.rev, path)
   elif action == 'A':
-    submitContents(path)
+    handleFileAdd(options, options.rev, path)
   elif action == 'U':
-    submitContents(path)
+    handleFileChange(options, options.rev, path)
 
-def handlePathEntryDelete(options, revision, path):
-    '''
-    Handles indexing of file deletion.
-    '''
-    pass
+def handleFileDelete(options, revision, path):
+  '''
+  Handles indexing of file deletion.
+  '''
+  options.logger.warn('Delete not implemented. File %s will remain in search index.' % path)
+
+def handleFileAdd(options, revision, path):
+  indexSubmitFile_curl(options, revision, path)
+
+def handleFileChange(optins, revision, path):
+  indexSubmitFile_curl(options, revision, path)
 
 ### ----- cummunication with indexing server ----- ###
 
-def curlPathEntryAdd(options, revision, path):
-    pass
+def indexGetId(options, revision, path):
+  '''
+  Path should begin with slash so that base can be prepended.
+  This means that for indexes containing repo name paths do not begin with slash.
+  '''
+  id = path
+  if options.base:
+    id = options.base + id
+  return id  
 
-def curlPathEntryUpdate(optons, revision, path):
-    pass
+def indexDelete_curl(options, revision, path):
+  raise NameError('not implemented')
 
-def curlPathEntrySendContents(optons, revision, path):
-    pass
+def indexSubmitFile_curl(optons, revision, path):
+  id = indexGetId(options, revision, path)
+  params = {"literal.id": id.encode('utf8'), 
+            "literal.svnrevision": revision,
+            "commit": "true"}
 
-def curlPathEntryDelete(options, revision, path):
-    pass
+  props = repositoryGetProplist(options, revision, path)
+  for p in props.keys():
+    params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
 
+  contents = repositoryGetFile(options, revision, path)
+  result = os.system("%s '%supdate/extract?%s' -F 'myfile=@%s'"
+            % (getCurlCommand(options), options.solr, urlencode(params), contents.name))
+  if result:
+      raise NameError("Failed to submit document to index, got %d" % result)
+  contents.close()
+  options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
+  
+def getCurlCommand(options):
+  curl = options.curl
+  if options.logger.getEffectiveLevel() is logging.DEBUG:
+    curl = curl + " -v"
+  return curl
 
 ### ----- hook start from post-commit arguments ----- ###
 
@@ -214,56 +262,6 @@ def getLogger(options):
     logger.addHandler(ch)
     options.logger = logger
     
-def getProplist(repo, rev, path):
-    xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % rev, repo, path], stdout=PIPE).communicate()[0]
-    return proplistToDict(xml)
-
-def proplistToDict(xmlsource):
-    dom = xml.dom.minidom.parseString(xmlsource)
-    p = dict()
-    for n in dom.getElementsByTagName('property'):
-        p[n.getAttribute('name')] = n.firstChild and n.firstChild.nodeValue or ''
-    return p
-
-def submitDelete(path):
-    options.logger.warn('Delete not implemented. File %s will remain in search index.' % path)
-
-def submitContents(path):
-    """path could be a folder so we should handle that"""
-
-    path = path.encode('utf8') # to avoid error from urlencode "UnicodeEncodeError: 'ascii' codec can't encode character u'\xf6' in position 4: ordinal not in range(128)"
-    params = {"literal.id": path, 
-              "literal.svnrevision": options.rev,
-              "commit": "true"}
-    # path should begin with slash so that base can be prepended
-    # this means that for indexes containing repo name paths do not begin with slash 
-    if options.base:
-        params["literal.id"] = options.base + params["literal.id"]
-
-    props = getProplist(options.repo, options.rev, path)
-    for p in props.keys():
-        params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
-
-    cat = NamedTemporaryFile('wb')
-    options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
-    catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
-    catp.communicate()
-    if not catp.returncode is 0:
-        options.logger.debug("Cat failed for %s. It must be a folder." % (path))
-        return
-
-    # post contents with curl as in solr example
-    cat.flush()
-    curl = options.curl
-    if options.logger.getEffectiveLevel() is logging.DEBUG:
-        curl = curl + " -v"
-    result = os.system("%s '%supdate/extract?%s' -F 'myfile=@%s'"
-              % (curl, options.solr, urlencode(params), cat.name))
-    if result:
-        raise NameError("Failed to submit document to index, got %d" % result)
-    cat.close()
-    options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
-
 if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
