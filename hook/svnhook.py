@@ -49,6 +49,7 @@ import os
 from optparse import OptionParser
 from subprocess import Popen
 from subprocess import PIPE
+from subprocess import check_call
 import re
 from tempfile import NamedTemporaryFile
 from urllib import urlencode
@@ -228,17 +229,16 @@ def indexSubmitFile_curl(optons, revision, path):
 
   schema = options.solr + options.schemahead + '/'
   contents = repositoryGetFile(options, revision, path)
-  result = os.system("%s '%supdate/extract?%s' -F 'myfile=@%s'"
-            % (getCurlCommand(options), schema, urlencode(params), contents.name))
-  if result:
-      raise NameError("Failed to submit document to index, got %d" % result)
+  curloutput = check_call(getCurlCommand(options) + [
+         '%supdate/extract?%s' % (schema, urlencode(params)),
+         '-F', 'myfile=@%s' % contents.name])
   contents.close()
   options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
   
 def getCurlCommand(options):
-  curl = options.curl
+  curl = [options.curl]
   if options.logger.getEffectiveLevel() is logging.DEBUG:
-    curl = curl + " -v"
+    curl = curl + [" -v"]
   return curl
 
 ### ----- hook start from post-commit arguments ----- ###
