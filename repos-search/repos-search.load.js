@@ -15,7 +15,8 @@
  */
 
 /**
- * Include in Repos Style header to get a search box in the menu bar.
+ * Sample search interface for Repos Search.
+ * Add this script to Repos Style head to get a search box in the menu bar.
  * Requires jQuery 1.3+
  * $LastChangedRevision$
  */
@@ -62,21 +63,28 @@ reposSearchListCss = {
 	listStylePosition: 'inside'
 };
 
+
 $().ready(function() {
 	reposSearchShow();
 });
 
-reposSearchShow = function() {
-	// the page that includes Repos Search can provide an element with
-	// class "repos-search-container" to control the placement of the input box
-	var container = $('.repos-search-container').add('#commandbar').add('body').eq(0);
-	var box = $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss);
-	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>').append(box);
-	form.css(reposSearchFormCss).appendTo(container); // TODO display settings should be set in css
-	// urlMode appends the query to browser's location so back button is supported
-	// urlMode works if the page has no other query parameters
-	var urlMode = true;
-	if (urlMode) {
+reposSearchShow = function(options) {
+	var settings = {
+		// the small search box in the container
+		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss),
+		
+		// the page that includes Repos Search can provide an element with
+		// class "repos-search-container" to control the placement of the input box
+		boxparent: $('.repos-search-container').add('#commandbar').add('body').eq(0),
+		
+		// urlMode appends the query to browser's location so back button is supported
+		urlMode: true 
+	};
+	$.extend(settings, options);
+	
+	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>').append(settings.box);
+	form.css(reposSearchFormCss).appendTo(settings.boxparent); // TODO display settings should be set in css
+	if (settings.urlMode) {
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
 			// repossearch is the last query parameter
@@ -107,15 +115,38 @@ reposSearchSubmit = function(ev) {
 };
 
 reposSearchStart = function() {
+	// query types
+	var titles = {
+		id: 'titles',
+		name: 'Titles',
+		headline: 'Titles matching',
+		getTokens: function(query) {
+			return query.match(/[^\s"']+|"[^"]+"/g);
+		},
+		getSolrQuery: function(tokens) {
+			// search two different fields, title or part of path
+			var title = [];
+			var path = [];
+			for (i = 0; i < tokens.length; i++) {
+				title[i] = 'title:' + tokens[i];
+				//path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
+				// Name ending with wildcard by default is reasonable because exact
+				// filenames with extension will rarely produce false positives anyway
+				path[i] = 'name:' + tokens[i] + '*';
+			}
+			// currently tokens are ANDed together which might be too restrictive on name searches
+			var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
+			return query;
+		}
+	};
+	// get input
 	var query = $('#repos-search-input').val();
 	if (!query) return;
-	var tokens = query.match(/[^\s"']+|"[^"]+"/g);
 	// create search result container
 	reposSearchClose(false);
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
-	var titles = $('<div id="repos-search-titles"/>');
-	reposSearchTitles(tokens, titles);
+	var titlesdiv = reposSearchQuery(titles, query);
 	// build results layout
 	var title = $('<div class="repos-search-dialog-title"/>').css(reposSearchDialogTitleCss)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
@@ -125,7 +156,7 @@ reposSearchStart = function() {
 	title.append(close);
 	//dialog.append('<h1>Search results</h1>'); // would be better as title bar
 	$('<h2/>').text('Titles matching ').append($('<em/>').text(query)).appendTo(dialog);
-	dialog.append(titles);
+	dialog.append(titlesdiv);
 	var fulltexth = $('<h2/>').text('Documents containing ').append($('<em/>').text(query)).hide();
 	var fulltext = $('<div id="repos-search-fulltext"/>');
 	var enablefulltext = $('<input id="repos-search-fulltext-enable" type="checkbox">').change(function() {
@@ -140,7 +171,7 @@ reposSearchStart = function() {
 	});
 	$('<p/>').append(enablefulltext).append('<label for="enablefulltext"> Search contents</label>').appendTo(dialog);
 	dialog.append(fulltexth).append(fulltext);
-	titles.bind('repos-search-noresults', function() {
+	titlesdiv.bind('repos-search-noresults', function() {
 		enablefulltext.attr('checked', true).trigger('change');
 	});
 	close.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
@@ -158,28 +189,22 @@ reposSearchIEFix = function(dialog) {
 	});
 };
 
-reposSearchTitles = function(tokens, resultDiv) {
+reposSearchQuery = function(type, query) {
+	var resultDiv = $('<div id="repos-search-' + type.id + '"/>');
 	// Get search context from page metadata
 	var reposBase = $('meta[name=repos-base]').attr('content');
 	var reposTarget = $('meta[name=repos-target]').attr('content');
-	// search two different fields, title or part of path
-	var title = [];
-	var path = [];
-	for (i = 0; i < tokens.length; i++) {
-		title[i] = 'title:' + tokens[i];
-		//path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
-		// Name ending with wildcard by default is reasonable because exact
-		// filenames with extension will rarely produce false positives anyway
-		path[i] = 'name:' + tokens[i] + '*';
-	}
-	// currently tokens are ANDed together which might be too restrictive on name searches
-	var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
+	// Build query
+	var tokens = type.getTokens(query);
+	var q = encodeURIComponent(type.getSolrQuery(tokens));
 	// seach context for use in proxy
 	var context = reposTarget ? '&target=' + encodeURIComponent(reposTarget) : '';
 	// we could restrict matches to current repository in the query, but the proxy knows more about schema internals
 	context += reposBase ? '&base=' + reposBase : '';
 	// execute search
-	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query) + context, resultDiv);
+	reposSearchAjax('/repos-search/?q=' + q + context, resultDiv);
+	// return the container where results will be displayed
+	return resultDiv;
 };
 
 reposSearchFulltext = function(tokens, resultDiv) {
@@ -235,13 +260,18 @@ reposSearchResults = function(json, resultContainer) {
 
 /**
  * Produce the element that presents a search hit.
- * To customize, replace this method in a script block below Repos Search import.
+ * 
+ * The element is also a microformat for processing in repos-search-result event handlers:
+ * $('.repos-search-resultbase').text() contains the base
+ * $('.repos-search-resultpath').text() contains path to file excluding filename
+ * $('.repos-search-resultfile').text() contains filename
+ * 
  * @param json the item from the solr "response.docs" array
  * @return jQuery element
  */
 reposSearchPresentItem = function(json) {
 	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
-	if (!m) return $("<li/>").text("Unknown match: " + json.id);
+	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>');
 	var root = '/svn';
 	if (m[1]) {
