@@ -69,6 +69,7 @@ $().ready(function() {
 });
 
 reposSearchShow = function(options) {
+	// presentation settings
 	var settings = {
 		// the small search box in the container
 		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss),
@@ -77,10 +78,18 @@ reposSearchShow = function(options) {
 		// class "repos-search-container" to control the placement of the input box
 		boxparent: $('.repos-search-container').add('#commandbar').add('body').eq(0),
 		
+		// how to get search terms from the input box
+		getTokens: function() {
+			var query = $('#repos-search-input').val();
+			return query.match(/[^\s"']+|"[^"]+"/g);
+		},
+		
 		// urlMode appends the query to browser's location so back button is supported
-		urlMode: true 
+		urlMode: true
 	};
 	$.extend(settings, options);
+	// after refactoring settings should be an instance variable
+	this.reposSearchSettings = settings;
 	
 	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>').append(settings.box);
 	form.css(reposSearchFormCss).appendTo(settings.boxparent); // TODO display settings should be set in css
@@ -120,9 +129,6 @@ reposSearchStart = function() {
 		id: 'titles',
 		name: 'Titles',
 		headline: 'Titles matching',
-		getTokens: function(query) {
-			return query.match(/[^\s"']+|"[^"]+"/g);
-		},
 		getSolrQuery: function(tokens) {
 			// search two different fields, title or part of path
 			var title = [];
@@ -140,13 +146,14 @@ reposSearchStart = function() {
 		}
 	};
 	// get input
-	var query = $('#repos-search-input').val();
-	if (!query) return;
 	// create search result container
 	reposSearchClose(false);
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
-	var titlesdiv = reposSearchQuery(titles, query);
+	var tokens = this.reposSearchSettings.getTokens()
+	var titlesdiv = reposSearchQuery(titles, tokens);
+	// text for presentation
+	var query = tokens.join(' ');
 	// build results layout
 	var title = $('<div class="repos-search-dialog-title"/>').css(reposSearchDialogTitleCss)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
@@ -189,13 +196,12 @@ reposSearchIEFix = function(dialog) {
 	});
 };
 
-reposSearchQuery = function(type, query) {
+reposSearchQuery = function(type, tokens) {
 	var resultDiv = $('<div id="repos-search-' + type.id + '"/>');
 	// Get search context from page metadata
 	var reposBase = $('meta[name=repos-base]').attr('content');
 	var reposTarget = $('meta[name=repos-target]').attr('content');
 	// Build query
-	var tokens = type.getTokens(query);
 	var q = encodeURIComponent(type.getSolrQuery(tokens));
 	// seach context for use in proxy
 	var context = reposTarget ? '&target=' + encodeURIComponent(reposTarget) : '';
