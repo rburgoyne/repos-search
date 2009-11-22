@@ -79,7 +79,7 @@ reposSearchShow = function(options) {
 		boxparent: $('.repos-search-container').add('#commandbar').add('body').eq(0),
 		
 		// how to get search terms from the input box
-		getTokens: function() {
+		getTerms: function() {
 			var query = $('#repos-search-input').val();
 			return query.match(/[^\s"']+|"[^"]+"/g);
 		},
@@ -129,16 +129,16 @@ reposSearchStart = function() {
 		id: 'titles',
 		name: 'Titles',
 		headline: 'Titles matching',
-		getSolrQuery: function(tokens) {
+		getSolrQuery: function(terms) {
 			// search two different fields, title or part of path
 			var title = [];
 			var path = [];
-			for (i = 0; i < tokens.length; i++) {
-				title[i] = 'title:' + tokens[i];
-				//path[i] = 'id:' + reposSearchIdPrefix + '*' + tokens[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
+			for (i = 0; i < terms.length; i++) {
+				title[i] = 'title:' + terms[i];
+				//path[i] = 'id:' + reposSearchIdPrefix + '*' + terms[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
 				// Name ending with wildcard by default is reasonable because exact
 				// filenames with extension will rarely produce false positives anyway
-				path[i] = 'name:' + tokens[i] + '*';
+				path[i] = 'name:' + terms[i] + '*';
 			}
 			// currently tokens are ANDed together which might be too restrictive on name searches
 			var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
@@ -150,10 +150,10 @@ reposSearchStart = function() {
 	reposSearchClose(false);
 	var dialog = $('<div id="repos-search-dialog"/>').css(reposSearchDialogCss);
 	// start search request
-	var tokens = this.reposSearchSettings.getTokens()
-	var titlesdiv = reposSearchQuery(titles, tokens);
+	var terms = this.reposSearchSettings.getTerms()
+	var titlesdiv = reposSearchQuery(titles, terms);
 	// text for presentation
-	var query = tokens.join(' ');
+	var query = terms.join(' ');
 	// build results layout
 	var title = $('<div class="repos-search-dialog-title"/>').css(reposSearchDialogTitleCss)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
@@ -170,7 +170,7 @@ reposSearchStart = function() {
 		if ($(this).is(':checked')) {
 			fulltexth.show();
 			fulltext.show();
-			reposSearchFulltext(tokens, fulltext);
+			reposSearchFulltext(terms, fulltext);
 		} else {
 			fulltexth.hide();
 			fulltext.hide();
@@ -196,13 +196,13 @@ reposSearchIEFix = function(dialog) {
 	});
 };
 
-reposSearchQuery = function(type, tokens) {
+reposSearchQuery = function(type, terms) {
 	var resultDiv = $('<div id="repos-search-' + type.id + '"/>');
 	// Get search context from page metadata
 	var reposBase = $('meta[name=repos-base]').attr('content');
 	var reposTarget = $('meta[name=repos-target]').attr('content');
 	// Build query
-	var q = encodeURIComponent(type.getSolrQuery(tokens));
+	var q = encodeURIComponent(type.getSolrQuery(terms));
 	// seach context for use in proxy
 	var context = reposTarget ? '&target=' + encodeURIComponent(reposTarget) : '';
 	// we could restrict matches to current repository in the query, but the proxy knows more about schema internals
@@ -213,8 +213,8 @@ reposSearchQuery = function(type, tokens) {
 	return resultDiv;
 };
 
-reposSearchFulltext = function(tokens, resultDiv) {
-	var query = 'text:' + tokens.join(' AND text:');
+reposSearchFulltext = function(terms, resultDiv) {
+	var query = 'text:' + terms.join(' AND text:');
 	reposSearchAjax('/repos-search/?q=' + encodeURIComponent(query), resultDiv);
 };
 
