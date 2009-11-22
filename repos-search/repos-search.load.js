@@ -186,6 +186,10 @@ reposSearchStart = function(searchString) {
 	new ReposSearchQuery(schemes[0], searchTerms);
 };
 
+/**
+ * @param {Object} scheme Scheme properties including id
+ * @param {Array} terms Search terms
+ */
 function ReposSearchQuery(scheme, terms) {
 	// Get search context from page metadata
 	var reposBase = $('meta[name=repos-base]').attr('content');
@@ -199,16 +203,16 @@ function ReposSearchQuery(scheme, terms) {
 	// Execute search
 	var url = '/repos-search/?q=' + q + context;
 	// query
-	$().trigger('repos-search-query-sent', [scheme, terms]);
+	$().trigger('repos-search-query-sent', [scheme.id, terms]);
 	$.ajax({
 		url: url,
 		dataType: 'json',
 		success: function(json) {
-			$().trigger('repos-search-query-returned', [scheme, json]);
-			reposSearchResults(json, scheme);
+			$().trigger('repos-search-query-returned', [scheme.id, json]);
+			reposSearchResults(json, scheme.id);
 		},
 		error: function (xhr, textStatus, errorThrown) {
-			$().trigger('repos-search-query-failed', [scheme, xhr.status, xhr.statusText]);
+			$().trigger('repos-search-query-failed', [scheme.id, xhr.status, xhr.statusText]);
 		}
 	});
 };
@@ -233,14 +237,15 @@ function ReposSearchEventLogger(consoleApi) {
 	$().bind('repos-search-query-failed', function(ev, scheme, httpStatus, httpStatusText) {
 		logger.log(ev.type, sceme, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 	});
-	$().bind('repos-search-result', function(ev, microformatElement, solrDoc) {
+	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, scheme) {
 		var e = microformatElement;
 		logger.log(ev.type, e, 
 			'base=' + $('.repos-search-resultbase', e).text(),
 			'path=' + $('.repos-search-resultpath', e).text(),
 			'file=' + $('.repos-search-resultfile', e).text(),
 			solrDoc, 
-			'id=' + solrDoc.id);
+			'id=' + solrDoc.id,
+			scheme);
 	});
 	// Standard UI's events
 	$().bind('repos-search-dialog-opened', function() {
@@ -299,7 +304,7 @@ function ReposSearchDialog(options) {
 	});
 	
 	$().bind('repos-search-query-sent', function(ev, scheme, terms) {
-		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + scheme.id).addClass('repos-search-results');
+		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + scheme).addClass('repos-search-results');
 		$('<ul/>').css(reposSearchListCss).appendTo(schemediv);
 		$('<h2/>').text('Titles matching ').append($('<em/>').text(terms.join(' '))).appendTo(dialog);
 		dialog.append(schemediv);
@@ -348,7 +353,7 @@ reposSearchIEFix = function(dialog) {
 /**
  * Produces event for search result.
  * @param {String} json Response from Solr wt=json
- * @param {String} scheme Search scheme
+ * @param {String} scheme Search scheme id
  */
 reposSearchResults = function(json, scheme) {
 	var num = parseInt(json.response.numFound, 10);
@@ -360,7 +365,7 @@ reposSearchResults = function(json, scheme) {
 		var doc = json.response.docs[i];
 		var e = reposSearchPresentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
-		$().trigger('repos-search-result', [e[0], doc]); // event gets the element, not jQuery
+		$().trigger('repos-search-result', [e[0], doc, scheme]); // event gets the element, not jQuery
 	}
 };
 
