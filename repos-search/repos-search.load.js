@@ -182,8 +182,11 @@ reposSearchStart = function(searchString) {
 	}
 	// global initialize
 	$().trigger('repos-search-started', [searchString, schemeIds]);
-	// create search result container
+	// automatically start search using first scheme
 	new ReposSearchQuery(schemes[0], searchTerms);
+	// start the other schemes too
+	new ReposSearchQuery(schemes[1], searchTerms);
+	new ReposSearchQuery(schemes[2], searchTerms);
 };
 
 /**
@@ -228,16 +231,16 @@ function ReposSearchEventLogger(consoleApi) {
 	$().bind('repos-search-started', function(ev, searchString, schemeIds) {
 		logger.log(ev.type, searchString, schemeIds);
 	});
-	$().bind('repos-search-query-sent', function(ev, scheme, terms) {
-		logger.log(ev.type, scheme, terms);
+	$().bind('repos-search-query-sent', function(ev, schemeId, terms) {
+		logger.log(ev.type, schemeId, terms);
 	});
-	$().bind('repos-search-query-returned', function(ev, scheme, json) {
-		logger.log(ev.type, scheme, json);
+	$().bind('repos-search-query-returned', function(ev, schemeId, json) {
+		logger.log(ev.type, schemeId, json);
 	});
-	$().bind('repos-search-query-failed', function(ev, scheme, httpStatus, httpStatusText) {
-		logger.log(ev.type, sceme, 'status=' + httpStatus + ' statusText=' + httpStatusText);
+	$().bind('repos-search-query-failed', function(ev, schemeId, httpStatus, httpStatusText) {
+		logger.log(ev.type, schemeId, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 	});
-	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, scheme) {
+	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
 		var e = microformatElement;
 		logger.log(ev.type, e, 
 			'base=' + $('.repos-search-resultbase', e).text(),
@@ -245,7 +248,7 @@ function ReposSearchEventLogger(consoleApi) {
 			'file=' + $('.repos-search-resultfile', e).text(),
 			solrDoc, 
 			'id=' + solrDoc.id,
-			scheme);
+			schemeId);
 	});
 	// Standard UI's events
 	$().bind('repos-search-dialog-opened', function() {
@@ -296,36 +299,32 @@ function ReposSearchDialog(options) {
 		var closeAction = $('<div class="repos-search-close">close</div>').css(reposSearchCloseCss).click(close);
 		dialog.append(title);
 		title.append(closeAction);
-		closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
+		//closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
 		$('body').append(dialog);
 		if ($.browser.msie) reposSearchIEFix(dialog);
 		// publish page wide event so extensions can get hold of search events
 		$().trigger('repos-search-dialog-opened', [dialog[0]]);	
 	});
 	
-	$().bind('repos-search-query-sent', function(ev, scheme, terms) {
-		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + scheme).addClass('repos-search-results');
+	$().bind('repos-search-query-sent', function(ev, schemeId, terms) {
+		var scheme = knownSchemes[schemeId];
+		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + schemeId).addClass('repos-search-results');
 		$('<ul/>').css(reposSearchListCss).appendTo(schemediv);
-		$('<h2/>').text('Titles matching ').append($('<em/>').text(terms.join(' '))).appendTo(dialog);
+		$('<h2/>').text(scheme.headline || '').append('&nbsp;').append($('<em/>').text(terms.join(' '))).appendTo(dialog);
 		dialog.append(schemediv);
-		var fulltexth = $('<h2/>').text('Documents containing ').append($('<em/>').text(terms.join(' '))).hide();
-		var fulltext = $('<div id="repos-search-fulltext"/>');
+		/* TODO checkboxes for different search schemes
 		var enablefulltext = $('<input id="repos-search-ui-enable-fulltext" type="checkbox">').change(function(){
 			if ($(this).is(':checked')) {
-				fulltexth.show();
-				fulltext.show();
-				$().trigger('repos-search-ui-scheme-requested', ['fulltext']);
-			}
-			else {
-				fulltexth.hide();
-				fulltext.hide();
+			} else {
 			}
 		});
 		$('<p/>').append(enablefulltext).append('<label for="enablefulltext"> Search contents</label>').appendTo(dialog);
-		dialog.append(fulltexth).append(fulltext);
+		*/
+		/* TODO automatically trigger next search on no results?
 		schemediv.bind('repos-search-noresults', function() {
 			$().trigger('repos-search-ui-scheme-requested', ['fulltext']);
 		});
+		*/
 	});
 	
 	$().bind('repos-search-ui-scheme-requested', function(ev, schemeId) {
@@ -336,8 +335,9 @@ function ReposSearchDialog(options) {
 		}
 	});
 	
-	$().bind('repos-search-result', function(ev, microformatElement, solrDoc) {
-		$('#repos-search-results-title > ul').append(microformatElement);
+	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
+		var s = $('#repos-search-results-' + schemeId);
+		$('> ul', s).append(microformatElement);
 	});
 	
 }
