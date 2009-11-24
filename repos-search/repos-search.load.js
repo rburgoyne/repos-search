@@ -250,6 +250,9 @@ function ReposSearchEventLogger(consoleApi) {
 			'id=' + solrDoc.id,
 			schemeId);
 	});
+	$().bind('repos-search-result-truncated', function(ev, start, shown, numFound, schemeId) {
+		logger.log(ev.type, schemeId + ': showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
+	});
 	// Standard UI's events
 	$().bind('repos-search-dialog-opened', function() {
 		logger.log(arguments);
@@ -361,11 +364,15 @@ reposSearchResults = function(json, scheme) {
 		$().trigger('repos-search-noresults', [scheme]);
 		return;
 	}
-	for (var i = 0; i < num; i++) {
+	var n = json.response.docs.length;
+	for (var i = 0; i < n; i++) {
 		var doc = json.response.docs[i];
 		var e = reposSearchPresentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
 		$().trigger('repos-search-result', [e[0], doc, scheme]); // event gets the element, not jQuery
+	}
+	if (n < num) {
+		$().trigger('repos-search-result-truncated', [json.response.start, n, num, scheme]);
 	}
 };
 
