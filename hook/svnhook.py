@@ -191,7 +191,9 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
     handleFileAdd(options, options.rev, path)
   elif action == 'U':
     handleFileChange(options, options.rev, path)
-
+  elif propaction == 'U':
+    handleFileChange(options, options.rev, path)
+    
 def handleFileDelete(options, revision, path):
   '''
   Handles indexing of file deletion.
