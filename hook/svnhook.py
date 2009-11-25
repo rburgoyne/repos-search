@@ -198,7 +198,7 @@ def handleFileDelete(options, revision, path):
   '''
   Handles indexing of file deletion.
   '''
-  indexDelete_curl(options, revision, path)
+  indexDelete_httpclient(options, revision, path)
 
 def handleFileAdd(options, revision, path):
   indexSubmitFile_curl(options, revision, path)
@@ -218,7 +218,23 @@ def indexGetId(options, revision, path):
     id = options.base + id
   return id  
 
-def indexDelete_curl(options, revision, path):
+def indexEscapePropname(svnProperty):
+  '''
+  Escapes subversion property name to valid solr field name
+  
+  Colon is replaced with underscore.
+  Dash is also replaced with underscore because Solr does
+  the same implicitly when creating dynamic field.
+  
+  >>> indexEscapePropname('svn:mime-type')
+  'svn_mime_type'
+  
+  This results in a slight risk of conflict, for example if
+  properties wouls be svn:mime-type and svn_mime:type.
+  '''
+  return re.sub(r'[.:-]', '_', svnProperty)
+
+def indexDelete_httpclient(options, revision, path):
   schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
   doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % id
@@ -247,7 +263,7 @@ def indexSubmitFile_curl(optons, revision, path):
 
   props = repositoryGetProplist(options, revision, path)
   for p in props.keys():
-    params['literal.svnprop_' + re.sub(r'[.:]', '_', p)] = props[p].encode('utf8')
+    params['literal.svnprop_' + indexEscapePropname(p)] = props[p].encode('utf8')
 
   contents = repositoryGetFile(options, revision, path)
   curlp = check_call(getCurlCommand(options) + [

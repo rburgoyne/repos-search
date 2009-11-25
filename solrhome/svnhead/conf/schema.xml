@@ -485,7 +485,7 @@
    <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
    <!-- override for specific properties -->
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
-   <field name="svnprop_svn_mime-type" type="string" indexed="true" stored="true"/>
+   <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
    
    <!-- one field to search all metadata deemed interesting -->
    <field name="metadata" type="textgen" indexed="true" stored="false" multiValued="true"/>
