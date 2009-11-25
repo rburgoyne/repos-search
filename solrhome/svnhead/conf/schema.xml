@@ -480,9 +480,7 @@
    <!--dynamicField name="*" type="ignored" multiValued="true" /-->
 
    <!-- Repos Search fileds for subversion metadata -->
-   <field name="nameExact" type="nameFromPath" indexed="true" stored="false"/>   
    <field name="svnrevision" type="long" indexed="true" stored="true"/>
-   
    <!-- svn properties -->
    <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
    <!-- override for specific properties -->
