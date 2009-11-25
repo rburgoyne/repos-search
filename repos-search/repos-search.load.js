@@ -218,7 +218,7 @@ function ReposSearchQuery(scheme, terms) {
 			$().trigger('repos-search-query-failed', [scheme.id, xhr.status, xhr.statusText]);
 		}
 	});
-};
+}
 
 /**
  * Logs all Repos Search events with parameters.
@@ -268,7 +268,7 @@ function ReposSearchDialog(options) {
 		id: 'repos-search-dialog'
 	}, options);
 	
-	var knownSchemes = 	{
+	var knownSchemes = {
 		title: {
 			name: 'Titles',
 			description: 'Matches filenames that start with the search term' +
@@ -283,7 +283,7 @@ function ReposSearchDialog(options) {
 		metadata: {
 			name: 'Metadata',
 			description: 'Searches document metadata including subversion properties',
-			headline: 'Files with metadata',
+			headline: 'Files with metadata'
 		}
 	};
 	
@@ -399,7 +399,7 @@ reposSearchPresentItem = function(json) {
 	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
 	if (json.title && json.title != m[3]) {
-		$('<div class="repos-search-resulttitle"/>').text('  ' + json.title).appendTo(li);
+		$('<span class="repos-search-resulttitle"/>').text('  ' + json.title).appendTo(li);
 	}
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
