@@ -47,8 +47,9 @@
   <!-- Used to specify an alternate directory to hold all index data
        other than the default ./data under the Solr home.
        If replication is in use, this should match the replication configuration. -->
+  <!-- Commented out so that dataDir can be set per core in solr.xml
   <dataDir>${solr.data.dir:./solr/data}</dataDir>
-
+  -->
 
   <!-- WARNING: this <indexDefaults> section only provides defaults for index writers
        in general. See also the <mainIndex> section after that when changing parameters
