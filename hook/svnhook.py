@@ -56,6 +56,7 @@ from urllib import urlencode
 import xml.dom.minidom
 import httplib
 from urlparse import urlparse
+from xml.sax.saxutils import escape
 
 """ hook options """
 parser = OptionParser()
@@ -237,7 +238,8 @@ def indexEscapePropname(svnProperty):
 def indexDelete_httpclient(options, revision, path):
   schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
-  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % id
+  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id)
+  options.logger.debug(doc)
   u = urlparse(schema)
   h = httplib.HTTPConnection(u.netloc)
   h.putrequest('POST', u.path + 'update')
