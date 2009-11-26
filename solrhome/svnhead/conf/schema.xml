@@ -404,7 +404,15 @@
 		<analyzer>
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
 			<filter class="solr.LowerCaseFilterFactory"/>
-		</analyzer>		
+		</analyzer>	
+	</fieldType>
+
+	<!-- this extension rule produces undefined results if there is no . in filename -->
+	<fieldType name="extensionFromPath" class="solr.TextField">
+		<analyzer>
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\." />
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>	
 	</fieldType>
 
  </types>
@@ -441,7 +449,7 @@
    <!-- Exact file or folder name for wildcard searches, set by copyField from id.
    		With copyField, stored="true" is not used because it returns same as id -->
    <field name="name" type="nameFromPath" indexed="true" stored="false"/>
-
+   <field name="extension" type="extensionFromPath" indexed="true" stored="false"/>
 
    <!-- Common metadata fields, named specifically to match up with
      SolrCell metadata when parsing rich documents such as Word, PDF.
@@ -508,6 +516,7 @@
         or to add multiple fields to the same field for easier/faster searching.  -->
 
    <copyField source="id" dest="name"/>
+   <copyField source="id" dest="extension"/>
    
    <!-- metadata from tika -->
    <copyField source="title" dest="metadata"/>
