@@ -50,13 +50,14 @@ exit;
 header('Content-Type: text/plain');
 // the search
 $query = 'q='.rawurlencode($_GET['q']);
+$fq = '';
 if (isset($_GET['base'])) {
-	$query .= '&base='.$_GET['base']; // may not contain non-URI characters
+	$fq .= '&fq=id_repo:'.$_GET['base']; // may not contain non-URI characters
 }
 // search URI
 $url = "http://$solrhost:$solrport$solrapp$schema".'select/';
 // request parameters
-$url .= "?$query&wt=$wt&start=$start&rows=$rows&indent=$indent";
+$url .= "?$query$fq&wt=$wt&start=$start&rows=$rows&indent=$indent";
 
 $fp = fopen($url, 'r');
 fpassthru($fp);

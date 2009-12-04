@@ -398,12 +398,10 @@
 
 	<!-- Repos Search field types -->
 
-	<!-- this removes everything that is preceded by a slash,
-	in other words it keeps only the name when given a path. -->
-	<!-- note that name is not tokenized -->
-	<fieldType name="nameFromPath" class="solr.TextField">
+	<!-- prefix is anything up to the first slash, usually same as base -->
+	<fieldType name="prefixFromPath" class="solr.TextField">
 		<analyzer type="index">
-			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
+			<tokenizer class="solr.PatternTokenizerFactory" pattern="\/.*" />
 			<filter class="solr.LowerCaseFilterFactory"/>
 		</analyzer>	
 		<analyzer type="query">
@@ -455,9 +453,10 @@
    -->
 
    <field name="id" type="string" indexed="true" stored="true" required="true" /> 
-   <!-- Exact file or folder name for wildcard searches, set by copyField from id.
-   		With copyField, stored="true" is not used because it returns same as id -->
+   <!-- Exact file or folder name for wildcard searches -->
    <field name="name" type="textgen" indexed="true" stored="false"/>
+   <!-- Derived fields -->
+   <field name="id_repo" type="prefixFromPath" indexed="true" stored="false"/>
    <field name="extension" type="extensionFromPath" indexed="true" stored="false"/>
 
    <!-- Common metadata fields, named specifically to match up with
@@ -496,7 +495,7 @@
         unknown fields indexed and/or stored by default --> 
    <!--dynamicField name="*" type="ignored" multiValued="true" /-->
 
-   <!-- Repos Search fileds for subversion metadata -->
+   <!-- Repos Search fields for subversion metadata -->
    <field name="svnrevision" type="long" indexed="true" stored="true"/>
    <!-- svn properties -->
    <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
@@ -528,7 +527,8 @@
         is added to the index.  It's used either to index the same field differently,
         or to add multiple fields to the same field for easier/faster searching.  -->
 
-   <copyField source="id" dest="extension"/>
+   <copyField source="id" dest="id_repo"/>
+   <copyField source="name" dest="extension"/>
    
    <!-- default search -->
    <!-- Note that copy is done before analyzers run 
