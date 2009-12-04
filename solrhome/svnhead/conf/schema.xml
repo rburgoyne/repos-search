@@ -414,7 +414,7 @@
 	<!-- this extension rule produces undefined results if there is no . in filename -->
 	<fieldType name="extensionFromPath" class="solr.TextField">
 		<analyzer type="index">
-			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\." />
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\.(\w{1,5})$" group="1" />
 			<filter class="solr.LowerCaseFilterFactory"/>
 		</analyzer>
 		<analyzer type="query">
