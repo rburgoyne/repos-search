@@ -400,6 +400,7 @@
 
 	<!-- this removes everything that is preceded by a slash,
 	in other words it keeps only the name when given a path. -->
+	<!-- note that name is not tokenized -->
 	<fieldType name="nameFromPath" class="solr.TextField">
 		<analyzer type="index">
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
@@ -504,11 +505,11 @@
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
    <!-- properties that should be tokenized -->
    <dynamicField name="*_keywords" type="textgen" indexed="true" stored="true"/>
-   <!-- svn:keywords might be useful to search but are not worth storing -->
-   <field name="svnprop_svn_keywords" type="textgen" indexed="true" stored="false"/>
+   <!-- svn:keywords is not keywords for search -->
+   <field name="svnprop_svn_keywords" type="ignored"/>
    
-   <!-- one field to search all metadata deemed interesting -->
-   <field name="metadata" type="textgen" indexed="true" stored="false" multiValued="true"/>
+   <!-- use copyField rules to customize default search -->
+   <field name="default" type="textgen" indexed="true" stored="true" multiValued="true"/>
    
  </fields>
 
@@ -518,7 +519,7 @@
  <uniqueKey>id</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>text</defaultSearchField>
+ <defaultSearchField>default</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="OR"/>
@@ -530,13 +531,14 @@
    <copyField source="id" dest="name"/>
    <copyField source="id" dest="extension"/>
    
-   <!-- metadata from tika -->
-   <copyField source="title" dest="metadata"/>
-   <copyField source="subject" dest="metadata"/>
-   <copyField source="description" dest="metadata"/>
-   <copyField source="keywords" dest="metadata"/>
-   <!-- metadata from subversion -->
-   <copyField source="svnprop_*" dest="metadata"/>
+   <!-- default search -->
+   <!-- Note that copy is done before analyzers run 
+   		so it does copies matching "ignored" fields too
+		and a copyField dest can not be used as source -->
+   <copyField source="id" dest="default"/>
+   <copyField source="title" dest="default"/>
+   <copyField source="keywords" dest="default"/>
+   <copyField source="*_keywords" dest="default"/>
    
    <!-- Above, multiple source fields are copied to the [text] field. 
 	  Another way to map multiple source fields to the same 
