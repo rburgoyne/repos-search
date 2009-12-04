@@ -45,7 +45,7 @@
     that avoids logging every request
 -->
 
-<schema name="example" version="1.2">
+<schema name="svnhead" version="1.2">
   <!-- attribute "name" is the name of this schema and is only used for display purposes.
        Applications should change this to reflect the nature of the search collection.
        version="1.2" is Solr's version number for the schema syntax and semantics.  It should
@@ -401,18 +401,26 @@
 	<!-- this removes everything that is preceded by a slash,
 	in other words it keeps only the name when given a path. -->
 	<fieldType name="nameFromPath" class="solr.TextField">
-		<analyzer>
+		<analyzer type="index">
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\/" />
 			<filter class="solr.LowerCaseFilterFactory"/>
 		</analyzer>	
+		<analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>		
 	</fieldType>
 
 	<!-- this extension rule produces undefined results if there is no . in filename -->
 	<fieldType name="extensionFromPath" class="solr.TextField">
-		<analyzer>
+		<analyzer type="index">
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\." />
 			<filter class="solr.LowerCaseFilterFactory"/>
-		</analyzer>	
+		</analyzer>
+		<analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>
 	</fieldType>
 
  </types>
