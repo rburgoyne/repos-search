@@ -217,7 +217,16 @@ def indexGetId(options, revision, path):
   id = path
   if options.base:
     id = options.base + id
-  return id  
+  return id
+
+def indexGetName(path):
+  '''
+  Gets the file or folder name of an entry
+  
+  >>> indexGetName('/my/sample file.txt')
+  'sample file.txt'
+  '''
+  return path.rpartition('/')[2]
 
 def indexEscapePropname(svnProperty):
   '''
@@ -266,6 +275,9 @@ def indexSubmitFile_curl(optons, revision, path):
   props = repositoryGetProplist(options, revision, path)
   for p in props.keys():
     params['literal.svnprop_' + indexEscapePropname(p)] = props[p].encode('utf8')
+
+  name = indexGetName(path)
+  params['literal.name'] = name.encode('utf8')
 
   contents = repositoryGetFile(options, revision, path)
   curlp = check_call(getCurlCommand(options) + [
