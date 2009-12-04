@@ -52,7 +52,7 @@ header('Content-Type: text/plain');
 $query = 'q='.rawurlencode($_GET['q']);
 $fq = '';
 if (isset($_GET['base'])) {
-	$fq .= '&fq=id_repo:'.$_GET['base']; // may not contain non-URI characters
+	$fq .= '&fq=id_repo:'.rawurlencode($_GET['base']); // may be space separated
 }
 // search URI
 $url = "http://$solrhost:$solrport$solrapp$schema".'select/';

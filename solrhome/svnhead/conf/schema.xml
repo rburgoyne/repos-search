@@ -405,7 +405,7 @@
 		</analyzer>	
 		<analyzer type="query">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
-		</analyzer>		
+		</analyzer>
 	</fieldType>
 
 	<!-- this extension rule produces undefined results if there is no . in filename -->
