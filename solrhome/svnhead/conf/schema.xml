@@ -502,6 +502,10 @@
    <!-- override for specific properties -->
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
+   <!-- properties that should be tokenized -->
+   <dynamicField name="*_keywords" type="textgen" indexed="true" stored="true"/>
+   <!-- svn:keywords might be useful to search but are not worth storing -->
+   <field name="svnprop_svn_keywords" type="textgen" indexed="true" stored="false"/>
    
    <!-- one field to search all metadata deemed interesting -->
    <field name="metadata" type="textgen" indexed="true" stored="false" multiValued="true"/>
