@@ -398,9 +398,19 @@ reposSearchPresentItem = function(json) {
 	}
 	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
-	if (json.title && json.title != m[3]) {
-		$('<span class="repos-search-resulttitle"/>').text('  ' + json.title).appendTo(li);
-	}
+	// add all indexed info to hidded definition list
+	indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li).hide();
+	for (key in json) {
+		var cs = 'indexed_' + key;
+		$('<dt/>').addClass(cs).text(key).appendTo(indexed);
+		if (typeof json[key] == 'array') {
+			for (var i = 0; i < json[key].length; i++) {
+				$('<dd/>').addClass(cs).text("" + json[key][i]).appendTo(indexed);
+			}
+		} else {
+			$('<dd/>').addClass(cs).text("" + json[key]).appendTo(indexed);
+		}
+	}	
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
 	var d = m[3].lastIndexOf('.');
