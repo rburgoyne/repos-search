@@ -52,7 +52,7 @@ header('Content-Type: text/plain');
 // the search
 $query = 'q='.rawurlencode($_GET['q']);
 $fq = '';
-if (isset($_GET['base'])) {
+if (isset($_GET['base']) && $_GET['base']) {
 	$fq .= '&fq=id_repo:'.rawurlencode($_GET['base']); // may be space separated
 }
 // search URI

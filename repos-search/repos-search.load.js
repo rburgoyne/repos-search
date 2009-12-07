@@ -21,16 +21,48 @@
  * $LastChangedRevision$
  */
 
+/**
+ * @constructor
+var ReposSearch = function() {
+	this.init();
+};
+ReposSearch.options.onready = function() {
+		// default init
+	}
+};
+ */
+
+var ReposSearch = {
+	init: function(options) {
+		if (window.console && window.console.log) {
+			new ReposSearchEventLogger(console);
+		}
+		// use mini search input to invoke Repos Search
+		ReposSearch.SampleSearchBox({
+			submithandler: ReposSearch.LightUI
+		});
+	},
+	onready: function(){
+		ReposSearch.init();
+	}
+};
+
+$().ready(function() {
+	if (ReposSearch.onready) {
+		ReposSearch.onready();
+	}
+});
+
 // minimal style, enough for css theming to be optional
-reposSearchFormCss = {
+ReposSearch.FormCss = {
 	display: 'inline',
 	marginLeft: 10
 };
-reposSearchInputCss = {
+ReposSearch.InputCss = {
 	background: "white url('/repos-search/magnifier.png') no-repeat right",
 	verticalAlign: 'middle'
 };
-reposSearchDialogCss = {
+ReposSearch.DialogCss = {
 	position: 'absolute',
 	overflow: 'auto',
 	top: 50,
@@ -43,42 +75,250 @@ reposSearchDialogCss = {
 	backgroundColor: '#fff',
 	border: '2px solid #eee'
 };
-reposSearchDialogTitleCss = {
+ReposSearch.DialogTitleCss = {
 	width: '100%',
 	textAlign: 'center'
 };
-reposSearchDialogTitleLinkCss = {
+ReposSearch.DialogTitleLinkCss = {
 	textDecoration: 'none',
 	color: '#666'
 };
-reposSearchCloseCss = {
+ReposSearch.CloseCss = {
 	textAlign: 'right',
 	float: 'right',
 	fontSize: '82.5%',
 	cursor: 'pointer',
 	color: '#666'
 };
-reposSearchListCss = {
+ReposSearch.ListCss = {
 	listStyleType: 'none',
 	listStylePosition: 'inside'
 };
 
+/**
+ * Wraps the search request+response as a layer above
+ * installation settings.
+ * Provides accessors for the response structure and
+ * direct access to the docs array from the Solr response.
+ * 
+ * @param {Object} options Query parameters, success callback
+ * 
+ * @constructor
+ */
+function ReposSearchRequest(options) {
+	var instance = this;
+	// Get search context from page metadata
+	var reposBase = $('meta[name=repos-base]').attr('content');
+	var reposTarget = $('meta[name=repos-target]').attr('content');
+	// Request parameters
+	var params = {
+		// proxy
+		base: reposBase || '',
+		target: reposBase || '',
+		// solr
+		q: options.q,
+		qt: options.type || 'meta',
+		wt: 'json'
+	};
+	// Query the proxy
+	$.ajax({
+		url: '/repos-search/',
+		data: params,
+		dataType: 'json',
+		success: function(json) {
+			// old event
+			$().trigger('repos-search-query-returned', [params.qt, json]);
+			// new handling based on callback
+			instance.json = json;
+			options.success(instance);
+		},
+		error: function (xhr, textStatus, errorThrown) {
+			// old event
+			$().trigger('repos-search-query-failed', [params.qt, xhr.status, xhr.statusText]);
+		}
+	});
+	// Public response access methods
+	$.extend(instance, {
+		getDocs: function() {
+			return this.json.response.docs;
+		},
+		getStart: function() {
+			return this.json.response.start;
+		},
+		getNumFound: function() {
+			return this.json.response.numFound;
+		},
+		getNumReturned: function(){
+			return this.getDocs().length;
+		}
+	});
+};
 
-$().ready(function() {
-	if (window.console && window.console.log) {
-		new ReposSearchEventLogger(console);
+/**
+ * Takes the user's query and a result container and produces
+ * a series of search events.
+ * 
+ * Results are appended to the resultList using a
+ * microformat.
+ * 
+ * @param {String} type Query type: 'meta', 'content' or any other type from the Solr schema
+ * @param {String} userQuery The search query
+ * @param {Element|jQuery} resultList OL or UL, possibly containing old results
+ */
+function ReposSearchQuery(type, userQuery, resultList) {
+	listQ = $(resultList);
+	listE = listQ[0];
+	$().trigger('repos-search-started', [type, userQuery, listE]);
+	var r = new ReposSearchRequest({
+		type: type,
+		q: userQuery,
+		success: function(searchRequest) {
+			// This event can be used to hide previous results, if there are any
+			listQ.trigger('repos-search-query-returned', [searchRequest]);
+			ReposSearch.Results(searchRequest.json, listQ);
+		}
+	});
+	listQ.trigger('repos-search-query-sent', [r]);
+}
+
+/**
+ * Produces event for search result.
+ * @param {String} json Response from Solr wt=json
+ * @param {jQuery} listQ OL or UL, possibly containing old results
+ */
+ReposSearch.Results = function(json, listQ) {
+	// TODO move to query class
+	var num = parseInt(json.response.numFound, 10);
+	if (num === 0) {
+		listQ.trigger('repos-search-noresults');
+		return;
 	}
-	// set up results UI, single dialog instance
-	var ui = new ReposSearchDialog({});
-	// use mini search input to invoke Repos Search
-	reposSearchSampleSearchBox();
-});
+	var n = json.response.docs.length;
+	for (var i = 0; i < n; i++) {
+		var doc = json.response.docs[i];
+		var e = ReposSearch.presentItem(doc);
+		e.addClass(i % 2 ? 'even' : 'odd');
+		// TODO add to list
+		listQ.append(e);
+		listQ.trigger('repos-search-result', [e[0], doc]); // event gets the element, not jQuery
+	}
+	if (n < num) {
+		listQ.trigger('repos-search-result-truncated', [json.response.start, n, num]);
+	}
+};
 
-reposSearchSampleSearchBox = function(options) {
+ReposSearch.getPropFields = function(json) {
+	var f = [];
+	for (key in json) f.push(key);
+	f.sort(function(a, b) {
+		if (a == 'title') return -1;
+		if (b == 'title') return 1;
+		if (a < b) return -1;
+		return 1;
+	});
+	return f;
+}
+
+/**
+ * Produce the element that presents a search hit.
+ * 
+ * The element is also a microformat for processing in repos-search-result event handlers:
+ * $('.repos-search-resultbase').text() contains the base
+ * $('.repos-search-resultpath').text() contains path to file excluding filename
+ * $('.repos-search-resultfile').text() contains filename
+ * 
+ * @param json the item from the solr "response.docs" array
+ * @return jQuery element
+ */
+ReposSearch.presentItem = function(json) {
+	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
+	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
+	var li = $('<li/>');
+	var root = '/svn';
+	if (m[1]) {
+		root += '/' + m[1];
+		li.append('<a class="repos-search-resultbase" href="' + root + '">' + m[1] + '</a>');
+	}
+	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
+	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
+	// add all indexed info to hidded definition list
+	var indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li).hide();
+	var fields = ReposSearch.getPropFields(json);
+	for (var i = 0; i < fields.length; i++) {
+		var key = fields[i];
+		if (!json[key]) continue;
+		var cs = 'indexed_' + key;
+		$('<dt/>').addClass(cs).text(key).appendTo(indexed);
+		if (typeof json[key] == 'array') {
+			for (var j = 0; j < json[key].length; j++) {
+				$('<dd/>').addClass(cs).text("" + json[key][j]).appendTo(indexed);
+			}
+		} else {
+			$('<dd/>').addClass(cs).text("" + json[key]).appendTo(indexed);
+		}
+	}	
+	// file class and file-extension class for icons (compatible with Repos Style)
+	li.addClass('file');
+	var d = m[3].lastIndexOf('.');
+	if (d > 0 && d > m[3].length - 7) {
+		li.addClass('file-' + m[3].substr(d+1).toLowerCase());
+	}
+	return li;
+};
+
+/**
+ * Logs all Repos Search events with parameters.
+ * Also serves as a good event reference.
+ * @param {Object} consoleApi Firebug console or equivalent API
+ */
+function ReposSearchEventLogger(consoleApi) {
+	var logger = consoleApi;
+	// root event bound to document node
+	$().bind('repos-search-started', function(ev, type, userQuery, r) {
+		logger.log(ev.type, this, type, userQuery, r);
+		
+		$(r).bind('repos-search-query-sent', function(ev, searchRequest) {
+			logger.log(ev.type, this, searchRequest);
+		});
+		$(r).bind('repos-search-query-returned', function(ev, searchRequest) {
+			logger.log(ev.type, this, searchRequest);
+		});
+		$(r).bind('repos-search-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
+			logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
+		});
+		$(r).bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
+			var e = microformatElement;
+			logger.log(ev.type, this, e, 
+				'base=' + $('.repos-search-resultbase', e).text(),
+				'path=' + $('.repos-search-resultpath', e).text(),
+				'file=' + $('.repos-search-resultfile', e).text(),
+				solrDoc, 
+				'id=' + solrDoc.id,
+				schemeId);
+		});
+		$(r).bind('repos-search-result-truncated', function(ev, start, shown, numFound) {
+			logger.log(ev.type, this, 'showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
+		});
+	});
+	
+	// Standard UI's events
+	$().bind('repos-search-dialog-opened', function() {
+		logger.log(arguments);
+	});
+	$().bind('repos-search-query-wanted', function(ev, schemeId) {
+		logger.log(ev.type, schemeId);
+	});
+}
+
+/**
+ * Small search box that is suitable for integration with Repos Style.
+ * @param {Object} options
+ */
+ReposSearch.SampleSearchBox = function(options) {
 	// presentation settings
 	var settings = {
 		// the small search box in the container
-		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(reposSearchInputCss),
+		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(ReposSearch.InputCss),
 		
 		// the page that includes Repos Search can provide an element with
 		// class "repos-search-container" to control the placement of the input box
@@ -96,7 +336,9 @@ reposSearchSampleSearchBox = function(options) {
 		submit: function(ev) {
 			ev && ev.stopPropagation();
 			try {
-				reposSearchStart(this.getSearchString());
+				options.submithandler({
+					q: this.getSearchString()
+				});
 			} catch (e) {
 				if (window.console) {
 					console.error('Repos Search error', e, e.lineNumber);
@@ -111,7 +353,7 @@ reposSearchSampleSearchBox = function(options) {
 	// build mini UI
 	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
-	form.css(reposSearchFormCss).appendTo(settings.boxparent); // TODO display settings should be set in css
+	form.css(ReposSearch.FormCss).appendTo(settings.boxparent); // TODO display settings should be set in css
 	if (settings.urlMode) {
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
@@ -138,131 +380,12 @@ reposSearchSampleSearchBox = function(options) {
 };
 
 /**
- * Runs queries for a list of search terms and triggers
- * events that can be used to build UI.
- * Could be refactored to a class that supports multiple searches.
+ * Very lightweight presentation of search results.
+ * @param {Object} options
  */
-reposSearchStart = function(searchString) {
-	// query types in order
-	var schemes = [{
-			id: 'title',
-			getSolrQuery: function(terms) {
-				// search two different fields, title or part of path
-				var title = [];
-				var path = [];
-				for (i = 0; i < terms.length; i++) {
-					title[i] = 'title:' + terms[i];
-					//path[i] = 'id:' + reposSearchIdPrefix + '*' + terms[i].replace(/"/g,'').replace(/\s/g,'?') + '*';
-					// Name ending with wildcard by default is reasonable because exact
-					// filenames with extension will rarely produce false positives anyway
-					path[i] = 'name:' + terms[i] + '*';
-				}
-				// currently tokens are ANDed together which might be too restrictive on name searches
-				var query = '(' + title.join(' AND ') + ') OR (' + path.join(' AND ') + ')';
-				return query;
-			}
-		},{
-			id: 'fulltext',
-			getSolrQuery: function(terms) {
-				return 'text:' + terms.join(' AND text:');
-			}
-		},{
-			id: 'metadata',
-			getSolrQuery: function(terms) {
-				return 'metadata:' + terms.join(' AND metadata:');
-			}
-		}];
-	// get input
-	var searchTerms = searchString.match(/[^\s"']+|"[^"]+"/g);
-	// build query flow based on the schemes
-	var schemeIds = [];
-	for (var i = 0; i < schemes.length; i++) {
-		var s = schemes[i];
-		schemeIds.push(s.id);
-	}
-	// global initialize
-	$().trigger('repos-search-started', [searchString, schemeIds]);
-	// automatically start search using first scheme
-	new ReposSearchQuery(schemes[0], searchTerms);
-	// start the other schemes too
-	new ReposSearchQuery(schemes[1], searchTerms);
-	new ReposSearchQuery(schemes[2], searchTerms);
-};
-
-/**
- * @param {Object} scheme Scheme properties including id
- * @param {Array} terms Search terms
- */
-function ReposSearchQuery(scheme, terms) {
-	// Get search context from page metadata
-	var reposBase = $('meta[name=repos-base]').attr('content');
-	var reposTarget = $('meta[name=repos-target]').attr('content');
-	// Build query
-	var q = encodeURIComponent(scheme.getSolrQuery(terms));
-	// Pass seach context to proxy for filtering
-	var context = reposTarget ? '&target=' + encodeURIComponent(reposTarget) : '';
-	// we could restrict matches to current repository in the query, but the proxy knows more about schema internals
-	context += reposBase ? '&base=' + reposBase : '';
-	// Execute search
-	var url = '/repos-search/?q=' + q + context;
-	// query
-	$().trigger('repos-search-query-sent', [scheme.id, terms]);
-	$.ajax({
-		url: url,
-		dataType: 'json',
-		success: function(json) {
-			$().trigger('repos-search-query-returned', [scheme.id, json]);
-			reposSearchResults(json, scheme.id);
-		},
-		error: function (xhr, textStatus, errorThrown) {
-			$().trigger('repos-search-query-failed', [scheme.id, xhr.status, xhr.statusText]);
-		}
-	});
-}
-
-/**
- * Logs all Repos Search events with parameters.
- * Also serves as a good event reference.
- * @param {Object} consoleApi Firebug console or equivalent API
- */
-function ReposSearchEventLogger(consoleApi) {
-	var logger = consoleApi;
-	// all events bound to document node, at least until live events support arguments
-	$().bind('repos-search-started', function(ev, searchString, schemeIds) {
-		logger.log(ev.type, searchString, schemeIds);
-	});
-	$().bind('repos-search-query-sent', function(ev, schemeId, terms) {
-		logger.log(ev.type, schemeId, terms);
-	});
-	$().bind('repos-search-query-returned', function(ev, schemeId, json) {
-		logger.log(ev.type, schemeId, json);
-	});
-	$().bind('repos-search-query-failed', function(ev, schemeId, httpStatus, httpStatusText) {
-		logger.log(ev.type, schemeId, 'status=' + httpStatus + ' statusText=' + httpStatusText);
-	});
-	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
-		var e = microformatElement;
-		logger.log(ev.type, e, 
-			'base=' + $('.repos-search-resultbase', e).text(),
-			'path=' + $('.repos-search-resultpath', e).text(),
-			'file=' + $('.repos-search-resultfile', e).text(),
-			solrDoc, 
-			'id=' + solrDoc.id,
-			schemeId);
-	});
-	$().bind('repos-search-result-truncated', function(ev, start, shown, numFound, schemeId) {
-		logger.log(ev.type, schemeId + ': showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
-	});
-	// Standard UI's events
-	$().bind('repos-search-dialog-opened', function() {
-		logger.log(arguments);
-	});
-	$().bind('repos-search-query-wanted', function(ev, schemeId) {
-		logger.log(ev.type, schemeId);
-	});
-}
-
-function ReposSearchDialog(options) {
+ReposSearch.LightUI = function(options) {
+	
+	console.log('lightui', options);
 	
 	var settings = $.extend({
 		id: 'repos-search-dialog'
@@ -293,26 +416,29 @@ function ReposSearchDialog(options) {
 		d.remove();
 	};
 	
-	var dialog = $('<div/>').attr('id', settings.id).css(reposSearchDialogCss);
-	
-	$().bind('repos-search-started', function(ev, searchString, seachTerms, schemeIds) {
-		var title = $('<div class="repos-search-dialog-title"/>').css(reposSearchDialogTitleCss)
+	$().bind('repos-search-started', function(ev, searchString, seachTerms) {
+		var title = $('<div class="repos-search-dialog-title"/>').css(ReposSearch.DialogTitleCss)
 			.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
-			.attr('id', 'repos-search-dialog-title-link').css(reposSearchDialogTitleLinkCss));
-		var closeAction = $('<div class="repos-search-close">close</div>').css(reposSearchCloseCss).click(close);
+			.attr('id', 'repos-search-dialog-title-link').css(ReposSearch.DialogTitleLinkCss));
+		var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
 		dialog.append(title);
 		title.append(closeAction);
 		//closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
 		$('body').append(dialog);
-		if ($.browser.msie) reposSearchIEFix(dialog);
+		if ($.browser.msie) ReposSearch.IEFix(dialog);
 		// publish page wide event so extensions can get hold of search events
 		$().trigger('repos-search-dialog-opened', [dialog[0]]);	
 	});
 	
+	var dialog = $('<div/>').attr('id', settings.id).css(ReposSearch.DialogCss);
+	var meta = $('<ul/>').css(ReposSearch.ListCss);
+	new ReposSearchQuery('meta', settings.q, meta);
+	meta.appendTo(dialog);
+	
 	$().bind('repos-search-query-sent', function(ev, schemeId, terms) {
 		var scheme = knownSchemes[schemeId];
 		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + schemeId).addClass('repos-search-results');
-		$('<ul/>').css(reposSearchListCss).appendTo(schemediv);
+		$('<ul/>').css(ReposSearch.ListCss).appendTo(schemediv);
 		$('<h2/>').text(scheme.headline || '').append('&nbsp;').append($('<em/>').text(terms.join(' '))).appendTo(dialog);
 		dialog.append(schemediv);
 		/* TODO checkboxes for different search schemes
@@ -345,77 +471,10 @@ function ReposSearchDialog(options) {
 	
 }
 
-reposSearchIEFix = function(dialog) {
+ReposSearch.IEFix = function(dialog) {
 	// is there jQuery feature detection for checkbox onchange event?
 	$('input[type=checkbox]', dialog).click(function(ev) {
 		ev.stopPropagation();
 		$(this).attr('checked', $(this).is(':checked')).trigger('change');
 	});
-};
-
-/**
- * Produces event for search result.
- * @param {String} json Response from Solr wt=json
- * @param {String} scheme Search scheme id
- */
-reposSearchResults = function(json, scheme) {
-	var num = parseInt(json.response.numFound, 10);
-	if (num === 0) {
-		$().trigger('repos-search-noresults', [scheme]);
-		return;
-	}
-	var n = json.response.docs.length;
-	for (var i = 0; i < n; i++) {
-		var doc = json.response.docs[i];
-		var e = reposSearchPresentItem(doc);
-		e.addClass(i % 2 ? 'even' : 'odd');
-		$().trigger('repos-search-result', [e[0], doc, scheme]); // event gets the element, not jQuery
-	}
-	if (n < num) {
-		$().trigger('repos-search-result-truncated', [json.response.start, n, num, scheme]);
-	}
-};
-
-/**
- * Produce the element that presents a search hit.
- * 
- * The element is also a microformat for processing in repos-search-result event handlers:
- * $('.repos-search-resultbase').text() contains the base
- * $('.repos-search-resultpath').text() contains path to file excluding filename
- * $('.repos-search-resultfile').text() contains filename
- * 
- * @param json the item from the solr "response.docs" array
- * @return jQuery element
- */
-reposSearchPresentItem = function(json) {
-	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
-	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
-	var li = $('<li/>');
-	var root = '/svn';
-	if (m[1]) {
-		root += '/' + m[1];
-		li.append('<a class="repos-search-resultbase" href="' + root + '">' + m[1] + '</a>');
-	}
-	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
-	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
-	// add all indexed info to hidded definition list
-	indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li).hide();
-	for (key in json) {
-		var cs = 'indexed_' + key;
-		$('<dt/>').addClass(cs).text(key).appendTo(indexed);
-		if (typeof json[key] == 'array') {
-			for (var i = 0; i < json[key].length; i++) {
-				$('<dd/>').addClass(cs).text("" + json[key][i]).appendTo(indexed);
-			}
-		} else {
-			$('<dd/>').addClass(cs).text("" + json[key]).appendTo(indexed);
-		}
-	}	
-	// file class and file-extension class for icons (compatible with Repos Style)
-	li.addClass('file');
-	var d = m[3].lastIndexOf('.');
-	if (d > 0 && d > m[3].length - 7) {
-		li.addClass('file-' + m[3].substr(d+1).toLowerCase());
-	}
-	return li;
 };
