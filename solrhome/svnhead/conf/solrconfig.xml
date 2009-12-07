@@ -495,6 +495,16 @@
     </lst>
 </requestHandler>-->
 
+  <!-- default search on document metadata -->
+  <requestHandler name="meta" class="solr.SearchHandler" >
+    <lst name="defaults">
+     <str name="defType">dismax</str>
+	 <str name="echoParams">explicit</str>
+	 <str name="qf">name title^0.8 allkeywords^0.6</str>
+	 <float name="tie">0.1</float>
+    </lst>
+  </requestHandler>
+
   <!-- DisMaxRequestHandler allows easy searching across multiple fields
        for simple user-entered phrases.  It's implementation is now
        just the standard SearchHandler with a default query type

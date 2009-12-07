@@ -30,6 +30,7 @@ $wt = 'json';
 $start = 0;
 $rows = 10;
 $indent = 'on';
+$qt = isset($_GET['qt']) ? $_GET['qt'] : 'standard';
 
 // forward to search page if there is no query
 if (!isset($_GET['q'])) {
@@ -57,10 +58,15 @@ if (isset($_GET['base'])) {
 // search URI
 $url = "http://$solrhost:$solrport$solrapp$schema".'select/';
 // request parameters
-$url .= "?$query$fq&wt=$wt&start=$start&rows=$rows&indent=$indent";
+$url .= "?$query$fq&qt=$qt&wt=$wt&start=$start&rows=$rows&indent=$indent";
 
-$fp = fopen($url, 'r');
-fpassthru($fp);
-fclose($fp);
+$fp = @fopen($url, 'r');
+if ($fp) {
+	fpassthru($fp);
+	fclose($fp);
+} else {
+	header('HTTP/1.1 503 Service Unavailable');
+	echo "Search engine error. Not available or query is invalid.\n";
+}
 
 ?>

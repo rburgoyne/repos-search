@@ -500,13 +500,11 @@
    <!-- override for specific properties -->
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
-   <!-- properties that should be tokenized -->
+   <!-- tokenize keywords on space, includes svn:keywords -->
    <dynamicField name="*_keywords" type="text_ws" indexed="true" stored="true"/>
-   <!-- svn:keywords is not keywords for search -->
-   <field name="svnprop_svn_keywords" type="ignored"/>
    
-   <!-- use copyField rules to customize default search -->
-   <field name="default" type="textgen" indexed="true" stored="true" multiValued="true"/>
+   <!-- one keywords field to rule them all, space separated, case sensitive -->
+   <field name="allkeywords" type="text_ws" indexed="true" stored="false"/>
    
  </fields>
 
@@ -516,7 +514,7 @@
  <uniqueKey>id</uniqueKey>
 
  <!-- field for the QueryParser to use when an explicit fieldname is absent -->
- <defaultSearchField>default</defaultSearchField>
+ <defaultSearchField>name</defaultSearchField>
 
  <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
  <solrQueryParser defaultOperator="OR"/>
@@ -528,22 +526,13 @@
    <copyField source="id" dest="id_repo"/>
    <copyField source="name" dest="extension"/>
    
-   <!-- default search -->
-   <!-- Note that copy is done before analyzers run 
-   		so it does copies matching "ignored" fields too
-		and a copyField dest can not be used as source -->
-   <copyField source="name" dest="default"/>
-   <copyField source="title" dest="default"/>
-   <copyField source="keywords" dest="default"/>
-   <copyField source="*s_keywords" dest="default"/>
+   <!-- svn:keywords is not a good name so it must be overridden-->
+   <copyField source="keywords" dest="allkeywords"/>
+   <!-- this has to be customized for namespaces because *_keywords would include svn:keywords -->
+   <copyField source="*r_keywords" dest="allkeywords"/>
+   <copyField source="*s_keywords" dest="allkeywords"/>
+   <copyField source="*_tags" dest="allkeywords"/>
    
-   <!-- Above, multiple source fields are copied to the [text] field. 
-	  Another way to map multiple source fields to the same 
-	  destination field is to use the dynamic field syntax. 
-	  copyField also supports a maxChars to copy setting.  -->
-	   
-   <!-- <copyField source="*_t" dest="text" maxChars="3000"/> -->
-
    <!-- copy name to alphaNameSort, a field designed for sorting by name -->
    <!-- <copyField source="name" dest="alphaNameSort"/> -->
  
