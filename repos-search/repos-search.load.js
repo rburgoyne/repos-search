@@ -217,7 +217,7 @@ ReposSearch.getPropFields = function(json) {
 		return 1;
 	});
 	return f;
-}
+};
 
 /**
  * Produce the element that presents a search hit.
@@ -469,7 +469,7 @@ ReposSearch.LightUI = function(options) {
 		$('> ul', s).append(microformatElement);
 	});
 	
-}
+};
 
 ReposSearch.IEFix = function(dialog) {
 	// is there jQuery feature detection for checkbox onchange event?
