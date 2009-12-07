@@ -505,6 +505,16 @@
     </lst>
   </requestHandler>
 
+  <!-- default search on document contents, with ranking help from other fields -->
+  <requestHandler name="content" class="solr.SearchHandler" >
+    <lst name="defaults">
+     <str name="defType">dismax</str>
+	 <str name="echoParams">explicit</str>
+	 <str name="qf">text name^0.1 title^0.2 allkeywords^0.1</str>
+	 <float name="tie">0.01</float>
+    </lst>
+  </requestHandler>
+
   <!-- DisMaxRequestHandler allows easy searching across multiple fields
        for simple user-entered phrases.  It's implementation is now
        just the standard SearchHandler with a default query type
