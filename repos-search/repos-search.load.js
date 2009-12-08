@@ -21,17 +21,6 @@
  * $LastChangedRevision$
  */
 
-/**
- * @constructor
-var ReposSearch = function() {
-	this.init();
-};
-ReposSearch.options.onready = function() {
-		// default init
-	}
-};
- */
-
 var ReposSearch = {
 	init: function(options) {
 		if (window.console && window.console.log) {
@@ -73,7 +62,7 @@ ReposSearch.DialogCss = {
 	paddingLeft: 30,
 	paddingRight: 30,
 	backgroundColor: '#fff',
-	border: '2px solid #eee'
+	border: '3px solid #aaa'
 };
 ReposSearch.DialogTitleCss = {
 	width: '100%',
@@ -152,7 +141,7 @@ function ReposSearchRequest(options) {
 			return this.getDocs().length;
 		}
 	});
-};
+}
 
 /**
  * Takes the user's query and a result container and produces
@@ -166,8 +155,8 @@ function ReposSearchRequest(options) {
  * @param {Element|jQuery} resultList OL or UL, possibly containing old results
  */
 function ReposSearchQuery(type, userQuery, resultList) {
-	listQ = $(resultList);
-	listE = listQ[0];
+	var listQ = $(resultList);
+	var listE = listQ[0];
 	$().trigger('repos-search-started', [type, userQuery, listE]);
 	var r = new ReposSearchRequest({
 		type: type,
@@ -209,7 +198,7 @@ ReposSearch.Results = function(json, listQ) {
 
 ReposSearch.getPropFields = function(json) {
 	var f = [];
-	for (key in json) f.push(key);
+	for (var key in json) f.push(key);
 	f.sort(function(a, b) {
 		if (a == 'title') return -1;
 		if (b == 'title') return 1;
@@ -368,13 +357,13 @@ ReposSearch.SampleSearchBox = function(options) {
 	}
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repos-search-dialog-close', function(ev, dialog) {
-		$.trigger('repos-search-exited');
+		$().trigger('repos-search-exited');
 	});
 	// update mini UI based on dialog events
 	$().bind('repos-search-exited', function() {
 		$('#repos-search-input').val('');
 	});
-	$().bind('repos-search-string-changed', function(ev, searchString) {
+	$().bind('repos-search-input-change', function(ev, searchString) {
 		$('#repos-search-input').val(searchString);
 	});	
 };
@@ -391,7 +380,7 @@ ReposSearch.LightUI = function(options) {
 	
 	var close = function(ev) {
 		var d = $('#' + settings.id);
-		$().trigger('repos-search-dialog-closing', [d[0]]);
+		$().trigger('repos-search-dialog-close', [d[0]]);
 		d.remove();
 	};
 	
@@ -423,7 +412,7 @@ ReposSearch.LightUI = function(options) {
 			fulltextSearch();
 		} else {
 			fulltexth.hide();
-			fulltext.show();
+			fulltext.empty();
 		}
 	});
 	
@@ -432,16 +421,11 @@ ReposSearch.LightUI = function(options) {
 	if ($.browser.msie) ReposSearch.IEFix(dialog);
 	
 	// publish page wide event so extensions can get hold of search events
-	$().trigger('repos-search-dialog-opened', [dialog[0]]);	
+	$().trigger('repos-search-dialog-open', [dialog[0]]);	
 	
 	// automatically search fulltext if there are no results in meta
 	meta.bind('repos-search-noresults', function() {
-		enablefulltext.attr('checked', true).trigger('change')
-	});
-	
-	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
-		var s = $('#repos-search-results-' + schemeId);
-		$('> ul', s).append(microformatElement);
+		enablefulltext.attr('checked', true).trigger('change');
 	});
 	
 };
