@@ -385,30 +385,9 @@ ReposSearch.SampleSearchBox = function(options) {
  */
 ReposSearch.LightUI = function(options) {
 	
-	console.log('lightui', options);
-	
 	var settings = $.extend({
 		id: 'repos-search-dialog'
 	}, options);
-	
-	var knownSchemes = {
-		title: {
-			name: 'Titles',
-			description: 'Matches filenames that start with the search term' +
-				' and documents containing a format-specific title that contains the terms',
-			headline: 'Titles matching'
-		},
-		fulltext: {
-			name: 'Fulltext',
-			description: 'Matches documents that contain the search terms',
-			headline: 'Files containing'
-		},
-		metadata: {
-			name: 'Metadata',
-			description: 'Searches document metadata including subversion properties',
-			headline: 'Files with metadata'
-		}
-	};
 	
 	var close = function(ev) {
 		var d = $('#' + settings.id);
@@ -416,52 +395,48 @@ ReposSearch.LightUI = function(options) {
 		d.remove();
 	};
 	
-	$().bind('repos-search-started', function(ev, searchString, seachTerms) {
-		var title = $('<div class="repos-search-dialog-title"/>').css(ReposSearch.DialogTitleCss)
-			.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
-			.attr('id', 'repos-search-dialog-title-link').css(ReposSearch.DialogTitleLinkCss));
-		var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
-		dialog.append(title);
-		title.append(closeAction);
-		//closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
-		$('body').append(dialog);
-		if ($.browser.msie) ReposSearch.IEFix(dialog);
-		// publish page wide event so extensions can get hold of search events
-		$().trigger('repos-search-dialog-opened', [dialog[0]]);	
-	});
-	
+	// light dialog
 	var dialog = $('<div/>').attr('id', settings.id).css(ReposSearch.DialogCss);
-	var meta = $('<ul/>').css(ReposSearch.ListCss);
-	new ReposSearchQuery('meta', settings.q, meta);
-	meta.appendTo(dialog);
+	var title = $('<div class="repos-search-dialog-title"/>').css(ReposSearch.DialogTitleCss)
+		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
+		.attr('id', 'repos-search-dialog-title-link').css(ReposSearch.DialogTitleLinkCss));
+	var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
+	dialog.append(title);
+	title.append(closeAction);
 	
-	$().bind('repos-search-query-sent', function(ev, schemeId, terms) {
-		var scheme = knownSchemes[schemeId];
-		var schemediv = $('<div/>').attr('id', 'repos-search-results-' + schemeId).addClass('repos-search-results');
-		$('<ul/>').css(ReposSearch.ListCss).appendTo(schemediv);
-		$('<h2/>').text(scheme.headline || '').append('&nbsp;').append($('<em/>').text(terms.join(' '))).appendTo(dialog);
-		dialog.append(schemediv);
-		/* TODO checkboxes for different search schemes
-		var enablefulltext = $('<input id="repos-search-ui-enable-fulltext" type="checkbox">').change(function(){
-			if ($(this).is(':checked')) {
-			} else {
-			}
-		});
-		$('<p/>').append(enablefulltext).append('<label for="enablefulltext"> Search contents</label>').appendTo(dialog);
-		*/
-		/* TODO automatically trigger next search on no results?
-		schemediv.bind('repos-search-noresults', function() {
-			$().trigger('repos-search-ui-scheme-requested', ['fulltext']);
-		});
-		*/
+	$('<h2/>').text('Titles matching ').append($('<em/>').text(options.q)).appendTo(dialog);
+	var meta = $('<ul id="repos-search-meta"/>').css(ReposSearch.ListCss).appendTo(dialog);
+	// run query for metadata by default
+	new ReposSearchQuery('meta', settings.q, meta);
+
+	var enablefulltext = $('<input id="repos-search-ui-enable-fulltext" type="checkbox">').appendTo(dialog);
+	$('<p/>').append(enablefulltext).append('<label for="enablefulltext"> Search contents</label>').appendTo(dialog);
+	var fulltexth = $('<h2/>').text('Documents containing ').append($('<em/>').text(options.q)).hide().appendTo(dialog);
+	var fulltext = $('<ul id="repos-search-fulltext"/>').css(ReposSearch.ListCss).hide().appendTo(dialog);
+	var fulltextSearch = function() {
+		new ReposSearchQuery('content', settings.q, fulltext);
+	};
+	enablefulltext.change(function(){
+		if ($(this).is(':checked')) {
+			fulltexth.show();
+			fulltext.show();
+			fulltextSearch();
+		} else {
+			fulltexth.hide();
+			fulltext.show();
+		}
 	});
 	
-	$().bind('repos-search-ui-scheme-requested', function(ev, schemeId) {
-		var checkbox = $('#repos-search-ui-enable-' + schemeId);
-		if (!checkbox.is(':checked')) {
-			checkbox.attr('checked', true);
-			checkbox.trigger('change');
-		}
+	closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
+	$('body').append(dialog);
+	if ($.browser.msie) ReposSearch.IEFix(dialog);
+	
+	// publish page wide event so extensions can get hold of search events
+	$().trigger('repos-search-dialog-opened', [dialog[0]]);	
+	
+	// automatically search fulltext if there are no results in meta
+	meta.bind('repos-search-noresults', function() {
+		enablefulltext.attr('checked', true).trigger('change')
 	});
 	
 	$().bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
