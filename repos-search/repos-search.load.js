@@ -43,57 +43,66 @@ $().ready(function() {
 	}
 });
 
-// minimal style, enough for css theming to be optional
-ReposSearch.FormCss = {
-	display: 'inline',
-	marginLeft: 10
-};
-ReposSearch.InputCss = {
-	background: "white url(" + ReposSearch.url + "'magnifier.png') no-repeat right",
-	verticalAlign: 'middle'
-};
-ReposSearch.DialogCss = {
-	position: 'absolute',
-	overflow: 'auto',
-	top: 50,
-	left: 30,
-	right: 30,
-	bottom: 30,
-	opacity: 0.9,
-	backgroundColor: '#fff',
-	border: '3px solid #aaa'
-};
-ReposSearch.DialogTitleCss = {
-	width: '100%',
-	textAlign: 'center',
-	backgroundColor: '#eee'
-};
-ReposSearch.DialogTitleLinkCss = {
-	textDecoration: 'none',
-	color: '#666'
-};
-ReposSearch.HeadlineCss = {
-	verticalAlign: 'middle'
-};
-ReposSearch.HeadlineCheckboxCss = {
-	marginRight: '1em',
-	verticalAlign: 'middle'
-};
-ReposSearch.CloseCss = {
-	textAlign: 'right',
-	float: 'right',
-	fontSize: '82.5%',
-	cursor: 'pointer',
-	color: '#666',
-	padding: '0.1em'
-};
-ReposSearch.QueryDivCss = {
-	paddingLeft: '1em'
-};
-ReposSearch.ListCss = {
-	listStyleType: 'none',
-	listStylePosition: 'inside',
-	paddingLeft: '0.5em'
+/**
+ * Minimal style, enough for css theming to be optional.
+ * To disable do "ReposSearch.css = {};" before init.
+ */
+ReposSearch.css = {
+	form: {
+		display: 'inline',
+		marginLeft: 10
+	},
+	input: {
+		background: "white url(" + ReposSearch.url + "'magnifier.png') no-repeat right",
+		verticalAlign: 'middle'
+	},
+	dialog: {
+		position: 'absolute',
+		overflow: 'auto',
+		top: 50,
+		left: 30,
+		right: 30,
+		bottom: 30,
+		opacity: 0.9,
+		backgroundColor: '#fff',
+		border: '3px solid #aaa'
+	},
+	dialogTitle: {
+		width: '100%',
+		textAlign: 'center',
+		backgroundColor: '#eee'
+	},
+	dialogTitleLink: {
+		textDecoration: 'none',
+		color: '#666'
+	},
+	headline: {
+		verticalAlign: 'middle'
+	},
+	headlineCheckbox: {
+		marginRight: '1em',
+		verticalAlign: 'middle'
+	},
+	close: {
+		textAlign: 'right',
+		float: 'right',
+		fontSize: '82.5%',
+		cursor: 'pointer',
+		color: '#666',
+		padding: '0.1em'
+	},
+	closeBottom: {
+		clear: 'both'
+	},
+	queryDiv: {
+		float: 'left',
+		paddingLeft: '1em'
+	},
+	list: {
+		listStyleType: 'none',
+		listStylePosition: 'inside',
+		paddingLeft: '0.5em'
+	}
 };
 
 /**
@@ -319,7 +328,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// presentation settings
 	var settings = {
 		// the small search box in the container
-		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(ReposSearch.InputCss),
+		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(ReposSearch.css.input),
 		
 		// the page that includes Repos Search can provide an element with
 		// class "repos-search-container" to control the placement of the input box
@@ -354,7 +363,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// build mini UI
 	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
-	form.css(ReposSearch.FormCss).appendTo(settings.boxparent); // TODO display settings should be set in css
+	form.css(ReposSearch.css.form).appendTo(settings.boxparent); // TODO display settings should be set in css
 	if (settings.urlMode) {
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
@@ -386,6 +395,8 @@ ReposSearch.SampleSearchBox = function(options) {
  */
 ReposSearch.LightUI = function(options) {
 	
+	var css = ReposSearch.css;
+	
 	var settings = $.extend({
 		id: 'repos-search-dialog'
 	}, options);
@@ -397,24 +408,25 @@ ReposSearch.LightUI = function(options) {
 	};
 	
 	// light dialog
-	var dialog = $('<div/>').attr('id', settings.id).css(ReposSearch.DialogCss);
-	var title = $('<div class="repos-search-dialog-title"/>').css(ReposSearch.DialogTitleCss)
+	var dialog = $('<div/>').attr('id', settings.id).css(css.dialog);
+	var title = $('<div class="repos-search-dialog-title"/>').css(css.dialogTitle)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
-		.attr('id', 'repos-search-dialog-title-link').css(ReposSearch.DialogTitleLinkCss));
-	var label = $('<span class="repos-search-dialog-title-label"/>').text(' - ' + options.q).appendTo(title);	
+		.attr('id', 'repos-search-dialog-title-link').css(css.dialogTitleLink));
+	$('<span class="repos-search-dialog-title-separator"/>').text(' - ').appendTo(title);
+	$('<em class="repos-search-dialog-title-label"/>').text(options.q).appendTo(title);	
 	dialog.append(title);
 	
-	var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
+	var closeAction = $('<div class="repos-search-close">close</div>').css(css.close).click(close);
  	title.append(closeAction);
 	
 	// helper to create query container
 	var querydiv = function(id, headline) {
-		var div = $('<div/>').attr('id', id + '-div').css(ReposSearch.QueryDivCss);
-		var h = $('<h3/>').text(headline).css(ReposSearch.HeadlineCss).appendTo(div);
-		var list = $('<ul/>').attr('id', id).css(ReposSearch.ListCss).appendTo(div);
+		var div = $('<div/>').attr('id', id + '-div').css(css.queryDiv);
+		var h = $('<h3/>').text(headline).css(css.headline).appendTo(div);
+		var list = $('<ul/>').attr('id', id).css(css.list).appendTo(div);
 		// checkbox to enable/disable
 		var c = $('<input type="checkbox">').attr('id', id + '-enable').prependTo(h);
-		c.css(ReposSearch.HeadlineCheckboxCss).change(function(){
+		c.css(css.headlineCheckbox).change(function(){
 			if ($(this).is(':checked')) {
 				list.trigger('repos-search-ui-query-enable');
 			} else {
@@ -444,13 +456,18 @@ ReposSearch.LightUI = function(options) {
 		$('input', query.parent()).attr('checked', true).trigger('change');
 	};
 	enable(meta);
+	
 	// automatically search fulltext if there are no results in meta
 	meta.bind('repos-search-noresults', function() {
 		enable(fulltext);
+		$(this).append('<li class="repos-search-nohits">No hits</li>');
+	});
+	fulltext.bind('repos-search-noresults', function() {
+		$(this).append('<li class="repos-search-nohits">No hits</li>');
 	});
 	
 	// close button at bottom of page
-	closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
+	closeAction.clone(true).addClass("repos-search-close-bottom").css(css.closeBottom).appendTo(dialog);
 	
 	$('body').append(dialog);
 	if ($.browser.msie) ReposSearch.IEFix(dialog);
