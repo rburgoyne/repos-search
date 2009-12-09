@@ -22,6 +22,7 @@
  */
 
 var ReposSearch = {
+	url: '/repos-search/',
 	init: function(options) {
 		if (window.console && window.console.log) {
 			new ReposSearchEventLogger(console);
@@ -48,7 +49,7 @@ ReposSearch.FormCss = {
 	marginLeft: 10
 };
 ReposSearch.InputCss = {
-	background: "white url('/repos-search/magnifier.png') no-repeat right",
+	background: "white url(" + ReposSearch.url + "'magnifier.png') no-repeat right",
 	verticalAlign: 'middle'
 };
 ReposSearch.DialogCss = {
@@ -59,29 +60,40 @@ ReposSearch.DialogCss = {
 	right: 30,
 	bottom: 30,
 	opacity: 0.9,
-	paddingLeft: 30,
-	paddingRight: 30,
 	backgroundColor: '#fff',
 	border: '3px solid #aaa'
 };
 ReposSearch.DialogTitleCss = {
 	width: '100%',
-	textAlign: 'center'
+	textAlign: 'center',
+	backgroundColor: '#eee'
 };
 ReposSearch.DialogTitleLinkCss = {
 	textDecoration: 'none',
 	color: '#666'
+};
+ReposSearch.HeadlineCss = {
+	verticalAlign: 'middle'
+};
+ReposSearch.HeadlineCheckboxCss = {
+	marginRight: '1em',
+	verticalAlign: 'middle'
 };
 ReposSearch.CloseCss = {
 	textAlign: 'right',
 	float: 'right',
 	fontSize: '82.5%',
 	cursor: 'pointer',
-	color: '#666'
+	color: '#666',
+	padding: '0.1em'
+};
+ReposSearch.QueryDivCss = {
+	paddingLeft: '1em'
 };
 ReposSearch.ListCss = {
 	listStyleType: 'none',
-	listStylePosition: 'inside'
+	listStylePosition: 'inside',
+	paddingLeft: '0.5em'
 };
 
 /**
@@ -111,7 +123,7 @@ function ReposSearchRequest(options) {
 	};
 	// Query the proxy
 	$.ajax({
-		url: '/repos-search/',
+		url: ReposSearch.url,
 		data: params,
 		dataType: 'json',
 		success: function(json) {
@@ -176,7 +188,7 @@ function ReposSearchQuery(type, userQuery, resultList) {
  * @param {jQuery} listQ OL or UL, possibly containing old results
  */
 ReposSearch.Results = function(json, listQ) {
-	// TODO move to query class
+	// TODO move this to query class
 	var num = parseInt(json.response.numFound, 10);
 	if (num === 0) {
 		listQ.trigger('repos-search-noresults');
@@ -389,44 +401,62 @@ ReposSearch.LightUI = function(options) {
 	var title = $('<div class="repos-search-dialog-title"/>').css(ReposSearch.DialogTitleCss)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
 		.attr('id', 'repos-search-dialog-title-link').css(ReposSearch.DialogTitleLinkCss));
-	var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
+	var label = $('<span class="repos-search-dialog-title-label"/>').text(' - ' + options.q).appendTo(title);	
 	dialog.append(title);
-	title.append(closeAction);
 	
-	$('<h2/>').text('Titles matching ').append($('<em/>').text(options.q)).appendTo(dialog);
-	var meta = $('<ul id="repos-search-meta"/>').css(ReposSearch.ListCss).appendTo(dialog);
-	// run query for metadata by default
-	new ReposSearchQuery('meta', settings.q, meta);
-
-	var enablefulltext = $('<input id="repos-search-ui-enable-fulltext" type="checkbox">').appendTo(dialog);
-	$('<p/>').append(enablefulltext).append('<label for="enablefulltext"> Search contents</label>').appendTo(dialog);
-	var fulltexth = $('<h2/>').text('Documents containing ').append($('<em/>').text(options.q)).hide().appendTo(dialog);
-	var fulltext = $('<ul id="repos-search-fulltext"/>').css(ReposSearch.ListCss).hide().appendTo(dialog);
-	var fulltextSearch = function() {
-		new ReposSearchQuery('content', settings.q, fulltext);
+	var closeAction = $('<div class="repos-search-close">close</div>').css(ReposSearch.CloseCss).click(close);
+ 	title.append(closeAction);
+	
+	// helper to create query container
+	var querydiv = function(id, headline) {
+		var div = $('<div/>').attr('id', id + '-div').css(ReposSearch.QueryDivCss);
+		var h = $('<h3/>').text(headline).css(ReposSearch.HeadlineCss).appendTo(div);
+		var list = $('<ul/>').attr('id', id).css(ReposSearch.ListCss).appendTo(div);
+		// checkbox to enable/disable
+		var c = $('<input type="checkbox">').attr('id', id + '-enable').prependTo(h);
+		c.css(ReposSearch.HeadlineCheckboxCss).change(function(){
+			if ($(this).is(':checked')) {
+				list.trigger('repos-search-ui-query-enable');
+			} else {
+				list.trigger('repos-search-ui-query-disable');
+			}
+		});
+		// return the element that gets the events, use .parent() to get the div
+		div.appendTo(dialog);
+		return list;
 	};
-	enablefulltext.change(function(){
-		if ($(this).is(':checked')) {
-			fulltexth.show();
-			fulltext.show();
-			fulltextSearch();
-		} else {
-			fulltexth.hide();
-			fulltext.empty();
-		}
+	
+	var meta = querydiv('repos-search-meta', 'Titles and keywords');
+	meta.bind('repos-search-ui-query-enable', function() {
+		new ReposSearchQuery('meta', settings.q, meta);
+	}).bind('repos-search-ui-query-disable', function() {
+		meta.empty();
+	});
+	var fulltext = querydiv('repos-search-fulltext', 'Text contents');
+	fulltext.bind('repos-search-ui-query-enable', function() {
+		new ReposSearchQuery('content', settings.q, fulltext);
+	}).bind('repos-search-ui-query-disable', function() {
+		fulltext.empty();
+	});
+
+	// run query for metadata by default
+	var enable = function(query) {
+		$('input', query.parent()).attr('checked', true).trigger('change');
+	};
+	enable(meta);
+	// automatically search fulltext if there are no results in meta
+	meta.bind('repos-search-noresults', function() {
+		enable(fulltext);
 	});
 	
+	// close button at bottom of page
 	closeAction.clone(true).addClass("repos-search-close-bottom").appendTo(dialog);
+	
 	$('body').append(dialog);
 	if ($.browser.msie) ReposSearch.IEFix(dialog);
 	
 	// publish page wide event so extensions can get hold of search events
 	$().trigger('repos-search-dialog-open', [dialog[0]]);	
-	
-	// automatically search fulltext if there are no results in meta
-	meta.bind('repos-search-noresults', function() {
-		enablefulltext.attr('checked', true).trigger('change');
-	});
 	
 };
 
