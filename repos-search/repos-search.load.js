@@ -311,12 +311,9 @@ function ReposSearchEventLogger(consoleApi) {
 		});
 	});
 	
-	// Standard UI's events
-	$().bind('repos-search-dialog-opened', function() {
-		logger.log(arguments);
-	});
-	$().bind('repos-search-query-wanted', function(ev, schemeId) {
-		logger.log(ev.type, schemeId);
+	// LightUI's events, triggered on the divs
+	$().bind('repos-search-dialog-open', function(ev, dialog) {
+		logger.log(ev.type, dialog);
 	});
 }
 
@@ -423,53 +420,53 @@ ReposSearch.LightUI = function(options) {
 	var querydiv = function(id, headline) {
 		var div = $('<div/>').attr('id', id + '-div').css(css.queryDiv);
 		var h = $('<h3/>').text(headline).css(css.headline).appendTo(div);
-		var list = $('<ul/>').attr('id', id).css(css.list).appendTo(div);
 		// checkbox to enable/disable
 		var c = $('<input type="checkbox">').attr('id', id + '-enable').prependTo(h);
 		c.css(css.headlineCheckbox).change(function(){
 			if ($(this).is(':checked')) {
-				list.trigger('repos-search-ui-query-enable');
+				div.trigger('repos-search-ui-query-enable', [id]);
 			} else {
-				list.trigger('repos-search-ui-query-disable');
+				div.trigger('repos-search-ui-query-disable', [id]);
 			}
 		});
 		// return the element that gets the events, use .parent() to get the div
 		div.appendTo(dialog);
-		return list;
+		return div;
 	};
 	
 	var meta = querydiv(settings.id+'meta', 'Titles and keywords');
 	var content = querydiv(settings.id+'content', 'Text contents');
 	var all = $(meta).add(content);
-	var allq = {};
 	
-	all.bind('repos-search-ui-query-enable', function() {
-		var list = $(this);
+	all.bind('repos-search-ui-query-disable', function() {
+		$('ul, ol', this).remove();
+	}).bind('repos-search-ui-query-enable', function(ev, id) {
+		var list = $('<ul/>').attr('id', id).css(css.list).appendTo(this);
 		var qname = list.attr('id').substr(settings.id.length);
-		allq[qname] = new ReposSearchQuery(qname, settings.q, this);
-	}).bind('repos-search-ui-query-disable', function() {
-		$(this).empty();
+		var query = new ReposSearchQuery(qname, settings.q, list);
+		// result presentation
+		list.bind('repos-search-noresults', function() {
+			var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
+		});
+		list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
+			var next = $('<li class="repos-search-next"/>').appendTo(this);
+			var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
+				alert('not implemented');
+			}).appendTo(next);
+		});	
 	});
 
 	// run query for metadata by default
-	var enable = function(query) {
-		$('input', query.parent()).attr('checked', true).trigger('change');
+	var enable = function(querydiv) {
+		var c = $('input', querydiv);
+		if (!c.is(':checked')) {
+			c.attr('checked', true).trigger('change');
+		}
 	};
 	enable(meta);
 	// automatically search fulltext if there are no results in meta
-	meta.bind('repos-search-noresults', function() {
+	$('ul, ol', meta).one('repos-search-noresults', function() {
 		enable(content);
-	});
-	
-	// handle results visually
-	all.bind('repos-search-noresults', function() {
-		var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
-	});
-	all.bind('repos-search-truncated', function(ev, start, shown, numFound) {
-		var next = $('<li class="repos-search-next"/>').appendTo(this);
-		var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-			alert('not implemented');
-		}).appendTo(next);
 	});
 	
 	// close button at bottom of page
