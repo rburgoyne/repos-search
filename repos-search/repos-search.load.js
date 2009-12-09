@@ -101,7 +101,7 @@ ReposSearch.css = {
 	list: {
 		listStyleType: 'none',
 		listStylePosition: 'inside',
-		paddingLeft: '0.5em'
+		paddingLeft: '0.4em'
 	}
 };
 
@@ -213,7 +213,7 @@ ReposSearch.Results = function(json, listQ) {
 		listQ.trigger('repos-search-result', [e[0], doc]); // event gets the element, not jQuery
 	}
 	if (n < num) {
-		listQ.trigger('repos-search-result-truncated', [json.response.start, n, num]);
+		listQ.trigger('repos-search-truncated', [json.response.start, n, num]);
 	}
 };
 
@@ -306,7 +306,7 @@ function ReposSearchEventLogger(consoleApi) {
 				'id=' + solrDoc.id,
 				schemeId);
 		});
-		$(r).bind('repos-search-result-truncated', function(ev, start, shown, numFound) {
+		$(r).bind('repos-search-truncated', function(ev, start, shown, numFound) {
 			logger.log(ev.type, this, 'showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
 		});
 	});
@@ -398,20 +398,20 @@ ReposSearch.LightUI = function(options) {
 	var css = ReposSearch.css;
 	
 	var settings = $.extend({
-		id: 'repos-search-dialog'
+		id: 'repos-search-'
 	}, options);
 	
 	var close = function(ev) {
-		var d = $('#' + settings.id);
+		var d = $('#' + settings.id + 'dialog');
 		$().trigger('repos-search-dialog-close', [d[0]]);
 		d.remove();
 	};
 	
 	// light dialog
-	var dialog = $('<div/>').attr('id', settings.id).css(css.dialog);
+	var dialog = $('<div/>').attr('id', settings.id+'dialog').css(css.dialog);
 	var title = $('<div class="repos-search-dialog-title"/>').css(css.dialogTitle)
 		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
-		.attr('id', 'repos-search-dialog-title-link').css(css.dialogTitleLink));
+		.attr('id', settings.id+'dialog-title-link').css(css.dialogTitleLink));
 	$('<span class="repos-search-dialog-title-separator"/>').text(' - ').appendTo(title);
 	$('<em class="repos-search-dialog-title-label"/>').text(options.q).appendTo(title);	
 	dialog.append(title);
@@ -438,17 +438,17 @@ ReposSearch.LightUI = function(options) {
 		return list;
 	};
 	
-	var meta = querydiv('repos-search-meta', 'Titles and keywords');
-	meta.bind('repos-search-ui-query-enable', function() {
-		new ReposSearchQuery('meta', settings.q, meta);
+	var meta = querydiv(settings.id+'meta', 'Titles and keywords');
+	var content = querydiv(settings.id+'content', 'Text contents');
+	var all = $(meta).add(content);
+	var allq = {};
+	
+	all.bind('repos-search-ui-query-enable', function() {
+		var list = $(this);
+		var qname = list.attr('id').substr(settings.id.length);
+		allq[qname] = new ReposSearchQuery(qname, settings.q, this);
 	}).bind('repos-search-ui-query-disable', function() {
-		meta.empty();
-	});
-	var fulltext = querydiv('repos-search-fulltext', 'Text contents');
-	fulltext.bind('repos-search-ui-query-enable', function() {
-		new ReposSearchQuery('content', settings.q, fulltext);
-	}).bind('repos-search-ui-query-disable', function() {
-		fulltext.empty();
+		$(this).empty();
 	});
 
 	// run query for metadata by default
@@ -456,18 +456,24 @@ ReposSearch.LightUI = function(options) {
 		$('input', query.parent()).attr('checked', true).trigger('change');
 	};
 	enable(meta);
-	
 	// automatically search fulltext if there are no results in meta
 	meta.bind('repos-search-noresults', function() {
-		enable(fulltext);
-		$(this).append('<li class="repos-search-nohits">No hits</li>');
+		enable(content);
 	});
-	fulltext.bind('repos-search-noresults', function() {
-		$(this).append('<li class="repos-search-nohits">No hits</li>');
+	
+	// handle results visually
+	all.bind('repos-search-noresults', function() {
+		var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
+	});
+	all.bind('repos-search-truncated', function(ev, start, shown, numFound) {
+		var next = $('<li class="repos-search-next"/>').appendTo(this);
+		var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
+			alert('not implemented');
+		}).appendTo(next);
 	});
 	
 	// close button at bottom of page
-	closeAction.clone(true).addClass("repos-search-close-bottom").css(css.closeBottom).appendTo(dialog);
+	closeAction.clone(true).addClass('repos-search-close-bottom').css(css.closeBottom).appendTo(dialog);
 	
 	$('body').append(dialog);
 	if ($.browser.msie) ReposSearch.IEFix(dialog);
