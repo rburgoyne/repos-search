@@ -234,7 +234,6 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 		listQ.append(e);
 		listQ.trigger('repos-search-result', [e[0], doc]); // event arg is the element, not jQuery bucket
 	}
-	console.log(n, num)
 	if (start + n < num) {
 		listQ.trigger('repos-search-truncated', [json.response.start, n, num]);
 	}
