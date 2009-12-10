@@ -34,6 +34,9 @@ ReposSearch.init = ReposSearch.init || function(options) {
 		submithandler: ReposSearch.LightUI
 	});
 };
+// The point with this initialization method is that
+// no additional scripts should be needed to get the default GUI
+// Set ReposSearch.onready = false; to disable automatic initialization 
 ReposSearch.onready = ReposSearch.onready || function(){
 	ReposSearch.init();
 };
