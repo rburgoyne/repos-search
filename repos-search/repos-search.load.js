@@ -102,6 +102,9 @@ ReposSearch.css = {
 		listStyleType: 'none',
 		listStylePosition: 'inside',
 		paddingLeft: '0.4em'
+	},
+	resultPrevious: {
+		display: 'none'
 	}
 };
 
@@ -128,6 +131,8 @@ function ReposSearchRequest(options) {
 		// solr
 		q: options.q,
 		qt: options.type || 'meta',
+		start: options.start || 0,
+		rows: options.rows || 10,
 		wt: 'json'
 	};
 	// Query the proxy
@@ -149,6 +154,9 @@ function ReposSearchRequest(options) {
 	});
 	// Public response access methods
 	$.extend(instance, {
+		getRows: function() { // valid even if request has not completed
+			return params.rows;
+		},
 		getDocs: function() {
 			return this.json.response.docs;
 		},
@@ -176,20 +184,36 @@ function ReposSearchRequest(options) {
  * @param {Element|jQuery} resultList OL or UL, possibly containing old results
  */
 function ReposSearchQuery(type, userQuery, resultList) {
-	var listQ = $(resultList);
-	var listE = listQ[0];
-	$().trigger('repos-search-started', [type, userQuery, listE]);
-	var r = new ReposSearchRequest({
-		type: type,
-		q: userQuery,
-		success: function(searchRequest) {
+	this.type = type;
+	this.query = userQuery;
+	this.listQ = $(resultList);
+	this.listE = this.listQ[0];
+	this.start = 0;
+	this.r = null;
+	$().trigger('repos-search-started', [this.type, this.query, this.listE]);
+	this.exec();
+}
+
+ReposSearchQuery.prototype.exec = function() {
+	var listQ = this.listQ; // closure scope
+	this.r = new ReposSearchRequest({
+		type: this.type,
+		q: this.query,
+		start: this.start,
+		success: function(searchRequest){
 			// This event can be used to hide previous results, if there are any
 			listQ.trigger('repos-search-query-returned', [searchRequest]);
 			ReposSearch.Results(searchRequest.json, listQ);
 		}
 	});
 	listQ.trigger('repos-search-query-sent', [r]);
-}
+};
+	
+ReposSearchQuery.prototype.pageNext = function() {	
+			console.log('get-rows', this.r.getRows());
+	this.start = this.start + this.r.getRows();
+	this.exec();
+};
 
 /**
  * Produces event for search result.
@@ -243,7 +267,7 @@ ReposSearch.getPropFields = function(json) {
 ReposSearch.presentItem = function(json) {
 	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
-	var li = $('<li/>');
+	var li = $('<li/>').addClass('repos-search-result');
 	var root = '/svn';
 	if (m[1]) {
 		root += '/' + m[1];
@@ -451,7 +475,9 @@ ReposSearch.LightUI = function(options) {
 		list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
 			var next = $('<li class="repos-search-next"/>').appendTo(this);
 			var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-				alert('not implemented');
+				$('.repos-search-result', list).css(css.resultPrevious);
+				next.remove();
+				query.pageNext();
 			}).appendTo(next);
 		});	
 	});

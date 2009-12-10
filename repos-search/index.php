@@ -20,6 +20,10 @@ adds query defaults, filters on base if available.
 $LastChangedRevision$
  */
 
+function param($name, $default='') {
+	return isset($_GET[$name]) ? $_GET[$name] : $default;
+}
+
 // settings for accessing solr
 $solrhost = 'localhost';
 $solrport = 8080;
@@ -27,13 +31,14 @@ $solrapp = '/solr/';
 $schema = 'svnhead/';
 // parameters for solr search
 $wt = 'json';
-$start = 0;
-$rows = 10;
+$start = param('start', '0');
+$rows = param('rows', '10');
 $indent = 'on';
-$qt = isset($_GET['qt']) ? $_GET['qt'] : 'standard';
+$qt = param('qt', 'standard');
+$q = param('q');
 
 // forward to search page if there is no query
-if (!isset($_GET['q'])) {
+if (!$q) {
 ?>
 <html>
 <head>
@@ -50,10 +55,10 @@ exit;
 
 header('Content-Type: text/plain');
 // the search
-$query = 'q='.rawurlencode($_GET['q']);
+$query = 'q='.rawurlencode($q);
 $fq = '';
-if (isset($_GET['base']) && $_GET['base']) {
-	$fq .= '&fq=id_repo:'.rawurlencode($_GET['base']); // may be space separated
+if (param('base')) {
+	$fq .= '&fq=id_repo:'.rawurlencode(param('base')); // may be space separated
 }
 // search URI
 $url = "http://$solrhost:$solrport$solrapp$schema".'select/';
