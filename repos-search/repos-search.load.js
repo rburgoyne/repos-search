@@ -21,20 +21,21 @@
  * $LastChangedRevision$
  */
 
-var ReposSearch = {
-	url: '/repos-search/',
-	init: function(options) {
-		if (window.console && window.console.log) {
-			new ReposSearchEventLogger(console);
-		}
-		// use mini search input to invoke Repos Search
-		ReposSearch.SampleSearchBox({
-			submithandler: ReposSearch.LightUI
-		});
-	},
-	onready: function(){
-		ReposSearch.init();
+// Primitive system to allow customizations both before and after this script has loaded
+var ReposSearch = ReposSearch || {};
+// Note that this won't affect ReposSearch.css unless set before this script has loaded
+ReposSearch.url = ReposSearch.url || '/repos-search/';
+ReposSearch.init = ReposSearch.init || function(options) {
+	if (window.console && window.console.log) {
+		new ReposSearchEventLogger(console);
 	}
+	// use mini search input to invoke Repos Search
+	ReposSearch.SampleSearchBox({
+		submithandler: ReposSearch.LightUI
+	});
+};
+ReposSearch.onready = ReposSearch.onready || function(){
+	ReposSearch.init();
 };
 
 $().ready(function() {
@@ -311,6 +312,7 @@ ReposSearch.getPropFields = function(json) {
  */
 function ReposSearchEventLogger(consoleApi) {
 	var logger = consoleApi;
+	logger.log('ReposSearch', ReposSearch);
 	// root event bound to document node
 	$().bind('repos-search-started', function(ev, type, userQuery, r) {
 		logger.log(ev.type, this, type, userQuery, r);
