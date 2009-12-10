@@ -195,6 +195,7 @@ function ReposSearchQuery(type, userQuery, resultList) {
 }
 
 ReposSearchQuery.prototype.exec = function() {
+	var instance = this;
 	var listQ = this.listQ; // closure scope
 	this.r = new ReposSearchRequest({
 		type: this.type,
@@ -203,7 +204,7 @@ ReposSearchQuery.prototype.exec = function() {
 		success: function(searchRequest){
 			// This event can be used to hide previous results, if there are any
 			listQ.trigger('repos-search-query-returned', [searchRequest]);
-			ReposSearch.Results(searchRequest.json, listQ);
+			instance.presentResults(searchRequest.json, listQ);
 		}
 	});
 	listQ.trigger('repos-search-query-sent', [r]);
@@ -220,8 +221,7 @@ ReposSearchQuery.prototype.pageNext = function() {
  * @param {String} json Response from Solr wt=json
  * @param {jQuery} listQ OL or UL, possibly containing old results
  */
-ReposSearch.Results = function(json, listQ) {
-	// TODO move this to query class
+ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 	var num = parseInt(json.response.numFound, 10);
 	if (num === 0) {
 		listQ.trigger('repos-search-noresults');
@@ -230,27 +230,14 @@ ReposSearch.Results = function(json, listQ) {
 	var n = json.response.docs.length;
 	for (var i = 0; i < n; i++) {
 		var doc = json.response.docs[i];
-		var e = ReposSearch.presentItem(doc);
+		var e = this.presentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
-		// TODO add to list
 		listQ.append(e);
-		listQ.trigger('repos-search-result', [e[0], doc]); // event gets the element, not jQuery
+		listQ.trigger('repos-search-result', [e[0], doc]); // event arg is the element, not jQuery bucket
 	}
 	if (n < num) {
 		listQ.trigger('repos-search-truncated', [json.response.start, n, num]);
 	}
-};
-
-ReposSearch.getPropFields = function(json) {
-	var f = [];
-	for (var key in json) f.push(key);
-	f.sort(function(a, b) {
-		if (a == 'title') return -1;
-		if (b == 'title') return 1;
-		if (a < b) return -1;
-		return 1;
-	});
-	return f;
 };
 
 /**
@@ -264,7 +251,7 @@ ReposSearch.getPropFields = function(json) {
  * @param json the item from the solr "response.docs" array
  * @return jQuery element
  */
-ReposSearch.presentItem = function(json) {
+ReposSearchQuery.prototype.presentItem = function(json) {
 	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>').addClass('repos-search-result');
@@ -298,6 +285,24 @@ ReposSearch.presentItem = function(json) {
 		li.addClass('file-' + m[3].substr(d+1).toLowerCase());
 	}
 	return li;
+};
+
+
+/**
+ * @param {Object} json Solr doc
+ * @return {Array} fieldnames to display
+ * @static
+ */
+ReposSearch.getPropFields = function(json) {
+	var f = [];
+	for (var key in json) f.push(key);
+	f.sort(function(a, b) {
+		if (a == 'title') return -1;
+		if (b == 'title') return 1;
+		if (a < b) return -1;
+		return 1;
+	});
+	return f;
 };
 
 /**
