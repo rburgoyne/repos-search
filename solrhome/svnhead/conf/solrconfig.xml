@@ -510,7 +510,7 @@
     <lst name="defaults">
      <str name="defType">dismax</str>
 	 <str name="echoParams">explicit</str>
-	 <str name="qf">text name^0.1 title^0.2 allkeywords^0.1</str>
+	 <str name="qf">text</str>
 	 <float name="tie">0.01</float>
     </lst>
   </requestHandler>
