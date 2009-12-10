@@ -53,8 +53,7 @@ ReposSearch.css = {
 		marginLeft: 10
 	},
 	input: {
-		background: "white url(" + ReposSearch.url + "'magnifier.png') no-repeat right",
-		verticalAlign: 'middle'
+		background: "white url('" + ReposSearch.url + "magnifier.png') no-repeat right"
 	},
 	dialog: {
 		position: 'absolute',
@@ -211,7 +210,6 @@ ReposSearchQuery.prototype.exec = function() {
 };
 	
 ReposSearchQuery.prototype.pageNext = function() {	
-			console.log('get-rows', this.r.getRows());
 	this.start = this.start + this.r.getRows();
 	this.exec();
 };
@@ -223,6 +221,7 @@ ReposSearchQuery.prototype.pageNext = function() {
  */
 ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 	var num = parseInt(json.response.numFound, 10);
+	var start = parseInt(json.response.start, 10);
 	if (num === 0) {
 		listQ.trigger('repos-search-noresults');
 		return;
@@ -235,7 +234,8 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 		listQ.append(e);
 		listQ.trigger('repos-search-result', [e[0], doc]); // event arg is the element, not jQuery bucket
 	}
-	if (n < num) {
+	console.log(n, num)
+	if (start + n < num) {
 		listQ.trigger('repos-search-truncated', [json.response.start, n, num]);
 	}
 };
