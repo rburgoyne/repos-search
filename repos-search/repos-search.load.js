@@ -21,43 +21,60 @@
  * $LastChangedRevision$
  */
 
-// Primitive system to allow customizations both before and after this script has loaded
-var ReposSearch = ReposSearch || {};
-// Note that this won't affect ReposSearch.css unless set before this script has loaded
-ReposSearch.url = ReposSearch.url || '/repos-search/';
-ReposSearch.init = ReposSearch.init || function(options) {
-	if (window.console && window.console.log) {
-		new ReposSearchEventLogger(console);
+// namespace
+var ReposSearch = {};
+
+/**
+ * Initializes default search UI.
+ * @param {Object} options including url and css
+ */
+ReposSearch.init = function(options) {
+	var settings = $.extend({
+		url: '/repos-search/',
+		css: ReposSearch.cssDefault,
+		logger: false
+	}, options);
+	// logger
+	if (settings.logger && window.console && window.console.log) {
+		new ReposSearch.EventLogger(console);
 	}
+	// insert base url in css properties that can contain urls
+	var c = settings.css.input;
+	c.background = c && c.background && c.background.replace('{url}', settings.url);
+	// initialize query class
+	ReposSearchQuery.prototype.url = settings.url || ReposSearchQuery.prototype.url;
 	// use mini search input to invoke Repos Search
-	ReposSearch.SampleSearchBox({
-		submithandler: ReposSearch.LightUI
+	var ui = new ReposSearch.LightUI({
+		css: settings.css
+	});
+	var box = new ReposSearch.SampleSearchBox({
+		submithandler: function(q){ ui.run(q); },
+		css: settings.css
 	});
 };
+
 // The point with this initialization method is that
 // no additional scripts should be needed to get the default GUI
-// Set ReposSearch.onready = false; to disable automatic initialization 
-ReposSearch.onready = ReposSearch.onready || function(){
-	ReposSearch.init();
-};
+// Set "ReposSearch_onready = false;" to disable automatic initialization 
+ReposSearch_onready = ReposSearch.onready || ReposSearch.init;
 
 $().ready(function() {
-	if (ReposSearch.onready) {
-		ReposSearch.onready();
+	if (ReposSearch_onready) {
+		ReposSearch_onready();
 	}
 });
 
 /**
  * Minimal style, enough for css theming to be optional.
- * To disable do "ReposSearch.css = {};" before init.
+ * @static
  */
-ReposSearch.css = {
+ReposSearch.cssDefault = {
 	form: {
 		display: 'inline',
 		marginLeft: 10
 	},
 	input: {
-		background: "white url('" + ReposSearch.url + "magnifier.png') no-repeat right"
+		background: "white url('{url}magnifier.png') no-repeat right"
 	},
 	dialog: {
 		position: 'absolute',
@@ -98,6 +115,7 @@ ReposSearch.css = {
 		clear: 'both'
 	},
 	queryDiv: {
+		width: '48%',
 		float: 'left',
 		paddingLeft: '1em'
 	},
@@ -106,8 +124,12 @@ ReposSearch.css = {
 		listStylePosition: 'inside',
 		paddingLeft: '0.4em'
 	},
+	result: {
+		marginLeft: '1em',
+		textIndent: '-1em'
+	},
 	resultPrevious: {
-		display: 'none'
+		fontSize: '82.5%'
 	}
 };
 
@@ -140,7 +162,7 @@ function ReposSearchRequest(options) {
 	};
 	// Query the proxy
 	$.ajax({
-		url: ReposSearch.url,
+		url: this.url,
 		data: params,
 		dataType: 'json',
 		success: function(json) {
@@ -174,6 +196,9 @@ function ReposSearchRequest(options) {
 		}
 	});
 }
+
+// Settings for the requests that the rest of the application should not need to care about
+ReposSearchRequest.prototype.url = './';
 
 /**
  * Takes the user's query and a result container and produces
@@ -312,8 +337,9 @@ ReposSearch.getPropFields = function(json) {
  * Logs all Repos Search events with parameters.
  * Also serves as a good event reference.
  * @param {Object} consoleApi Firebug console or equivalent API
+ * @constructor
  */
-function ReposSearchEventLogger(consoleApi) {
+ReposSearch.EventLogger = function(consoleApi) {
 	var logger = consoleApi;
 	logger.log('ReposSearch', ReposSearch);
 	// root event bound to document node
@@ -329,15 +355,13 @@ function ReposSearchEventLogger(consoleApi) {
 		$(r).bind('repos-search-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 			logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 		});
-		$(r).bind('repos-search-result', function(ev, microformatElement, solrDoc, schemeId) {
+		$(r).bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 			var e = microformatElement;
 			logger.log(ev.type, this, e, 
 				'base=' + $('.repos-search-resultbase', e).text(),
 				'path=' + $('.repos-search-resultpath', e).text(),
 				'file=' + $('.repos-search-resultfile', e).text(),
-				solrDoc, 
-				'id=' + solrDoc.id,
-				schemeId);
+				solrDoc);
 		});
 		$(r).bind('repos-search-truncated', function(ev, start, shown, numFound) {
 			logger.log(ev.type, this, 'showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
@@ -348,7 +372,7 @@ function ReposSearchEventLogger(consoleApi) {
 	$().bind('repos-search-dialog-open', function(ev, dialog) {
 		logger.log(ev.type, dialog);
 	});
-}
+};
 
 /**
  * Small search box that is suitable for integration with Repos Style.
@@ -358,7 +382,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// presentation settings
 	var settings = {
 		// the small search box in the container
-		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(ReposSearch.css.input),
+		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(options.css.input),
 		
 		// the page that includes Repos Search can provide an element with
 		// class "repos-search-container" to control the placement of the input box
@@ -376,15 +400,9 @@ ReposSearch.SampleSearchBox = function(options) {
 		submit: function(ev) {
 			ev && ev.stopPropagation();
 			try {
-				options.submithandler({
-					q: this.getSearchString()
-				});
+				options.submithandler(this.getSearchString());
 			} catch (e) {
-				if (window.console) {
-					console.error('Repos Search error', e, e.lineNumber);
-				} else {
-					alert('Repos Search error: ' + e);
-				}
+				alert('Repos Search error: ' + e);
 			}
 			return false; // don't submit form	
 		}
@@ -393,7 +411,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// build mini UI
 	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
-	form.css(ReposSearch.css.form).appendTo(settings.boxparent); // TODO display settings should be set in css
+	form.css(options.css.form).appendTo(settings.boxparent); // TODO display settings should be set in css
 	if (settings.urlMode) {
 		var s = location.search.indexOf('repossearch=');
 		if (s > 0) {
@@ -422,103 +440,139 @@ ReposSearch.SampleSearchBox = function(options) {
 /**
  * Very lightweight presentation of search results.
  * @param {Object} options
+ * @constructor
  */
 ReposSearch.LightUI = function(options) {
 	
-	var css = ReposSearch.css;
-	
-	var settings = $.extend({
+	this.settings = $.extend({
 		id: 'repos-search-'
 	}, options);
 	
-	var close = function(ev) {
+	// for closure scope, 
+	var uiCss = options.css;
+	var uiSettings = this.settings;
+
+	/**
+	 * Removes the dialog.
+	 */	
+	this.destroy = function(ev) {
 		var d = $('#' + settings.id + 'dialog');
 		$().trigger('repos-search-dialog-close', [d[0]]);
 		d.remove();
 	};
 	
-	// light dialog
-	var dialog = $('<div/>').attr('id', settings.id+'dialog').css(css.dialog);
-	var title = $('<div class="repos-search-dialog-title"/>').css(css.dialogTitle)
-		.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
-		.attr('id', settings.id+'dialog-title-link').css(css.dialogTitleLink));
-	$('<span class="repos-search-dialog-title-separator"/>').text(' - ').appendTo(title);
-	$('<em class="repos-search-dialog-title-label"/>').text(options.q).appendTo(title);	
-	dialog.append(title);
+	/**
+	 * Creates interactive search result presentation.
+	 * @param {String} query Valid solr query from the user
+	 */
+	this.run = function(query) {
+		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
+		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
+		
+		var all = $(meta).add(content);
+		all.bind('disabled', function() {
+			$('ul, ol', this).remove();
+		}).bind('enabled', function(ev, id) {
+			var list = $('<ul/>').attr('id', id).css(uiCss.list).appendTo(this);
+			var qname = list.attr('id').substr(uiSettings.id.length);
+			var q = new ReposSearchQuery(qname, query, list);
+			// result presentation
+			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
+				$(microformatElement).css(uiCss.result);
+			});
+			list.bind('repos-search-noresults', function() {
+				var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
+			});
+			list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
+				var next = $('<li class="repos-search-next"/>').appendTo(this);
+				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
+					$('.repos-search-result', list).css(uiCss.resultPrevious);
+					next.remove();
+					q.pageNext();
+				}).appendTo(next);
+			});	
+		});
+		
+		// show ui
+		this.dialog.show('slow');
 	
-	var closeAction = $('<div class="repos-search-close">close</div>').css(css.close).click(close);
- 	title.append(closeAction);
+		// run query for metadata by default
+		meta.trigger('enable');
+		// automatically search fulltext if there are no results in meta
+		$('ul, ol', meta).one('repos-search-noresults', function() {
+			content.trigger('enable');
+		});
+	};
 	
-	// helper to create query container
-	var querydiv = function(id, headline) {
-		var div = $('<div/>').attr('id', id + '-div').css(css.queryDiv);
-		var h = $('<h3/>').text(headline).css(css.headline).appendTo(div);
+	/**
+	 * Creates container for a query type.
+	 * @param {String} id The query type id
+	 * @param {String} headline Text to explain the query
+	 * @return {jQuery} the div, UI events will be triggered on this div
+	 * @private Not tested to be callable from outside LightUI
+	 */
+	this.queryCreate = function(id, headline) {
+		var div = $('<div/>').attr('id', id + '-div').css(uiCss.queryDiv);
+		var h = $('<h3/>').text(headline).css(uiCss.headline).appendTo(div);
 		// checkbox to enable/disable
 		var c = $('<input type="checkbox">').attr('id', id + '-enable').prependTo(h);
-		c.css(css.headlineCheckbox).change(function(){
+		c.css(uiCss.headlineCheckbox).change(function(){
 			if ($(this).is(':checked')) {
-				div.trigger('repos-search-ui-query-enable', [id]);
+				div.trigger('enabled', [id]);
 			} else {
-				div.trigger('repos-search-ui-query-disable', [id]);
+				div.trigger('disabled', [id]);
+			}
+		});
+		// event to programmatically enable/disable
+		div.bind('enable', function() {
+			var c = $(':checkbox', this);
+			if (!c.is(':checked')) {
+				c.attr('checked', true).trigger('change');
 			}
 		});
 		// return the element that gets the events, use .parent() to get the div
-		div.appendTo(dialog);
+		div.appendTo(this.dialog);
 		return div;
 	};
 	
-	var meta = querydiv(settings.id+'meta', 'Titles and keywords');
-	var content = querydiv(settings.id+'content', 'Text contents');
-	var all = $(meta).add(content);
-	
-	all.bind('repos-search-ui-query-disable', function() {
-		$('ul, ol', this).remove();
-	}).bind('repos-search-ui-query-enable', function(ev, id) {
-		var list = $('<ul/>').attr('id', id).css(css.list).appendTo(this);
-		var qname = list.attr('id').substr(settings.id.length);
-		var query = new ReposSearchQuery(qname, settings.q, list);
-		// result presentation
-		list.bind('repos-search-noresults', function() {
-			var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
-		});
-		list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
-			var next = $('<li class="repos-search-next"/>').appendTo(this);
-			var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-				$('.repos-search-result', list).css(css.resultPrevious);
-				next.remove();
-				query.pageNext();
-			}).appendTo(next);
-		});	
-	});
-
-	// run query for metadata by default
-	var enable = function(querydiv) {
-		var c = $('input', querydiv);
-		if (!c.is(':checked')) {
-			c.attr('checked', true).trigger('change');
-		}
+	/**
+	 * @return {jQuery} Title div
+	 * @private
+	 */
+	this.titleCreate = function() {
+		var title = $('<div class="repos-search-dialog-title"/>').css(uiCss.dialogTitle)
+			.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
+			.attr('id', this.settings.id+'dialog-title-link').css(uiCss.dialogTitleLink));
+		$('<span class="repos-search-dialog-title-separator"/>').text(' - ').appendTo(title);
+		$('<em class="repos-search-dialog-title-label"/>').appendTo(title);
+		return title;
 	};
-	enable(meta);
-	// automatically search fulltext if there are no results in meta
-	$('ul, ol', meta).one('repos-search-noresults', function() {
-		enable(content);
-	});
+		
+	this.fixIE = function() {
+		// is there jQuery feature detection for checkbox onchange event?
+		$(':checkbox', dialog).click(function(ev) {
+			ev.stopPropagation();
+			$(this).attr('checked', $(this).is(':checked')).trigger('change');
+		});
+	};
+
+	// init light dialog, hidden until we have a query
+	this.dialog = $('<div/>').attr('id', this.settings.id+'dialog').css(uiCss.dialog);
 	
-	// close button at bottom of page
-	closeAction.clone(true).addClass('repos-search-close-bottom').css(css.closeBottom).appendTo(dialog);
+	var title = this.titleCreate();
+	this.dialog.append(title);
 	
-	$('body').append(dialog);
-	if ($.browser.msie) ReposSearch.IEFix(dialog);
+	var closeAction = $('<a href="javascript:void(0)" class="repos-search-close">close</a>').css(uiCss.close).click(this.destroy);
+ 	title.append(closeAction);
+
+	// close button at bottom of dialog
+	var closeBottom = closeAction.clone(true).addClass('repos-search-close-bottom').css(uiCss.closeBottom)
+	closeBottom.appendTo(this.dialog);
+
+	$('body').append(this.dialog.hide());
+	if ($.browser.msie) ReposSearch.IEFix(this.dialog);
 	
 	// publish page wide event so extensions can get hold of search events
-	$().trigger('repos-search-dialog-open', [dialog[0]]);	
+	$().trigger('repos-search-dialog-open', [this.dialog[0]]);	
 	
-};
-
-ReposSearch.IEFix = function(dialog) {
-	// is there jQuery feature detection for checkbox onchange event?
-	$('input[type=checkbox]', dialog).click(function(ev) {
-		ev.stopPropagation();
-		$(this).attr('checked', $(this).is(':checked')).trigger('change');
-	});
 };
