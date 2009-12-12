@@ -39,11 +39,10 @@ ReposSearch.init = function(options) {
 		new ReposSearch.EventLogger(console);
 	}
 	// insert base url in css properties that can contain urls
-	var c = settings.css.input;
+	var c = settings.css && settings.css.input;
 	c.background = c && c.background && c.background.replace('{url}', settings.url);
 	// initialize query class
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
-	console.log('init', settings, ReposSearchQuery.prototype.url);
 	// use mini search input to invoke Repos Search
 	var ui = new ReposSearch.LightUI({
 		css: settings.css
@@ -428,6 +427,12 @@ ReposSearch.SampleSearchBox = function(options) {
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repos-search-dialog-close', function(ev, dialog) {
 		$().trigger('repos-search-exited');
+		if (settings.urlMode) {
+			var s = location.href.indexOf('repossearch=');
+			if (s > 0) {
+				location.href = location.href.substr(0, s);
+			}	
+		}		
 	});
 	// update mini UI based on dialog events
 	$().bind('repos-search-exited', function() {
@@ -457,7 +462,7 @@ ReposSearch.LightUI = function(options) {
 	 * Removes the dialog.
 	 */	
 	this.destroy = function(ev) {
-		var d = $('#' + settings.id + 'dialog');
+		var d = $('#' + uiSettings.id + 'dialog');
 		$().trigger('repos-search-dialog-close', [d[0]]);
 		d.remove();
 	};
