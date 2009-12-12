@@ -80,9 +80,9 @@ ReposSearch.cssDefault = {
 		position: 'absolute',
 		overflow: 'auto',
 		top: 50,
-		left: 30,
-		right: 30,
 		bottom: 30,
+		left: '1%',
+		right: '1%',
 		opacity: 0.9,
 		backgroundColor: '#fff',
 		border: '3px solid #aaa'
@@ -115,7 +115,8 @@ ReposSearch.cssDefault = {
 		clear: 'both'
 	},
 	queryDiv: {
-		width: '48%',
+		width: '48.5%',
+		minWidth: '500px',
 		float: 'left',
 		paddingLeft: '1em'
 	},
@@ -235,9 +236,9 @@ ReposSearchQuery.prototype.exec = function() {
 			instance.presentResults(searchRequest.json, listQ);
 		}
 	});
-	listQ.trigger('repos-search-query-sent', [r]);
+	listQ.trigger('repos-search-query-sent', [this.r]);
 };
-	
+
 ReposSearchQuery.prototype.pageNext = function() {	
 	this.start = this.start + this.r.getRows();
 	this.exec();
@@ -472,6 +473,7 @@ ReposSearch.LightUI = function(options) {
 	 * @param {String} query Valid solr query from the user
 	 */
 	this.run = function(query) {
+		$('.repos-search-dialog-title-label', this.dialog).text(query);
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		
@@ -499,6 +501,10 @@ ReposSearch.LightUI = function(options) {
 			});	
 		});
 		
+		// close button at bottom of dialog
+		var closeBottom = $('.repos-search-dialog-close-button', this.dialog).clone(true).css(uiCss.closeBottom);
+		closeBottom.appendTo(this.dialog);
+			
 		// show ui
 		this.dialog.show('slow');
 	
@@ -568,12 +574,8 @@ ReposSearch.LightUI = function(options) {
 	var title = this.titleCreate();
 	this.dialog.append(title);
 	
-	var closeAction = $('<a href="javascript:void(0)" class="repos-search-close">close</a>').css(uiCss.close).click(this.destroy);
+	var closeAction = $('<a href="javascript:void(0)" class="repos-search-dialog-close-button">close</a>').css(uiCss.close).click(this.destroy);
 	title.append(closeAction);
-
-	// close button at bottom of dialog
-	var closeBottom = closeAction.clone(true).addClass('repos-search-close-bottom').css(uiCss.closeBottom);
-	closeBottom.appendTo(this.dialog);
 
 	$('body').append(this.dialog.hide());
 	if ($.browser.msie) ReposSearch.IEFix(this.dialog);
