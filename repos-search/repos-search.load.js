@@ -42,7 +42,8 @@ ReposSearch.init = function(options) {
 	var c = settings.css.input;
 	c.background = c && c.background && c.background.replace('{url}', settings.url);
 	// initialize query class
-	ReposSearchQuery.prototype.url = settings.url || ReposSearchQuery.prototype.url;
+	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
+	console.log('init', settings, ReposSearchQuery.prototype.url);
 	// use mini search input to invoke Repos Search
 	var ui = new ReposSearch.LightUI({
 		css: settings.css
@@ -162,7 +163,7 @@ function ReposSearchRequest(options) {
 	};
 	// Query the proxy
 	$.ajax({
-		url: this.url,
+		url: instance.url,
 		data: params,
 		dataType: 'json',
 		success: function(json) {
@@ -449,7 +450,7 @@ ReposSearch.LightUI = function(options) {
 	}, options);
 	
 	// for closure scope, 
-	var uiCss = options.css;
+	var uiCss = this.settings.css;
 	var uiSettings = this.settings;
 
 	/**
@@ -550,7 +551,7 @@ ReposSearch.LightUI = function(options) {
 		
 	this.fixIE = function() {
 		// is there jQuery feature detection for checkbox onchange event?
-		$(':checkbox', dialog).click(function(ev) {
+		$(':checkbox', this.dialog).click(function(ev) {
 			ev.stopPropagation();
 			$(this).attr('checked', $(this).is(':checked')).trigger('change');
 		});
@@ -563,10 +564,10 @@ ReposSearch.LightUI = function(options) {
 	this.dialog.append(title);
 	
 	var closeAction = $('<a href="javascript:void(0)" class="repos-search-close">close</a>').css(uiCss.close).click(this.destroy);
- 	title.append(closeAction);
+	title.append(closeAction);
 
 	// close button at bottom of dialog
-	var closeBottom = closeAction.clone(true).addClass('repos-search-close-bottom').css(uiCss.closeBottom)
+	var closeBottom = closeAction.clone(true).addClass('repos-search-close-bottom').css(uiCss.closeBottom);
 	closeBottom.appendTo(this.dialog);
 
 	$('body').append(this.dialog.hide());
