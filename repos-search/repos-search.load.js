@@ -542,6 +542,8 @@ ReposSearch.LightUI = function(options) {
 				c.attr('checked', true).trigger('change');
 			}
 		});
+		// there's always someting	
+		if ($.browser.msie) this.fixIE(div);
 		// return the element that gets the events, use .parent() to get the div
 		div.appendTo(this.dialog);
 		return div;
@@ -560,9 +562,8 @@ ReposSearch.LightUI = function(options) {
 		return title;
 	};
 		
-	this.fixIE = function() {
-		// is there jQuery feature detection for checkbox onchange event?
-		$(':checkbox', this.dialog).click(function(ev) {
+	this.fixIE = function(context) {
+		$(':checkbox', context).click(function(ev) {
 			ev.stopPropagation();
 			$(this).attr('checked', $(this).is(':checked')).trigger('change');
 		});
@@ -578,7 +579,6 @@ ReposSearch.LightUI = function(options) {
 	title.append(closeAction);
 
 	$('body').append(this.dialog.hide());
-	if ($.browser.msie) ReposSearch.IEFix(this.dialog);
 	
 	// publish page wide event so extensions can get hold of search events
 	$().trigger('repos-search-dialog-open', [this.dialog[0]]);	
