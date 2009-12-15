@@ -68,6 +68,8 @@ parser.add_option("-r", "--revision", dest="rev",
   help="Committed revision")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
+parser.add_option("", "--prefix", dest="prefix", default="",
+  help="Prefix in index, for example parent path or url. Will be prepended to base. Default: %default")
 # TODO future --prefix parameter for those who want to index multiple hots or parent paths
 
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
