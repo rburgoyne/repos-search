@@ -35,23 +35,23 @@ parser.add_option("-p", "--repository", dest="repo",
                   help="Local repository path")
 
 if len(sys.argv) < 2:
-    parser.print_help()
-    sys.exit(2)
+  parser.print_help()
+  sys.exit(2)
 
 # special treatment in order to keep arguments for indexer
 # found no option in OptonParser to let unknown arguments through
 keepargs = sys.argv[1:]
 a = 1
 if sys.argv[a].startswith("--indexer="):
-    keepargs = keepargs[1:]
-    a = a + 1
+  keepargs = keepargs[1:]
+  a = a + 1
 if sys.argv[a] == "-p":
-    a = a + 1
+  a = a + 1
 (options, args) = parser.parse_args(sys.argv[0:a+1])
 
 if options.repo is None:
-    parser.print_help()
-    sys.exit(2)
+  parser.print_help()
+  sys.exit(2)
 
 def run(command):
   print('# ' + command)
@@ -60,7 +60,7 @@ def run(command):
 
 youngest = int(getoutput('svnlook youngest %s' % options.repo))
 if not youngest:
-    raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
+  raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
 print '# Latest revision is %d' % youngest
 
 # TODO performance would be better if commit is disabled in index.py and done here after last rev
@@ -68,9 +68,9 @@ print '# Latest revision is %d' % youngest
 run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
 
 for i in range(1, youngest + 1):
-    result = run('python %s -o batch -r %d %s' % (options.indexer, i, " ".join(keepargs)))
-    if result > 0:
-        raise NameError('Got exit code %d for command; %s' % (result, cmd))
-        break
+  result = run('python %s -o batch -r %d %s' % (options.indexer, i, " ".join(keepargs)))
+  if result > 0:
+    raise NameError('Got exit code %d for command; %s' % (result, cmd))
+    break
 
 run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
