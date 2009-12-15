@@ -53,6 +53,11 @@ if options.repo is None:
     parser.print_help()
     sys.exit(2)
 
+def run(command):
+  print('# ' + command)
+  result = os.system(command)
+  return result
+
 youngest = int(getoutput('svnlook youngest %s' % options.repo))
 if not youngest:
     raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
@@ -60,14 +65,12 @@ print '# Latest revision is %d' % youngest
 
 # TODO performance would be better if commit is disabled in index.py and done here after last rev
 
+run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
+
 for i in range(1, youngest + 1):
-    cmd = 'python %s -o batch -r %d %s' % (options.indexer, i, " ".join(keepargs))
-    print('# ' + cmd)
-    result = os.system(cmd)
+    result = run('python %s -o batch -r %d %s' % (options.indexer, i, " ".join(keepargs)))
     if result > 0:
         raise NameError('Got exit code %d for command; %s' % (result, cmd))
         break
 
-cmd = 'python %s -o commit %s' % (options.indexer, " ".join(keepargs))
-print('# ' + cmd)
-result = os.system(cmd)
+run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))

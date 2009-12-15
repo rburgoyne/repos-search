@@ -281,7 +281,7 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
  * @return jQuery element
  */
 ReposSearchQuery.prototype.presentItem = function(json) {
-	var m = /([^\/]*)(\/?.*\/)([^\/]*)/.exec(json.id);
+	var m = /([^\/]*)\^(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>').addClass('repos-search-result');
 	var root = '/svn';

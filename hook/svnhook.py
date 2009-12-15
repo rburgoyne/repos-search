@@ -217,9 +217,10 @@ def indexGetId(options, revision, path):
   Path should begin with slash so that base can be prepended.
   This means that for indexes containing repo name paths do not begin with slash.
   '''
-  id = path
+  id = '^' + path
   if options.base:
     id = options.base + id
+    
   return id
 
 def indexGetName(path):
@@ -272,7 +273,7 @@ def indexSubmitFile_curl(optons, revision, path):
   id = indexGetId(options, revision, path)
   params = {"literal.id": id.encode('utf8'), 
             "literal.svnrevision": revision,
-            "commit": "true"}
+            "commit": "false"}
 
   props = repositoryGetProplist(options, revision, path)
   for p in props.keys():

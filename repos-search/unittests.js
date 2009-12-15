@@ -20,6 +20,22 @@ test('getFieldsToShow', function() {
 	equals(f[3], 'c');
 });
 
+test('presentItem', function() {
+	var doc = {
+		id: 'arepo^/file.txt',
+		svnprop_some_prop: 'some prop value'
+	};
+	var q = new ReposSearchQuery();
+	var li = q.presentItem(doc);
+	console.log('got', li);
+	// test the microformat
+	equals($('.repos-search-resultbase', li).text(), 'arepo',
+		'base should be the part from the last slash in prefix to the root marker');
+	equals($('.repos-search-resultpath', li).text(),'/');
+	equals($('.repos-search-resultfile', li).text(),'file.txt');
+	var fields = $('dl.repos-search-resultindex', li);
+	ok(fields.size(), 'Should find a dl with fields');
+});
 
 module('solr requests');
 
@@ -36,7 +52,7 @@ test('new reqest', function() {
 		// mock data copied from an actual solr response 
 		docs = [{"svnprop_svn_mime_type":"application/octet-stream",
 				 "svnrevision":13,
-				 "id":"repo1/Images/Paint.png",
+				 "id":"repo1^/Images/Paint.png",
 				 "content_type":["image/png"]}];
 		opt.success(
 			{"responseHeader":{

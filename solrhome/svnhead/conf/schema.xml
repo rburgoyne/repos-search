@@ -398,11 +398,11 @@
 
 	<!-- Repos Search field types -->
 
-	<!-- prefix is anything up to the first slash, usually same as base -->
+	<!-- prefix is everything up to the root marker -->
 	<fieldType name="prefixFromPath" class="solr.TextField">
 		<analyzer type="index">
-			<tokenizer class="solr.PatternTokenizerFactory" pattern="\/.*" />
-		</analyzer>	
+			<tokenizer class="solr.PatternTokenizerFactory" pattern="\^(.*)" />
+		</analyzer>
 		<analyzer type="query">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 		</analyzer>
