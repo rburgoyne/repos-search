@@ -60,44 +60,47 @@ from xml.sax.saxutils import escape
 
 """ hook options """
 parser = OptionParser()
+parser.add_option("-o", "--operation", dest="operation", default="index",
+  help="Type of operation: 'index', 'batch', 'drop', 'commit'. Default: %default")
 parser.add_option("-p", "--repository", dest="repo",
-    help="A local repository path")
+  help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
-    help="Committed revision")
+  help="Committed revision")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
-    help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
+  help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 # TODO future --prefix parameter for those who want to index multiple hots or parent paths
 
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
-    help="The loglevel (standard Log4J levels, lowercase). Defaults to %default.")
+  help="The loglevel (standard Log4J levels, lowercase). Defaults to %default.")
 parser.add_option("", "--svnlook", dest="svnlook", default="/usr/bin/svnlook",
-    help="The svnlook command, default: %default")
+  help="The svnlook command, default: %default")
 parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
-    help="The curl command, default: %default")
+  help="The curl command, default: %default")
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
-    help="Solr host, port and root path. With trailing slash. Default: %default")
+  help="Solr host, port and root path. With trailing slash. Default: %default")
 parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
-    help="The fulltext schema name in solr root or multicore root. Default: %default")
+  help="The fulltext schema name in solr root or multicore root. Default: %default")
 
 def getOptions():
-    (options, args) = parser.parse_args()
-    if options.repo is None:
-        print(__doc__)
-        parser.print_help()
-        sys.exit(2)
-    return options
+  (options, args) = parser.parse_args()
+  if options.repo is None:
+    print(__doc__)
+    parser.print_help()
+    sys.exit(2)
+  return options
 
 def optionsPreprocess(options):
-    '''
-    Derives additional options needed in functions below.
-    Raises exception on invalid or missing options.
-    '''
-    # normalize repository path
-    options.repo = options.repo.rstrip("/")
-    # derive base from repo path
-    if not options.nobase:
-        options.base = os.path.basename(options.repo)
-    # only numeric revisions supported
+  '''
+  Derives additional options needed in functions below.
+  Raises exception on invalid or missing options.
+  '''
+  # normalize repository path
+  options.repo = options.repo.rstrip("/")
+  # derive base from repo path
+  if not options.nobase:
+    options.base = os.path.basename(options.repo)
+  # only numeric revisions supported
+  if options.rev:
     options.rev = long(options.rev)
 
 ### ----- hook backend to read from repository ----- ###
@@ -126,24 +129,24 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
     pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
 
 def repositoryDiff(options, revision, path):
-    '''
-    Returns diff for revision-1:revision as plaintext for the given path
-    '''
-    pass
+  '''
+  Returns diff for revision-1:revision as plaintext for the given path
+  '''
+  pass
 
 def repositoryGetFile(options, revision, path):
-    '''
-    Returns contents as NamedTemporaryFile that will be deleted on close()
-    '''
-    cat = NamedTemporaryFile('wb')
-    options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
-    catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
-    catp.communicate()
-    if not catp.returncode is 0:
-        options.logger.debug("Cat failed for %s. It must be a folder." % (path))
-        return
-    cat.flush()
-    return cat
+  '''
+  Returns contents as NamedTemporaryFile that will be deleted on close()
+  '''
+  cat = NamedTemporaryFile('wb')
+  options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
+  catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
+  catp.communicate()
+  if not catp.returncode is 0:
+    options.logger.debug("Cat failed for %s. It must be a folder." % (path))
+    return
+  cat.flush()
+  return cat
 
 def repositoryGetProplist(options, revision, path):
   '''
@@ -162,14 +165,14 @@ def proplistToDict(xmlsource):
 ### ----- event handlers for results from backend ----- ###
 
 def handleRevision(options, revision, revprops):
-    '''
-    Event handler for new historical revision in repository,
-    called in ascending revision number order.
-    
-    Revision properties should be indexed in svnrev schema at id
-    [prefix][base]/[revision number]
-    '''
-    pass
+  '''
+  Event handler for new historical revision in repository,
+  called in ascending revision number order.
+  
+  Revision properties should be indexed in svnrev schema at id
+  [prefix][base]/[revision number]
+  '''
+  pass
 
 def handlePathEntry(options, revision, path, action, propaction, isfile):
   '''
@@ -263,7 +266,6 @@ def indexDelete_httpclient(options, revision, path):
     options.logger.info("Deleted from index %s" % id)
   else:
     options.logger.error("%d %s" % (response.status, responseBody))
-  indexCommmit(options, schema)
 
 def indexSubmitFile_curl(optons, revision, path):
   schema = options.solr + options.schemahead + '/'
@@ -294,48 +296,72 @@ def getCurlCommand(options):
     curl = curl + ['-v']
   return curl
 
-def indexCommmit(options, schema):
+def indexPost(url, doc):
   '''
-  Issues commit command to Solr to make recent indexing searchable.
+  http client implementation of post to index
   '''
-  u = urlparse(schema)
-  h = httplib.HTTPConnection(u.netloc)
-  h.putrequest('POST', u.path +'update')
+  h = httplib.HTTPConnection(url.netloc)
+  h.putrequest('POST', url.path +'update')
   h.putheader('content-type', 'text/xml; charset=UTF-8')
-  h.putheader('content-length', 9)
+  h.putheader('content-length', len(doc))
   h.endheaders()
-  h.send('<commit/>')
+  h.send(doc)
   r = h.getresponse()
   r.read()
   h.close()
-  options.logger.debug("commit status %d" % r.status)
+  return r
+
+def indexCommit(options):
+  '''
+  Issues commit command to Solr to make recent indexing searchable.
+  '''
+  schema = options.solr + options.schemahead + '/'
+  url = urlparse(schema)
+  r = indexPost(url, '<commit/>')
+  options.logger.info("Commited with status %d" % r.status)
+  
+def indexDrop(options):
+  url = urlparse(options.solr + options.schemahead + '/')
+  prefix = indexGetId(options, None, '')
+  query = 'id:%s' % prefix.replace(':', '\\:').replace('^', '\\^') + '*'
+  deleteDoc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
+  r = indexPost(url, deleteDoc)
+  if r.status is 200:
+    options.logger.info("Deleted all %s" % query)
+  else:
+    options.logger.error("Delete status %d for query %s" % (r.status, query))
 
 ### ----- hook start from post-commit arguments ----- ###
 
 def getLogger(options):    
-    """ 
-    Set up logger based on options 
-    and store the instance in options.logger
-    """
-    LEVELS = {'debug': logging.DEBUG,
-              'info': logging.INFO,
-              'warning': logging.WARNING,
-              'error': logging.ERROR,
-              'critical': logging.CRITICAL}
-    level = LEVELS.get(options.loglevel)
-    if not level:
-        raise NameError("Invalid log level %s" % options.loglevel)
-    logger = logging.getLogger("Repos Search hook")
-    logger.setLevel(level)
-    # console
-    ch = logging.StreamHandler()
-    ch.setLevel(level)
-    ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
-    logger.addHandler(ch)
-    options.logger = logger
+  """ 
+  Set up logger based on options 
+  and store the instance in options.logger
+  """
+  LEVELS = {'debug': logging.DEBUG,
+            'info': logging.INFO,
+            'warning': logging.WARNING,
+            'error': logging.ERROR,
+            'critical': logging.CRITICAL}
+  level = LEVELS.get(options.loglevel)
+  if not level:
+      raise NameError("Invalid log level %s" % options.loglevel)
+  logger = logging.getLogger("Repos Search hook")
+  logger.setLevel(level)
+  # console
+  ch = logging.StreamHandler()
+  ch.setLevel(level)
+  ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+  logger.addHandler(ch)
+  options.logger = logger
     
 if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
-  repositoryHistoryReader(options, handleRevision, handlePathEntry)
+  if options.operation == 'index' or options.operation == 'batch':
+    repositoryHistoryReader(options, handleRevision, handlePathEntry)
+  if options.operation == 'drop':
+    indexDrop(options)    
+  if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
+    indexCommit(options)

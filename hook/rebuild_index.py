@@ -61,9 +61,13 @@ print '# Latest revision is %d' % youngest
 # TODO performance would be better if commit is disabled in index.py and done here after last rev
 
 for i in range(1, youngest + 1):
-    cmd = 'python %s -r %d %s' % (options.indexer, i, " ".join(keepargs))
+    cmd = 'python %s -o batch -r %d %s' % (options.indexer, i, " ".join(keepargs))
     print('# ' + cmd)
     result = os.system(cmd)
     if result > 0:
         raise NameError('Got exit code %d for command; %s' % (result, cmd))
         break
+
+cmd = 'python %s -o commit %s' % (options.indexer, " ".join(keepargs))
+print('# ' + cmd)
+result = os.system(cmd)
