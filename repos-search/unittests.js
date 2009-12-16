@@ -115,7 +115,7 @@ test('search interaction', function() {
 	
 	// new query instance
 	var list = $('<ol/>');
-	var q = new ReposSearchQuery('meta', 'repos search', list);
+	var q = new ReposSearchQuery('meta', 'repos search', '/svn', list);
 	testlog.assert(function(a) {
 		equals(a[0], 'repos-search-started');
 		equals(a[2], 'meta');

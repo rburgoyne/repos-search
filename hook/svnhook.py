@@ -99,7 +99,9 @@ def optionsPreprocess(options):
   # normalize repository path
   options.repo = options.repo.rstrip("/")
   # derive base from repo path
-  if not options.nobase:
+  if options.nobase:
+    options.base = ''
+  else:
     options.base = os.path.basename(options.repo)
   # only numeric revisions supported
   if options.rev:
@@ -216,12 +218,14 @@ def handleFileChange(optins, revision, path):
 
 def indexGetId(options, revision, path):
   '''
-  Path should begin with slash so that base can be prepended.
-  This means that for indexes containing repo name paths do not begin with slash.
+  Builds the string used as id in index.
+  Concatenates prefix, base, root marker and path.
   '''
   id = '^' + path
   if options.base:
     id = options.base + id
+  if options.prefix:
+    id = options.prefix + id  
     
   return id
 

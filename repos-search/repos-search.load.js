@@ -30,8 +30,13 @@ var ReposSearch = {};
  */
 ReposSearch.init = function(options) {
 	var settings = $.extend({
+		/* url to the repos search proxy and magnifier.png */
 		url: '/repos-search/',
+		/* url to the parent path for search result links, no trailing slash */
+		parent: '/svn',
+		/* coded css, see default, empty object to do all styling in real css */
 		css: ReposSearch.cssDefault,
+		/* true to enable event logger if there is a console */
 		logger: false
 	}, options);
 	// logger
@@ -45,6 +50,7 @@ ReposSearch.init = function(options) {
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
 	// use mini search input to invoke Repos Search
 	var ui = new ReposSearch.LightUI({
+		parent: settings.parent,
 		css: settings.css
 	});
 	var box = new ReposSearch.SampleSearchBox({
@@ -210,13 +216,15 @@ ReposSearchRequest.prototype.url = './';
  * 
  * @param {String} type Query type: 'meta', 'content' or any other type from the Solr schema
  * @param {String} userQuery The search query
+ * @param {String} parentUrl For presentation of the results, the prefix to base and path
  * @param {Element|jQuery} resultList OL or UL, possibly containing old results
  */
-function ReposSearchQuery(type, userQuery, resultList) {
+function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
 	this.type = type;
 	this.query = userQuery;
 	this.listQ = $(resultList);
 	this.listE = this.listQ[0];
+	this.parentUrl = parentUrl;
 	this.start = 0;
 	this.r = null;
 	$().trigger('repos-search-started', [this.type, this.query, this.listE]);
@@ -284,7 +292,7 @@ ReposSearchQuery.prototype.presentItem = function(json) {
 	var m = /([^\/]*)\^(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>').addClass('repos-search-result');
-	var root = '/svn';
+	var root = this.parentUrl;
 	if (m[1]) {
 		root += '/' + m[1];
 		li.append('<a class="repos-search-resultbase" href="' + root + '">' + m[1] + '</a>');
@@ -452,7 +460,8 @@ ReposSearch.SampleSearchBox = function(options) {
 ReposSearch.LightUI = function(options) {
 	
 	this.settings = $.extend({
-		id: 'repos-search-'
+		id: 'repos-search-',
+		parent: '/svn'
 	}, options);
 	
 	// for closure scope, 
@@ -483,7 +492,7 @@ ReposSearch.LightUI = function(options) {
 		}).bind('enabled', function(ev, id) {
 			var list = $('<ul/>').attr('id', id).css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
-			var q = new ReposSearchQuery(qname, query, list);
+			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
 			// result presentation
 			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);

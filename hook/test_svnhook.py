@@ -22,15 +22,27 @@ class SvnhookTest(unittest.TestCase):
     self.assertEqual(opt.rev, 1234, 'should make rev numeric')
     self.assertEqual(opt.base, 'r1', 'should get base from last folder name in repo path')
     pass
-      
-  def indexGetId(self):
+
+  def testPreprocessOptionsNobase(self):
     opt = OptionParser().parse_args([])[0]
-    opt.repo = '/a/b'
+    opt.repo = '/svn/r1/'
+    opt.rev = '1234'
     opt.nobase = True
+    optionsPreprocess(opt)
+    self.assertEqual(opt.base, '', 'should get base from last folder name in repo path')
+    pass
+      
+  def testIndexGetId(self):
+    opt = OptionParser().parse_args([])[0]
+    opt.base = ''
+    opt.prefix = ''
     self.assertEqual(indexGetId(opt, 1, '/file.txt'), '^/file.txt')
-    opt.nobase = False
+    opt.base = 'b'
     self.assertEqual(indexGetId(opt, 1, '/file.txt'), 'b^/file.txt')
-    opt.prefix = 'where-we-work.com/svn/'
+    opt.prefix = '/svn/'
+    self.assertEqual(indexGetId(opt, 1, '/file.txt'), '/svn/b^/file.txt')
+    opt.base = ''
+    self.assertEqual(indexGetId(opt, 1, '/file.txt'), '/svn/^/file.txt')
     
   def testGetProplist(self):
     pass
