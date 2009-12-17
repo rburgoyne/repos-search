@@ -49,6 +49,18 @@ test('presentItemWithPrefix', function() {
 	equals(base.attr('href'), 'whatever/r1/', 'basse url should use the prefix from id');
 });
 
+test('presentItemOnlyPrefix', function() {
+	var doc = {
+		// we can not distinguish base from nobase unless prefix ends with /
+		id: '/someprefix/^/file.txt'
+	};
+	var q = new ReposSearchQuery();
+	var li = q.presentItem(doc);
+	console.log(li);
+	var base = $('.repos-search-resultbase', li);
+	equals(base.size(), 0, 'no base in this id');
+});
+
 module('solr requests');
 
 test('new reqest', function() {

@@ -1,0 +1,10 @@
+<!-- sample search ui -->
+<Configure class="org.mortbay.jetty.handler.ContextHandler">
+   <Set name="contextPath">/repos-search</Set>
+   <Set name="resourceBase"><SystemProperty name="jetty.home" default="."/>/../repos-search</Set>
+   <Call name="addHandler">
+       <Arg>
+           <New class="org.mortbay.jetty.handler.ResourceHandler"/>
+       </Arg>
+   </Call>
+</Configure>

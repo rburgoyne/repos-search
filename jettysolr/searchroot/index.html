@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<title>Repos Search</title>
+
+<script type="text/javascript" src="/repos-search/jquery.min.js"></script>
+<script type="text/javascript" src="/repos-search/repos-search.load.js"></script>
+
+<script type="text/javascript">
+// customizations could contain for example:
+searchroot_parentUrl = false; // root URL as prefix to result links	
+</script>
+<script type="text/javascript" src="customizations.js"></script>
+<script type="text/javascript" src="searchroot.js"></script>
+
+<style type="text/css">
+body {
+	font-family: sans-serif;
+}
+a {
+	text-decoration: none;
+}
+a:hover {
+	text-decoration: underline;
+}
+h1, .repos-search-container {
+	float: left;
+	display: inline;
+	margin-top: 0;
+	margin-right: 3em;
+}
+h1, h2, h3 {
+	color: #333;
+}
+.repos-search-container {
+	padding: 3px;
+	background-color: #99CC00;
+}
+.clearer {
+	clear: both;
+}
+#statistics dt, #statistics dd {
+	display: inline;
+}
+#statistics dd {
+	margin-left: 1em;
+	border-bottom: 1px dotted gray;
+}
+.repos-search-resultfile {
+	font-weight: bold;
+}
+/* format like a report rather than a result list */
+.repos-search-result-list {
+	list-style-position: inside;
+	padding-left: 0.5em;
+}
+.repos-search-result {
+	margin-top: 0.5em;
+	font-size: 1.15em;
+}
+.repos-search-resultindex {
+	text-indent: 0; /* to override the indent in results */
+	font-size: 75%;
+	padding: .2em;
+	margin-left: 1em;
+	margin-right: 1em;
+}
+.repos-search-resultindex dt {
+	color: #111;
+	letter-spacing: 0.1em;
+}
+.repos-search-resultindex dd {
+	color: #111;
+}
+</style>
+</head>
+<body>
+
+<h1>Repos Search</h1>
+
+<div class="repos-search-container"></div>
+
+<div class="clearer"/>
+<div id="statistics">
+<dl>
+<dt>Number of documents in svnhead index</dt><dd class="stat_numDocs"></dd>
+</dl>
+<p><a href="/solr/">Solr</a></p>
+</div>
+</body>
+</html>

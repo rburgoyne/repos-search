@@ -30,12 +30,16 @@ var ReposSearch = {};
  */
 ReposSearch.init = function(options) {
 	var settings = $.extend({
-		/* url to the repos search proxy and magnifier.png */
+		// search
+		/* url to the search service */
 		url: '/repos-search/',
-		/* url to the parent path for search result links, no trailing slash */
-		parent: '/svn',
+		/* url to UI files, false for same as url */
+		uiUrl: false,
 		/* coded css, see default, empty object to do all styling in real css */
 		css: ReposSearch.cssDefault,
+		/* URL to the parent path for search result links, no trailing slash.
+		   false to use default parent or parent from document prefix */
+		parent: false,		
 		/* true to enable event logger if there is a console */
 		logger: false
 	}, options);
@@ -47,6 +51,7 @@ ReposSearch.init = function(options) {
 	var c = settings.css && settings.css.input;
 	c.background = c && c.background && c.background.replace('{url}', settings.url);
 	// initialize query class
+	settings.uiUrl = settings.uiUrl || settings.url;
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
 	// use mini search input to invoke Repos Search
 	var ui = new ReposSearch.LightUI({
@@ -134,6 +139,9 @@ ReposSearch.cssDefault = {
 	result: {
 		marginLeft: '1em',
 		textIndent: '-1em'
+	},
+	resultindex: {
+		display: 'none'
 	},
 	resultPrevious: {
 		fontSize: '82.5%'
@@ -225,6 +233,7 @@ function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
 	this.listQ = $(resultList);
 	this.listE = this.listQ[0];
 	this.parentUrl = parentUrl;
+	this.parentUrlDefault = '/svn/';
 	this.start = 0;
 	this.r = null;
 	$().trigger('repos-search-started', [this.type, this.query, this.listE]);
@@ -289,18 +298,17 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
  * @return jQuery element
  */
 ReposSearchQuery.prototype.presentItem = function(json) {
-	var m = /(.*\/)?([^\/]*)\^(\/?.*\/)([^\/]*)/.exec(json.id);
+	var m = /(.*\/)?([^\/]*)?\^(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>').addClass('repos-search-result');
-	var root = m[1] || this.parentUrl + '/';
+	var root = m[1] || this.parentUrl || this.parentUrlDefault;
 	if (m[2]) {
 		root += m[2];
 		li.append('<a class="repos-search-resultbase" href="' + root + '/">' + m[2] + '</a>');
 	}
 	li.append('<a class="repos-search-resultpath" href="' + root + m[3] + '">' + m[3] + '</a>');
 	li.append('<a class="repos-search-resultfile" href="' + root + m[3] + m[4] + '">' + m[4] + '</a>');
-	// add all indexed info to hidded definition list
-	var indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li).hide();
+	var indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li);
 	var fields = ReposSearch.getPropFields(json);
 	for (var i = 0; i < fields.length; i++) {
 		var key = fields[i];
@@ -490,12 +498,13 @@ ReposSearch.LightUI = function(options) {
 		all.bind('disabled', function() {
 			$('ul, ol', this).remove();
 		}).bind('enabled', function(ev, id) {
-			var list = $('<ul/>').attr('id', id).css(uiCss.list).appendTo(this);
+			var list = $('<ul/>').attr('id', id).addClass('repos-search-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
 			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
 			// result presentation
 			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
+				$('.repos-search-resultindex', microformatElement).css(uiCss.resultindex);
 			});
 			list.bind('repos-search-noresults', function() {
 				var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
