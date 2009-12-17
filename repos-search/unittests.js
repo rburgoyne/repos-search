@@ -115,12 +115,16 @@ test('search interaction', function() {
 	ReposSearchRequest = function(options) {
 		equals(options.q, 'repos search', 'Query should be passed on to search request');
 		if (options.type == 'meta') {
-			this.getDocs = function(){
-				return [{"svnprop_svn_mime_type":"application/octet-stream",
-					 "svnrevision":13,
-					 "id":"repo1/Images/Paint.png",
-					 "content_type":["image/png"]}];
-			}
+			this.json = {
+				response: {
+					docs: [{
+						"svnprop_svn_mime_type": "application/octet-stream",
+						"svnrevision": 13,
+						"id": "repo1/Images/Paint.png",
+						"content_type": ["image/png"]
+					}]
+				}
+			};
 		}
 		options.success(this);
 	};
@@ -135,7 +139,7 @@ test('search interaction', function() {
 			f(this.logged.shift());
 		}
 	};
-	new ReposSearchEventLogger(testlog);
+	new ReposSearch.EventLogger(testlog);
 	
 	// new query instance
 	var list = $('<ol/>');
@@ -146,17 +150,25 @@ test('search interaction', function() {
 		equals(a[3], 'repos search');
 		equals(a[4], list[0], 'event should see the element, not the jQuery object');
 	});
+	// request mock is synchronous so the query should return immediately
+	testlog.assert(function(a) {
+		equals(a[0], 'repos-search-query-returned');
+		equals(a[1], list[0]);
+		ok(a[2].json, 'public json needed because presentItem was written before the class-based design');
+	});
+	// request mock is synchronous so the query should return immediately
+	testlog.assert(function(a) {
+		equals(a[0], 'repos-search-result');
+		equals(a[1], list[0]);
+	});
+	
+	// happens after results because mock is synchronous
 	// query with default parameters should be sent directly
 	testlog.assert(function(a) {
 		equals(a[0], 'repos-search-query-sent');
 		equals(a[1], list[0]);
 	});
-	// request mock is synchronous so the query should return immediately
-	testlog.assert(function(a) {
-		equals(a[0], 'repos-search-query-returned');
-		equals(a[1], list[0]);
-		ok(a[2].getDocs, 'shouls pass the request instance');
-	});
+	
 	// unmock
 	ReposSearchRequest = _r;
 });

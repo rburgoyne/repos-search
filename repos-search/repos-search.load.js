@@ -41,7 +41,7 @@ ReposSearch.init = function(options) {
 		   false to use default parent or parent from document prefix */
 		parent: false,		
 		/* true to enable event logger if there is a console */
-		logger: false
+		logger: true
 	}, options);
 	// logger
 	if (settings.logger && window.console && window.console.log) {
@@ -358,7 +358,6 @@ ReposSearch.getPropFields = function(json) {
  */
 ReposSearch.EventLogger = function(consoleApi) {
 	var logger = consoleApi;
-	logger.log('ReposSearch', ReposSearch);
 	// root event bound to document node
 	$().bind('repos-search-started', function(ev, type, userQuery, r) {
 		logger.log(ev.type, this, type, userQuery, r);
