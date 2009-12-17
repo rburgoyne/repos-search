@@ -69,8 +69,8 @@ parser.add_option("-r", "--revision", dest="rev",
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
-  help="Prefix in index, for example parent path or url. Will be prepended to base. Default: %default")
-# TODO future --prefix parameter for those who want to index multiple hots or parent paths
+  help="Prefix in index, for example parent path or url. Will be prepended to base. Empty by default." +
+    " It is recommended to end the prefix with a slash so it can be separated from base in UI")
 
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
   help="The loglevel (standard Log4J levels, lowercase). Defaults to %default.")

@@ -27,7 +27,6 @@ test('presentItem', function() {
 	};
 	var q = new ReposSearchQuery();
 	var li = q.presentItem(doc);
-	console.log('got', li);
 	// test the microformat
 	equals($('.repos-search-resultbase', li).text(), 'arepo',
 		'base should be the part from the last slash in prefix to the root marker');
@@ -35,6 +34,19 @@ test('presentItem', function() {
 	equals($('.repos-search-resultfile', li).text(),'file.txt');
 	var fields = $('dl.repos-search-resultindex', li);
 	ok(fields.size(), 'Should find a dl with fields');
+});
+
+test('presentItemWithPrefix', function() {
+	var doc = {
+		// for absolute URLs id can start with slash or the full protocol+hostname
+		id: 'whatever/r1^/file.txt'
+	};
+	var q = new ReposSearchQuery();
+	var li = q.presentItem(doc);
+	console.log(li);
+	var base = $('.repos-search-resultbase', li);
+	equals(base.text(), 'r1', 'base should be the part from the last slash in prefix to the root marker');
+	equals(base.attr('href'), 'whatever/r1/', 'basse url should use the prefix from id');
 });
 
 module('solr requests');

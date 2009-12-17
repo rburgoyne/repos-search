@@ -289,16 +289,16 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
  * @return jQuery element
  */
 ReposSearchQuery.prototype.presentItem = function(json) {
-	var m = /([^\/]*)\^(\/?.*\/)([^\/]*)/.exec(json.id);
+	var m = /(.*\/)?([^\/]*)\^(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
 	var li = $('<li/>').addClass('repos-search-result');
-	var root = this.parentUrl;
-	if (m[1]) {
-		root += '/' + m[1];
-		li.append('<a class="repos-search-resultbase" href="' + root + '">' + m[1] + '</a>');
+	var root = m[1] || this.parentUrl + '/';
+	if (m[2]) {
+		root += m[2];
+		li.append('<a class="repos-search-resultbase" href="' + root + '/">' + m[2] + '</a>');
 	}
-	li.append('<a class="repos-search-resultpath" href="' + root + m[2] + '">' + m[2] + '</a>');
-	li.append('<a class="repos-search-resultfile" href="' + root + m[2] + m[3] + '">' + m[3] + '</a>');
+	li.append('<a class="repos-search-resultpath" href="' + root + m[3] + '">' + m[3] + '</a>');
+	li.append('<a class="repos-search-resultfile" href="' + root + m[3] + m[4] + '">' + m[4] + '</a>');
 	// add all indexed info to hidded definition list
 	var indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li).hide();
 	var fields = ReposSearch.getPropFields(json);
@@ -317,9 +317,9 @@ ReposSearchQuery.prototype.presentItem = function(json) {
 	}	
 	// file class and file-extension class for icons (compatible with Repos Style)
 	li.addClass('file');
-	var d = m[3].lastIndexOf('.');
-	if (d > 0 && d > m[3].length - 7) {
-		li.addClass('file-' + m[3].substr(d+1).toLowerCase());
+	var d = m[4].lastIndexOf('.');
+	if (d > 0 && d > m[4].length - 7) {
+		li.addClass('file-' + m[4].substr(d+1).toLowerCase());
 	}
 	return li;
 };

@@ -401,7 +401,7 @@
 	<!-- prefix is everything up to the root marker -->
 	<fieldType name="prefixFromPath" class="solr.TextField">
 		<analyzer type="index">
-			<tokenizer class="solr.PatternTokenizerFactory" pattern="\^(.*)" />
+			<tokenizer class="solr.PatternTokenizerFactory" pattern="\^.*" />
 		</analyzer>
 		<analyzer type="query">
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
