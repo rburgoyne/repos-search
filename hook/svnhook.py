@@ -257,7 +257,7 @@ def indexEscapePropname(svnProperty):
 def indexDelete_httpclient(options, revision, path):
   schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
-  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id)
+  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id).encode('utf8')
   options.logger.debug(doc)
   u = urlparse(schema)
   h = httplib.HTTPConnection(u.netloc)
