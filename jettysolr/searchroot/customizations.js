@@ -1,1 +1,0 @@
-searchroot_parentUrl = 'http://localhost:8530/svn/';
