@@ -37,6 +37,12 @@ $indent = 'on';
 $qt = param('qt', 'standard');
 $q = param('q');
 
+// allow customization from local file
+$custfile = dirname(__FILE__).'/proxysettings.php';
+if (file_exists($custfile)) {
+	require($custfile);
+}
+
 // forward to search page if there is no query
 if (!$q) {
 ?>
