@@ -55,45 +55,29 @@ indexing server, post-commit hook and search gui.</p>
 
 <h2 id="getstarted">Getting started with Repos Search beta</h2>
 
-<p>Repos Search is quite flexible, but here's a sample setup:</p>
+<p>The Repos Search <a href="http://groups.google.com/group/reposstyle/files">download</a>
+contains a sample server that can be started out of the box.
+Instead of downloading you may check out 
+<a href="https://labs.repos.se/data/search/trunk/">https://labs.repos.se/data/search/trunk/</a>.</p>
 
 <ol>
 
-<li>Check out <a href="https://labs.repos.se/data/search/trunk/">https://labs.repos.se/data/search/trunk/</a> as <code>repos-search</code>
-in your document root</li>
+<li>In the unzipped/checked out Repos Search folder, go to <code>jettysolr/</code></li>
 
-<li>Go to <code>(your server)/repos-search/test.html</code></li>
+<li>Run <code>run.sh</code>.</li>
 
-<li>Try searching. You'll get an error unless mod_python is configured.</li>
+<li>Go to http://localhost:8080/ to see the sample UI. 
+There are no indexed documents yet, so you won't get any search hits.</li>
 
-<li>Set up <a href="#mod_python">mod_python</a> to serve index.py at /repos-search/. <a href="#mod_pyton">Sample apache conf</a>.</li>
+<li>Run indexing for a repository, see <a href="#hook">hook script</a></li>
 
-<li>Try searching again. You'll most likely get status 503, Service Temporarily Unavailable.</li>
+<li>The sample UI should now give you search hits,
+with result presentation that shows all stored fields from Solr,
+as feedback for schema <a href="#customization">customization</a>.</li>
 
-<li><a href="#solr">Get Solr</a> and start the example server</li>
-
-<li>Try searching again. Should work now, but no hits because nothing is indexed yet.</li>
-
-<li><a href="#hook">Call the hook</a> /repos-search/svnhook.py from post-commit in your repository.</li>
-
-<li>After rebuilding index you should get search results.</li>
-
-<li>Add the <a href="#javascript">Repos Search javascript</a> along with jQuery to your repository browser.</li>
-
-<li>Done</li>
-
-<li>Tell the <a href="#community">mailing list</a> how it works</li>
+<li><a href="#javascript">Add the search box</a> to your existing pages</li>
 
 </ol>
-
-<h3 id="solr">Solr 1.4-dev</h3>
-<p>Get Solr 1.4 example application, which is still not released.
-Build using <a href="http://wiki.apache.org/solr/ExtractingRequestHandler">instructions from the wiki</a>,
-or download the <a href="https://sourceforge.net/projects/reposserver/files/repossearch/">example build for this project</a>.
-</p>
-<p>Start Solr using <code>java -jar start.jar</code>.</p>
-<p>You've set up Solr OK once you reach <a href="http://localhost:8983/solr/admin/">http://localhost:8983/solr/admin/</a>.
-No configuration needed. Until Repos Search is final the example schema will be used.</p>
 
 <p class="return"><a href="#getstarted">Return to configuration guide</a></p>
 
@@ -111,7 +95,7 @@ No configuration needed. Until Repos Search is final the example schema will be 
 
 <p>To rebuild the index from revision 0 to HEAD use the rebuild_index.py script,
 <textarea rows="3" cols="80">
-cd repos-search/
+cd hook/
 python rebuild_index.py -p /my/local/path/to/repository/root
 </textarea>
 </p>
@@ -120,6 +104,7 @@ python rebuild_index.py -p /my/local/path/to/repository/root
 
 <p class="return"><a href="#getstarted">Return to configuration guide</a></p>
 
+<!--
 <h3 id="mod_python">Configuring mod_python</h3>
 <p>The REST service that proxies searches to Solr is a python script that should be handled by <a href="http://www.modpython.org/live/mod_python-3.3.1/doc-html/hand-pub-intro.html">mod_python.publisher</a> as directory index at /repos-search/.
 Apache configuration:</p>
@@ -135,43 +120,49 @@ DirectoryIndex index.html index.php index.py
 </p>
 
 <p class="return"><a href="#getstarted">Return to configuration guide</a></p>
+-->
 
 <h3 id="javascript">Adding the search GUI to existing pages</h3>
-<p>Place the following in &lt;head&gt:<br />
-<textarea rows="5" cols="80">
+<p>Place the <code>repos-search/</code> folder in your document root. 
+Then add the following to your HTML's &lt;head&gt:<br />
+<textarea rows="4" cols="80">
 &lt;!-- Repos Search --&gt;
-&lt;script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.3.2/jquery.min.js"&gt;&lt;/script&gt;
+&lt;script type="text/javascript" src="/repos-search/jquery.min.js"&gt;&lt;/script&gt;
 &lt;script type="text/javascript" src="/repos-search/repos-search.load.js"&gt;&lt;/script&gt;
 </textarea>
 </p>
-<p>In <a href="http://reposstyle.com/">Repos Style</a> 2.2 simply uncomment this block in repos.xsl.</p>
+<p>In <a href="http://reposstyle.com/">Repos Style</a> 2.3 simply uncomment the Repos Search block in repos.xsl.</p>
+
+<p class="return"><a href="#getstarted">Return to configuration guide</a></p>
+
+<h3 id="customization">Customizing the search index</h3>
+
+<p>Most production setups of Repos Search will be customized.
+For example local rules for indexed svn properties can be set up in the Solr schema,
+found in <code>solrhome/svnhead/conf/schema.xml</code>.
+Following a Solr principle, the schema should be self-explanatory and is not documented here.
+</p>
 
 <p class="return"><a href="#getstarted">Return to configuration guide</a></p>
 
 <h2>Security</h2>
-<p>This being early beta, security has not been evaluated.
-Apache auth should be used to restrict access to /repos-search/.
-</p>
 <p>There is no access control in Repos Search, so all users that are allowed to search will get resuts from the entire repository.
 However Solr <em>never returns the contents of documents</em>, only the path.
+</p>
+<p>The sample search server has no access restrictions.
+It runs on a custom port (8080 by default) that is normally open for local access only,
+so it is sufficient to protect the proxy in <code>/repos-search/</code>.
 </p>
 
 <h2>Kown issues</h2>
 <p>To be addressed before leaving beta stage:</p>
 <ul>
-<li>Deleted files are not deleted from index (they won't be in the stable release either, but the delete should be marked with a revision number)</li>
-<li>Only the top 10 results are displayed, with no link to display the rest</li>
-<li>Filename search is case sensitive</li>
-<li>For SVNParentPath, filename search needs to know the repository name. It looks for page meta containing the value of @base:<br/>
-<code>&lt;meta name="repos-base" content="{/svn/index/@base}" /&gt;</code><br />
-These tags are included in <a href="http://reposstyle.com/">Repos Style</a> since version 2.2.</li>
-<li>Old documents are not removed when rebuilding index from revision 0 (but they are overwritten)</li>
-</ul>
-
-<h2>Customizing</h2>
-<ul>
-<li>Add css for the repos-search elements</li>
-<li>Override the global objects and functions reposSearch* from the javascript</li>
+<li>The hook script does not recognize the trunk/branches/tags/ convention, so every branch and tag will be indexed.</li>
+<li>The sample UI has no form for &quot;advanced&quot; search.
+Standard search uses a <a href="http://wiki.apache.org/solr/DisMaxRequestHandler">DisMax</a> query,
+which does not support operators like OR.
+It does support quoted terms, for searching in phrases containing whitespace.
+</li>
 </ul>
 
 <h2 id="community">Community</h2>

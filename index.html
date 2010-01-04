@@ -58,34 +58,25 @@ thanks to Apache <a href="http://lucene.apache.org/solr/">Solr</a> and <a href="
 
 <p class="screenshot">
 <a title="Click to enlarge" href="search_with_reposstyle.png">
-<img class="screenshot" src="search_with_reposstyle.png" width="335" height="272"/>
+<img class="screenshot" src="search_with_reposstyle.png" width="530" height="180"/>
 </a><br />
 <span class="caption">Screenshot of Repos Search integrated into <a href="http://reposstyle.com/">Repos Style</a></span>
 </p>
 
-<h2 id="getstarted">Getting started with Repos Search beta</h2>
-<p>Jump right to the <a href="documentation.html">documentation</a>.</p>
+<h2 id="getstarted">Getting started</h2>
+<p><a href="http://groups.google.com/group/reposstyle/files">Download</a>,
+then read the <a href="documentation.html">documentation</a>.</p>
 
-<h2>Kown issues</h2>
-<p>To be addressed before leaving beta stage:</p>
+<h2 id="components">Components</h2>
+<p>Repos Search consists of the following components, all fully customizable:</p>
 <ul>
-<li>Deleted files are not deleted from index (they won't be in the stable release either, but the delete should be marked with a revision number)</li>
-<li>Only the top 10 results are displayed, with no link to display the rest</li>
-<li>Filename search is case sensitive</li>
-<li>For SVNParentPath, filename search needs to know the repository name. It looks for page meta containing the value of @base:<br/>
-<code>&lt;meta name="repos-base" content="{/svn/index/@base}" /&gt;</code><br />
-These tags are included in <a href="http://reposstyle.com/">Repos Style</a> since version 2.2.</li>
-<li>Old documents are not removed when rebuilding index from revision 0 (but they are overwritten)</li>
-</ul>
-
-<h2>Customizing</h2>
-<ul>
-<li>Add css for the repos-search elements</li>
-<li>Override the global objects and functions reposSearch* from the javascript</li>
+<li>A simple UI that is easy to integrate into HTML pages</li>
+<li>An indexing script to be executed from Subversion post-commit hooks</li>
+<li>A server running Solr with a schema for fulltext and Subversion properties</li>
 </ul>
 
 <h2 id="community">Community</h2>
-<p>During beta phase we assume integration with the sister project Repos Style. Please use that <a href="http://groups.google.com/group/reposstyle">mailing list</a>.</p>
+<p>Please use the mailing list for <a href="http://groups.google.com/group/reposstyle">Repos Style</a>.</p>
 
 <h2>License</h2>
 <p>Repos Search is <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.</p>
