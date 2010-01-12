@@ -23,6 +23,7 @@ from optparse import OptionParser
 from commands import getoutput
 import os
 import sys
+from subprocess import Popen, PIPE
 
 usage = """Usage: python rebuild_index.py --indexer=svnhook.py -p REPO_PATH"""
 
@@ -58,7 +59,8 @@ def run(command):
   result = os.system(command)
   return result
 
-youngest = int(getoutput('svnlook youngest %s' % options.repo))
+look = Popen(['svnlook', 'youngest', options.repo], stdout=PIPE).communicate()[0]
+youngest = int(look)
 if not youngest:
   raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
 print '# Latest revision is %d' % youngest
