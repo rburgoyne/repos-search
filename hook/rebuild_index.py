@@ -20,7 +20,6 @@ $LastChangedRevision$
 """
 
 from optparse import OptionParser
-from commands import getoutput
 import os
 import sys
 from subprocess import Popen, PIPE
