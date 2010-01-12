@@ -65,7 +65,8 @@ if not youngest:
   raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
 print '# Latest revision is %d' % youngest
 
-# TODO performance would be better if commit is disabled in index.py and done here after last rev
+# TODO performance would be better if commit is done for example every 100 submit
+# and optimize is done at the end
 
 run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
 
