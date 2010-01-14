@@ -299,6 +299,8 @@ def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
   # ignore output of response xml (we could also capture it using Popen to get QTime)
   curl = curl + ['-o', '/dev/null']
+  # fail if status is not 200
+  curl = curl + ['-f']
   if options.logger.getEffectiveLevel() is logging.DEBUG:
     curl = curl + ['-v']
   return curl
