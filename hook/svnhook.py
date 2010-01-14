@@ -275,6 +275,8 @@ def indexDelete_httpclient(options, revision, path):
     options.logger.error("%d %s" % (response.status, responseBody))
 
 def indexSubmitFile_curl(optons, revision, path):
+  ''' Python's httplib is not capable of POSTing files
+  (multipart upload) so we use command line curl instead '''
   schema = options.solr + options.schemahead + '/'
   id = indexGetId(options, revision, path)
   params = {"literal.id": id.encode('utf8'), 
