@@ -291,7 +291,7 @@ def indexSubmitFile_curl(optons, revision, path):
   params['literal.name'] = name.encode('utf8')
 
   contents = repositoryGetFile(options, revision, path)
-  curlp = check_call(getCurlCommand(options) + [
+  (status, body) = runCurl(getCurlCommand(options) + [
          '%supdate/extract?%s' % (schema, urlencode(params)),
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
@@ -300,12 +300,20 @@ def indexSubmitFile_curl(optons, revision, path):
 def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
   # ignore output of response xml (we could also capture it using Popen to get QTime)
-  curl = curl + ['-o', '/dev/null']
+  #curl = curl + ['-o', '/dev/null']
   # fail if status is not 200
-  curl = curl + ['-f']
+  #curl = curl + ['-f']
   if options.logger.getEffectiveLevel() is logging.DEBUG:
     curl = curl + ['-v']
   return curl
+
+def runCurl(command):
+  ''' executes curl with the arguments from getCurlCommand and returns the status code.
+  It would be nice to have the response body on errors but curl -f does not work that way.
+  '''
+  check_call(command)
+  ''' with curl -f, if an exception was not thrown it should be status 200 ''' 
+  return ('', 200)
 
 def indexPost(url, doc):
   '''
