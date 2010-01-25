@@ -295,7 +295,7 @@ def indexSubmitFile_curl(optons, revision, path):
          '%supdate/extract?%s' % (schema, urlencode(params)),
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
-  options.logger.info("Successfully indexed id: %s" % params["literal.id"]);
+  options.logger.info("Successfully indexed id: %s" % id);
   
 def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
