@@ -48,8 +48,11 @@ ReposSearch.init = function(options) {
 		new ReposSearch.EventLogger(console);
 	}
 	// insert base url in css properties that can contain urls
-	var c = settings.css && settings.css.input;
-	c.background = c && c.background && c.background.replace('{url}', settings.url);
+	// TODO real css would be better here as it has relative urls
+	if (settings.css && settings.css.input) {
+		var c = settings.css && settings.css.input;
+		c.background = c.background && c.background.replace('{url}', settings.url);
+	}
 	// initialize query class
 	settings.uiUrl = settings.uiUrl || settings.url;
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
