@@ -439,7 +439,15 @@ ReposSearch.SampleSearchBox = function(options) {
 			$('#repos-search-input').val(q);
 			settings.submit();
 		}
-		form.attr('method', 'GET').attr('action','');
+		// Can not use browser's submit because then we need hidden fields for all existing query params
+		//form.attr('method', 'GET').attr('action','');		
+		form.submit(function(ev) {
+			ev.stopPropagation();
+			var href = location.href;
+			href += href.indexOf('?') == -1 ? '?' : '&';
+			href += 'repossearch=' + enccodeURIComponent(q);
+			location.href = href;
+		});
 	} else {
 		form.submit(settings.submit);
 	}
