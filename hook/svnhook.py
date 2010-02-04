@@ -18,6 +18,9 @@
 Requires Solr 1.4-dev example set up as described in:
 http://wiki.apache.org/solr/ExtractingRequestHandler
 $LastChangedRevision$
+
+Use with svn hook arguments: svnhook.py REPOSITORY REV
+Or for more flexibility, use named options as specified below.
 """
 
 '''
@@ -84,7 +87,14 @@ parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
   help="The fulltext schema name in solr root or multicore root. Default: %default")
 
 def getOptions():
-  (options, args) = parser.parse_args()
+  """ Created the option parser according to spec above.
+    Also allows standard svn hook arguments """
+  optargs = sys.argv[1:]
+  if len(optargs) == 2 and re.search(r'^\d+$', optargs[1]):
+    optargs = ['-p', optargs[0], '-r', optargs[1]]
+  
+  # options as global variables
+  (options, args) = parser.parse_args(optargs)
   if options.repo is None:
     print(__doc__)
     parser.print_help()
