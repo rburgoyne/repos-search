@@ -64,7 +64,7 @@ from xml.sax.saxutils import escape
 """ hook options """
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
-  help="Type of operation: 'index', 'batch', 'drop', 'commit'. Default: %default")
+  help="Type of operation: 'index', 'batch', 'drop', 'commit', 'optimize'. Default: %default")
 parser.add_option("-p", "--repository", dest="repo",
   help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
@@ -76,10 +76,10 @@ parser.add_option("", "--prefix", dest="prefix", default="",
     " It is recommended to end the prefix with a slash so it can be separated from base in UI")
 
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
-  help="The loglevel (standard Log4J levels, lowercase). Defaults to %default.")
-parser.add_option("", "--svnlook", dest="svnlook", default="/usr/bin/svnlook",
-  help="The svnlook command, default: %default")
-parser.add_option("", "--curl", dest="curl", default="/usr/bin/curl",
+  help="The loglevel (standard Log4J levels, lowercase). Defaults to 'svnlook' in PATH.")
+parser.add_option("", "--svnlook", dest="svnlook", default="svnlook",
+  help="The svnlook command, defaults to 'curl' in PATH.")
+parser.add_option("", "--curl", dest="curl", default="curl",
   help="The curl command, default: %default")
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
   help="Solr host, port and root path. With trailing slash. Default: %default")
@@ -348,6 +348,15 @@ def indexCommit(options):
   url = urlparse(schema)
   r = indexPost(url, '<commit/>')
   options.logger.info("Commited with status %d" % r.status)
+
+def indexOptimize(options):
+  '''
+  Issues optimize command to Solr. May take serveral minutes.
+  '''
+  schema = options.solr + options.schemahead + '/'
+  url = urlparse(schema)
+  r = indexPost(url, '<optimize/>')
+  options.logger.info("Optimized with status %d" % r.status)
   
 def indexDrop(options):
   url = urlparse(options.solr + options.schemahead + '/')
@@ -394,3 +403,5 @@ if __name__ == '__main__':
     indexDrop(options)    
   if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
     indexCommit(options)
+  if options.operation == 'optimize':
+    indexOptimize(options)
