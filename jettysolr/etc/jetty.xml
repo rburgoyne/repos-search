@@ -73,6 +73,8 @@
             <Set name="port"><SystemProperty name="jetty.port" default="8983"/></Set>
             <Set name="maxIdleTime">50000</Set>
             <Set name="lowResourceMaxIdleTime">1500</Set>
+            <!-- property indexing may lead to very long query strings -->
+            <Set name="headerBufferSize">32768</Set>
           </New>
       </Arg>
     </Call>

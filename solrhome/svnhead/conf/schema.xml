@@ -506,6 +506,10 @@
    <!-- one keywords field to rule them all, space separated, case sensitive -->
    <field name="allkeywords" type="text_ws" indexed="true" stored="false"/>
    
+   <!-- when fulltext extraction fails but properties can be indexed 
+   		an error message should be stored here -->
+   <field name="text_error" type="text_ws" indexed="true" stored="true"/>
+   
  </fields>
 
  <!-- Field to use to determine and enforce document uniqueness. 

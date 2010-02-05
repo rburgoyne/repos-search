@@ -64,7 +64,16 @@ class SvnhookTest(unittest.TestCase):
     self.assertEqual(p['svn:executable'], '')
     self.assertEqual(p['what:Ever'], 'jell o')
     
-  def testParseCurlResponse(self):
+  def testParseCurlResponseSuccess(self):
+    response = '''<?xml version="1.0" encoding="UTF-8"?>
+<response>
+<lst name="responseHeader"><int name="status">0</int><int name="QTime">1</int></lst>
+</response>
+'''
+    (s, o) = parseSolrExtractionResponse(response);
+    self.assertEqual(s, 200)  
+    
+  def testParseCurlResponseError(self):
     response = '''<html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"/>
@@ -95,7 +104,6 @@ Caused by: org.xml.sax.SAXParseException: The prefix "punkt" for element "punkt:
     (s, o) = parseSolrExtractionResponse(response);
     self.assertEqual(s, 500)
     self.assertEqual(o[0:50], 'org.apache.tika.exception.TikaException: TIKA-237:')
-    pass
  
 if __name__ == '__main__':
   unittest.main()

@@ -306,17 +306,31 @@ def indexSubmitFile_curl(optons, revision, path):
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
   if status == 200:
-    options.logger.info("Successfully indexed id: %s" % id)
+    options.logger.info("Successfully indexed: %s" % id)
   else:
-    options.logger.info("Failed to index id: %s" % id)
-    options.logger.debug(body)
-  
+    ''' Assuming contents are unparseable. Fallback to get the error and the properties indexed '''
+    options.logger.debug("Got status %d when indexing %s. Retrying with empty document." % (status, id))
+    params['literal.text_error'] = body
+    # of course empty file is not valid for all file types, but I guess tika does not use extension to detect type
+    f = open(contents.name, 'w')
+    f.write('\n')
+    f.close()
+    (status2, body2) = runCurl(getCurlCommand(options) + [
+           '%supdate/extract?%s' % (schema, urlencode(params)),
+           '-F', 'myfile=@%s' % contents.name])
+    os.unlink(contents.name)
+    if status2 == 200:
+      options.logger.warn("Indexed as empty due to content parsing error: %s" % id)
+    else:
+      options.logger.error("Fallback indexing failed with status %d for: %s" % (status2, id))
+
 def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
   # ignore output of response xml (we could also capture it using Popen to get QTime)
   #curl = curl + ['-o', '/dev/null']
   # fail if status is not 200
   #curl = curl + ['-f']
+  # in debug log level let curl print request response headers to stderr
   if options.logger.getEffectiveLevel() is logging.DEBUG:
     curl = curl + ['-v']
   return curl
@@ -327,7 +341,10 @@ def runCurl(command):
   '''
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   (output, error) = p.communicate()
-  # Normally we won't get an error code unless we do curl -f
+  # with curl -v we get this for every request, but there is no trace level
+  if options.operation != 'batch':
+    options.logger.debug(error)
+    options.logger.debug(output)
   if p.returncode:
     return (0, output + error)
   return parseSolrExtractionResponse(output)
@@ -338,8 +355,8 @@ def parseSolrExtractionResponse(output):
   If status is 200 error message can be expected to be empty.
   Status 0 is for no response or very weird response.
   '''
-  # nothing is returned if indexing is successful
-  if not len(output):
+  # TODO we need to handle for example "< HTTP/1.1 413 FULL head" (from curl -v)
+  if output[0:5] == '<?xml':
     return (200, '')
   m = re.search(r'(\d+)<\/h2>.*<pre>(.*)<\/pre>', output, re.DOTALL)
   if not m:

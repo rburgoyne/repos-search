@@ -41,12 +41,15 @@ h1, h2, h3 {
 .clearer {
 	clear: both;
 }
-#statistics dt, #statistics dd {
-	display: inline;
+#statistics dt {
+	float: left;
+	clear: left;
+	padding-right: .5em;
+}
+#statistics dt:after {
+	content: ":";
 }
 #statistics dd {
-	margin-left: 1em;
-	border-bottom: 1px dotted gray;
 }
 .repos-search-resultfile {
 	font-weight: bold;
@@ -85,7 +88,10 @@ h1, h2, h3 {
 <div class="clearer"/>
 <div id="statistics">
 <dl>
-<dt>Number of documents in svnhead index</dt><dd class="stat_numDocs"></dd>
+<dt>Number of documents in svnhead index</dt>
+<dd><a class="stat_numDocs" href="/solr/svnhead/admin/stats.jsp">core stats</a></dd>
+<dt>Documents indexed without contents due to parse errors</dt>
+<dd><a class="stat_parseErrors" href="http://localhost:8080/solr/svnhead/select?qt=standard&q=text_error%3A*&indent=on">search for text_error:*</a></dd>
 </dl>
 <p><a href="/solr/">Solr</a></p>
 </div>

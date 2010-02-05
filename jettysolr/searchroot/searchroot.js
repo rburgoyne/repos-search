@@ -16,9 +16,17 @@ $().ready(function() {
 	});
 	// schema statistics
 	$.ajax({
-		url: '/solr/svnhead/admin/stats.jsp',
+		url: $('.stat_numDocs').attr('href'),
 		dataType: 'xml',
 		success: stats
+	});
+	// more statistics
+	$.ajax({
+		url: $('.stat_parseErrors').attr('href'),
+		dataType: 'xml',
+		success: function(xml) {
+			$('.stat_parseErrors').text(countDocs(xml));
+		}
 	});
 });
 
@@ -43,4 +51,8 @@ function stats(xml) {
 	for (s in stat) {
 		$('.stat_' + s).text(stat[s]);
 	}
+}
+
+function countDocs(xml) {
+	return $('doc', xml).size();
 }
