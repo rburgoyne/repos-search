@@ -63,6 +63,36 @@ class SvnhookTest(unittest.TestCase):
     self.assertFalse(p['svn:executable'])
     self.assertEqual(p['svn:executable'], '')
     self.assertEqual(p['what:Ever'], 'jell o')
+    
+  def testParseCurlResponse(self):
+    response = '''<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"/>
+<title>Error 500 org.apache.tika.exception.TikaException: TIKA-237: Illegal SAXException from org.apache.tika.parser.xml.DcXMLParser@455b4492
+
+org.apache.solr.common.SolrException: org.apache.tika.exception.TikaException: TIKA-237: Illegal SAXException from org.apache.tika.parser.xml.DcXMLParser@455b4492
+  at org.apache.solr.handler.extraction.ExtractingDocumentLoader.load(ExtractingDocumentLoader.java:211)
+Caused by: org.xml.sax.SAXParseException: The prefix "punkt" for element "punkt:lista-elem" is not bound.
+  at com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.createSAXParseException(ErrorHandlerWrapper.java:195)
+  ... 26 more
+</title>
+</head>
+<body><h2>HTTP ERROR 500</h2>
+<p>Problem accessing /solr/svnhead/update/extract. Reason:
+<pre>    org.apache.tika.exception.TikaException: TIKA-237: Illegal SAXException from org.apache.tika.parser.xml.DcXMLParser@455b4492
+
+org.apache.solr.common.SolrException: org.apache.tika.exception.TikaException: TIKA-237: Illegal SAXException from org.apache.tika.parser.xml.DcXMLParser@455b4492
+  at org.apache.solr.handler.extraction.ExtractingDocumentLoader.load(ExtractingDocumentLoader.java:211)
+Caused by: org.xml.sax.SAXParseException: The prefix "punkt" for element "punkt:lista-elem" is not bound.
+  at com.sun.org.apache.xerces.internal.util.ErrorHandlerWrapper.createSAXParseException(ErrorHandlerWrapper.java:195)
+  ... 26 more
+</pre></p><hr /><i><small>Powered by Jetty://</small></i><br/>                                                                                             
+<br/>                                                
+
+</body>
+</html>    
+    '''
+    pass
  
 if __name__ == '__main__':
   unittest.main()

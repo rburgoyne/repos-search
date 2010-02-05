@@ -321,8 +321,19 @@ def runCurl(command):
   ''' executes curl with the arguments from getCurlCommand and returns the status code.
   It would be nice to have the response body on errors but curl -f does not work that way.
   '''
-  check_call(command)
-  ''' with curl -f, if an exception was not thrown it should be status 200 ''' 
+  p = Popen(command, stdout=PIPE, stderr=PIPE)
+  (output, error) = p.communicate()
+  # Normally we won't get an error code unless we do curl -f
+  if p.returncode:
+    return (output + error, 0)
+  return parseSolrExtractionResponse(output)
+
+def parseSolrExtractionResponse(output):
+  '''
+  Read the response body of an add request and return a tuple with (error message, status).
+  If status is 200 error message can be expected to be empty.
+  '''
+  print output
   return ('', 200)
 
 def indexPost(url, doc):
