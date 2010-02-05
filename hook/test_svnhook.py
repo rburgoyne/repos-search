@@ -92,6 +92,9 @@ Caused by: org.xml.sax.SAXParseException: The prefix "punkt" for element "punkt:
 </body>
 </html>    
     '''
+    (s, o) = parseSolrExtractionResponse(response);
+    self.assertEqual(s, 500)
+    self.assertEqual(o[0:50], 'org.apache.tika.exception.TikaException: TIKA-237:')
     pass
  
 if __name__ == '__main__':

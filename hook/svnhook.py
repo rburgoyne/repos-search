@@ -305,7 +305,11 @@ def indexSubmitFile_curl(optons, revision, path):
          '%supdate/extract?%s' % (schema, urlencode(params)),
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
-  options.logger.info("Successfully indexed id: %s" % id);
+  if status == 200:
+    options.logger.info("Successfully indexed id: %s" % id)
+  else:
+    options.logger.info("Failed to index id: %s" % id)
+    options.logger.debug(body)
   
 def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
@@ -325,16 +329,22 @@ def runCurl(command):
   (output, error) = p.communicate()
   # Normally we won't get an error code unless we do curl -f
   if p.returncode:
-    return (output + error, 0)
+    return (0, output + error)
   return parseSolrExtractionResponse(output)
 
 def parseSolrExtractionResponse(output):
   '''
-  Read the response body of an add request and return a tuple with (error message, status).
+  Read the response body of an add request and return a tuple with (status, error message).
   If status is 200 error message can be expected to be empty.
+  Status 0 is for no response or very weird response.
   '''
-  print output
-  return ('', 200)
+  # nothing is returned if indexing is successful
+  if not len(output):
+    return (200, '')
+  m = re.search(r'(\d+)<\/h2>.*<pre>(.*)<\/pre>', output, re.DOTALL)
+  if not m:
+    return (0, 'Indexing response could not be parsed:\n' + output)
+  return (int(m.groups()[0]), m.groups()[1].strip())
 
 def indexPost(url, doc):
   '''
