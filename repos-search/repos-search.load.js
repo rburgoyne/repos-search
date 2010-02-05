@@ -72,7 +72,7 @@ ReposSearch.init = function(options) {
 // Set "ReposSearch_onready = false;" to disable automatic initialization 
 ReposSearch_onready = ReposSearch.onready || ReposSearch.init;
 
-$().ready(function() {
+$(document).ready(function() {
 	if (ReposSearch_onready) {
 		ReposSearch_onready();
 	}
@@ -405,7 +405,7 @@ ReposSearch.SampleSearchBox = function(options) {
 		
 		// the page that includes Repos Search can provide an element with
 		// class "repos-search-container" to control the placement of the input box
-		boxparent: $('.repos-search-container').add('#commandbar').add('body').eq(0),
+		boxparent: $('.repos-search-container')[0] || $('#commandbar')[0] || $('body')[0],
 		
 		// how to get search terms from the input box
 		getSearchString: function() {
