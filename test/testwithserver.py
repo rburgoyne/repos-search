@@ -6,6 +6,7 @@ import os
 from subprocess import check_call
 from shutil import rmtree, copyfile
 import urllib2
+from urllib import quote
 import json
 
 # global settings for the test
@@ -46,11 +47,15 @@ def search(queryType, query):
   query: solr escaped but not urlencoded query
   '''
   # todo encode and stuff
-  r = curl(solr + 'svnhead/select?qt=' + queryType + '&q=' + query + '&wt=json')
+  r = curl(solr + 'svnhead/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
   return json.loads(r)
 
 def searchMeta(query):
   return search('meta', query)
+
+def searchContent(query):
+  return search('content', query)
+
 
 class SvnhookTest(unittest.TestCase):
   
@@ -68,7 +73,10 @@ class SvnhookTest(unittest.TestCase):
     r = searchMeta('shouldbeuniquefilename.txt')
     self.assertEqual(r['response']['numFound'], 1)
 
-
+  def testContentXslAndOds(self):
+    r = searchContent('"cell B2"')
+    self.assertEqual(r['response']['numFound'], 2)
+    print r
 
 
 if __name__ == '__main__':
