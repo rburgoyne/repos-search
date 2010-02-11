@@ -128,7 +128,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   This script is called for a single revision so there will only be one
   call to revisionHandler.
   '''
-  options.logger.info("Repository '%s' base '%s' rev %d" % (options.repo, options.base, options.rev))
+  options.logger.info("Reading %s rev %d" % (options.base, options.rev))
   changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
   changed = changedp.communicate()[0]
   # assuming utf8 system locale
@@ -265,11 +265,12 @@ def indexEscapePropname(svnProperty):
   return re.sub(r'[.:-]', '_', svnProperty)
 
 def indexDelete_httpclient(options, revision, path):
-  schema = options.solr + options.schemahead + '/'
+  schema = options.schemahead
+  schemaUrl = options.solr + schema + '/'
   id = indexGetId(options, revision, path)
   doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id.encode('utf8'))
   options.logger.debug(doc)
-  u = urlparse(schema)
+  u = urlparse(schemaUrl)
   h = httplib.HTTPConnection(u.netloc)
   h.putrequest('POST', u.path + 'update')
   h.putheader('content-type', 'text/xml; charset=UTF-8')
@@ -280,14 +281,15 @@ def indexDelete_httpclient(options, revision, path):
   responseBody = response.read()
   h.close()
   if response.status == 200:
-    options.logger.info("Deleted from index %s" % id)
+    options.logger.info("%s deleted %s" % (schema, id))
   else:
-    options.logger.error("%d %s" % (response.status, responseBody))
+    options.logger.error("Error dropping %s: %d %s" % (schema, response.status, responseBody))
 
 def indexSubmitFile_curl(optons, revision, path):
   ''' Python's httplib is not capable of POSTing files
   (multipart upload) so we use command line curl instead '''
-  schema = options.solr + options.schemahead + '/'
+  schema = options.schemahead
+  schemaUrl = options.solr + schema + '/'
   id = indexGetId(options, revision, path)
   params = {"literal.id": id.encode('utf8'), 
             "literal.svnrevision": revision,
@@ -302,11 +304,11 @@ def indexSubmitFile_curl(optons, revision, path):
 
   contents = repositoryGetFile(options, revision, path)
   (status, body) = runCurl(getCurlCommand(options) + [
-         '%supdate/extract?%s' % (schema, urlencode(params)),
+         '%supdate/extract?%s' % (schemaUrl, urlencode(params)),
          '-F', 'myfile=@%s' % contents.name])
   contents.close()
   if status == 200:
-    options.logger.info("Successfully indexed: %s" % id)
+    options.logger.info("%s added %s" % (schema, id))
   else:
     ''' Assuming contents are unparseable. Fallback to get the error and the properties indexed '''
     options.logger.debug("Got status %d when indexing %s. Retrying with empty document." % (status, id))
@@ -316,13 +318,13 @@ def indexSubmitFile_curl(optons, revision, path):
     f.write('\n')
     f.close()
     (status2, body2) = runCurl(getCurlCommand(options) + [
-           '%supdate/extract?%s' % (schema, urlencode(params)),
+           '%supdate/extract?%s' % (schemaUrl, urlencode(params)),
            '-F', 'myfile=@%s' % contents.name])
     os.unlink(contents.name)
     if status2 == 200:
-      options.logger.warn("Indexed as empty due to content parsing error: %s" % id)
+      options.logger.warn("Content parsing error for %s; added to %s as empty" % (id, schema))
     else:
-      options.logger.error("Fallback indexing failed with status %d for: %s" % (status2, id))
+      options.logger.error("Failed to index %s in %s; fallback failed with status %d" % (id, schema, status2))
 
 def getCurlCommand(options):
   curl = [options.curl, '-s', '-S']
@@ -382,28 +384,37 @@ def indexCommit(options):
   '''
   Issues commit command to Solr to make recent indexing searchable.
   '''
-  schema = options.solr + options.schemahead + '/'
-  url = urlparse(schema)
+  schema = options.schemahead
+  schemaUrl = options.solr + schema + '/'
+  url = urlparse(schemaUrl)
   r = indexPost(url, '<commit/>')
-  options.logger.info("Commited with status %d" % r.status)
+  if r.status is 200:
+    options.logger.info("%s committed" % schema)
+  else:
+    options.logger.error("Commit to %s failed with status %d" % (schema, r.status))
 
 def indexOptimize(options):
   '''
   Issues optimize command to Solr. May take serveral minutes.
   '''
-  schema = options.solr + options.schemahead + '/'
-  url = urlparse(schema)
+  schema = options.schemahead
+  schemaUrl = options.solr + schema + '/'
+  url = urlparse(schemaUrl)
   r = indexPost(url, '<optimize/>')
-  options.logger.info("Optimized with status %d" % r.status)
+  if r.status is 200:
+    options.logger.info("%s optimized" % schema)
+  else:
+    options.logger.error("Optimize status %d" % r.status)  
   
 def indexDrop(options):
-  url = urlparse(options.solr + options.schemahead + '/')
+  schema = options.schemahead
+  url = urlparse(options.solr + schema + '/')
   prefix = indexGetId(options, None, '')
   query = 'id:%s' % prefix.replace(':', '\\:').replace('^', '\\^') + '*'
   deleteDoc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
   r = indexPost(url, deleteDoc)
   if r.status is 200:
-    options.logger.info("Deleted all %s" % query)
+    options.logger.info("%s deleted %s" % (schema, query))
   else:
     options.logger.error("Delete status %d for query %s" % (r.status, query))
 
