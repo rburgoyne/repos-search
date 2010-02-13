@@ -15,6 +15,8 @@ solr = 'http://localhost:8080/solr/'
 repo = tempfile.mkdtemp()
 reponame = os.path.basename(repo)
 repourl = 'file://' + repo
+hook = repo + '/hooks/post-commit'
+hooklog = hook + '.log'
 
 def run(cmd):
   print '# ' + ' '.join(cmd)
@@ -26,13 +28,37 @@ def createRepository():
   hook = repo + '/hooks/post-commit'
   f = open(hook, 'w')
   f.write('#!/bin/sh\n')
-  f.write('%s $1 $2\n' % os.path.abspath('../hook/svnhook.py'))
+  f.write('%s $1 $2' % os.path.abspath('../hook/svnhook.py'))
+  f.write(' > %s 2>&1\n' % hooklog)
   f.close()
   os.chmod(hook, 0777)
 
 def createInitialStructure():
-  run(['svn', 'import', 'docs', repourl + '/misc', '-m', 'Mixed documents'])
+  '''
+    Test data can be added from tests but we do a batch first for faster test execution.
+    All tests may use this data.
+  '''
+  print '# ------- setup start --------'
+  run(['svn', 'import', 'docs', repourl + '/docs', '-m', 'Mixed documents'])
+  # properties must be added in a working copy, using a small subfolder for performance
+  propwc = tempfile.mkdtemp()
+  run(['svn', 'co', repourl + '/docs/svnprops/', propwc])
+  txt =  propwc + '/textwithsvnprops.txt'
+  run(['svn', 'propset', 'svn:keywords', 'Id LastChangedRevision HeadURL', txt])
+  # Currently keywords properties are only treated as keywords if their namespace match the schema copyField rule 
+  run(['svn', 'propset', 'cms:keywords', 'ReposSearch repossearch keywordfromsvnprop', txt])
+  run(['svn', 'propset', 'whatever:tags', 'metadataindexing tagging-in-svnprop', txt])
+  run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
+  run(['svn', 'status', propwc])
+  run(['svn', 'commit', '-m', 'Properties added', propwc])
+  print '# ------- common test data:'
   run(['svnlook', 'tree', repo])
+  print '# ------- hook log:'
+  f = open(hooklog, 'r')
+  print f.read()
+  f.close()
+  print '# ------- setup done --------'
+  print ''
 
 def curl(url):
   # transparently restrict hits to this instance
@@ -48,6 +74,7 @@ def search(queryType, query):
   '''
   # todo encode and stuff
   r = curl(solr + 'svnhead/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
+  print '\n' + r 
   return json.loads(r)
 
 def searchMeta(query):
@@ -67,7 +94,7 @@ class SvnhookTest(unittest.TestCase):
     r = searchMeta('shouldBeUNIQUEfilename')
     self.assertEqual(r['response']['numFound'], 1)
     self.assertEqual(r['response']['docs'][0]['id'], 
-                     u'%s^/misc/filenames/shouldBeUniqueFilename.txt' % reponame)
+                     u'%s^/docs/filenames/shouldBeUniqueFilename.txt' % reponame)
 
   def testFilenameWithExtension(self):
     r = searchMeta('shouldbeuniquefilename.txt')
@@ -76,8 +103,34 @@ class SvnhookTest(unittest.TestCase):
   def testContentXslAndOds(self):
     r = searchContent('"cell B2"')
     self.assertEqual(r['response']['numFound'], 2)
-    print r
+    
+  def testSvnPropsTextfile(self):
+    r = searchMeta('textwithsvnprops.txt')
+    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(r['response']['docs'][0]['svnrevision'], 2)
+    self.assertFalse(r['response']['docs'][0].has_key('svnprop_svn_keywords'),
+                     'svn properties should normally not be indexed');
+    self.assertEqual(r['response']['docs'][0]['svnprop_custom_someurl'], 'Visit http://repossearch.com/',
+                     'by default custom properties should be indexed and stored as plain strings')
+    
+  def testMetaDontMatchSvnKeywords(self):
+    r = searchMeta('LastChangedRevision')
+    self.assertEqual(r['response']['numFound'], 0,
+                     'svn keywords should not be indexed because they are not keywords')
+    
+  def testSearchOnCustomKeywords(self):
+    r = searchMeta('keywordfromsvnprop')
+    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
+                     'meta search should include keywords properties with likely namespaces except svn')
 
+  def testSearchOnCustomTagsField(self):
+    r = searchMeta('tagging-in-svnprop')
+    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
+                     'meta search should include any *:kewords property value except svn:keywords')    
 
 if __name__ == '__main__':
   createRepository()

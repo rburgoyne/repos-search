@@ -1,0 +1,4 @@
+TextfileWithSvnProperties
+$Id$
+$LastChangedRevision$
+$HeadURL$
