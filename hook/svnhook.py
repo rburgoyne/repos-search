@@ -322,7 +322,7 @@ def indexSubmitFile_curl(optons, revision, path):
            '-F', 'myfile=@%s' % contents.name])
     os.unlink(contents.name)
     if status2 == 200:
-      options.logger.warn("Content parsing error for %s; added to %s as empty" % (id, schema))
+      options.logger.warn("Content parse error for %s; added to %s as empty" % (id, schema))
     else:
       options.logger.error("Failed to index %s in %s; fallback failed with status %d" % (id, schema, status2))
 

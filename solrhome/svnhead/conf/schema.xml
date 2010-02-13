@@ -503,8 +503,9 @@
    <!-- tokenize keywords on space, includes svn:keywords -->
    <dynamicField name="*_keywords" type="text_ws" indexed="true" stored="true"/>
    
-   <!-- one keywords field to rule them all, space separated, case sensitive -->
-   <field name="allkeywords" type="text_ws" indexed="true" stored="false"/>
+   <!-- one keywords field to rule them all, space separated, case sensitive,
+   		multiValued because it "can appear multiple times in a document" (see solr wiki) -->
+   <field name="allkeywords" type="text_ws" indexed="true" stored="false" multiValued="true"/>
    
    <!-- when fulltext extraction fails but properties can be indexed 
    		an error message should be stored here -->

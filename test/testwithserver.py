@@ -29,7 +29,7 @@ def createRepository():
   f = open(hook, 'w')
   f.write('#!/bin/sh\n')
   f.write('%s $1 $2' % os.path.abspath('../hook/svnhook.py'))
-  f.write(' > %s 2>&1\n' % hooklog)
+  f.write(' >> %s 2>&1\n' % hooklog)
   f.close()
   os.chmod(hook, 0777)
 
@@ -49,7 +49,8 @@ def createInitialStructure():
   run(['svn', 'propset', 'cms:keywords', 'ReposSearch repossearch keywordfromsvnprop', txt])
   run(['svn', 'propset', 'whatever:tags', 'metadataindexing tagging-in-svnprop', txt])
   run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
-  run(['svn', 'status', propwc])
+  run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
+  run(['svn', 'propset', 'cms:keywords', 'keywordfromsvnprop', propwc + '/shortpdf.pdf'])
   run(['svn', 'commit', '-m', 'Properties added', propwc])
   print '# ------- common test data:'
   run(['svnlook', 'tree', repo])
@@ -67,24 +68,24 @@ def curl(url):
   r = urllib2.urlopen(url)
   return r.read()
 
-def search(queryType, query):
+def search(query, queryType='standard'):
   '''
   queryType: standard/None, meta, content
   query: solr escaped but not urlencoded query
   '''
   # todo encode and stuff
   r = curl(solr + 'svnhead/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
-  print '\n' + r 
+  #print '\n' + r 
   return json.loads(r)
 
 def searchMeta(query):
-  return search('meta', query)
+  return search(query, 'meta')
 
 def searchContent(query):
-  return search('content', query)
+  return search(query, 'content')
 
 
-class SvnhookTest(unittest.TestCase):
+class ReposSearchTest(unittest.TestCase):
   
   def testServerIsUp(self):
     r = curl(solr + '')
@@ -120,8 +121,9 @@ class SvnhookTest(unittest.TestCase):
     
   def testSearchOnCustomKeywords(self):
     r = searchMeta('keywordfromsvnprop')
-    self.assertEqual(r['response']['numFound'], 1)
-    self.assertEqual(r['response']['docs'][0]['id'], 
+    docs = r['response']['docs']
+    self.assertEqual(len(docs), 2, 'should be two files with this keyword')    
+    self.assertEqual(r['response']['docs'][1]['id'], # could probably be index 0, ranking not tested 
                      '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
                      'meta search should include keywords properties with likely namespaces except svn')
 
@@ -130,7 +132,20 @@ class SvnhookTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
-                     'meta search should include any *:kewords property value except svn:keywords')    
+                     'meta search should include any *:kewords property value except svn:keywords')
+    
+  def testKeywordsFromPDFAndSvnProperty(self):
+    r = search('allkeywords:(keywordinsaveaspdf AND keywordfromsvnprop)')
+    self.assertEqual(r['response']['numFound'], 1, 'should match on both keyword from file and svn')
+    doc = r['response']['docs'][0]
+    self.assertEqual(doc['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+    self.assertEqual(doc['svnprop_svn_mime_type'], 'application/pdf', 'should index svn:mime-type')
+    
+  def testSearchEmbeddedPDFMetadata(self):
+    r = searchMeta('"PDF Title"')
+    docs = r['response']['docs']
+    self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Title')
+    self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
 
 if __name__ == '__main__':
   createRepository()
