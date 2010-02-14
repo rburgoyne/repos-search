@@ -29,6 +29,7 @@ def createRepository():
   hook = repo + '/hooks/post-commit'
   f = open(hook, 'w')
   f.write('#!/bin/sh\n')
+  f.write('export LC_ALL="en_US.UTF-8"\n')
   f.write('%s $1 $2' % os.path.abspath('../hook/svnhook.py'))
   f.write(' >> %s 2>&1\n' % hooklog)
   f.close()

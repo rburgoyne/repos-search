@@ -80,9 +80,9 @@ parser.add_option("", "--prefix", dest="prefix", default="",
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
   help="The loglevel (standard Log4J levels, lowercase). Defaults to 'svnlook' in PATH.")
 parser.add_option("", "--svnlook", dest="svnlook", default="svnlook",
-  help="The svnlook command, defaults to 'curl' in PATH.")
+  help="The svnlook command, defaults to 'svnlook' in PATH.")
 parser.add_option("", "--curl", dest="curl", default="curl",
-  help="The curl command, default: %default")
+  help="The curl command, defaults to 'curl' in PATH.")
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
   help="Solr host, port and root path. With trailing slash. Default: %default")
 parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
@@ -215,6 +215,7 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
   
   Diff for the path at this revision should be indexed in svnrev
   '''
+  assert isinstance(path, unicode)
   if not isfile:
     options.logger.debug('Ignoring folder %s' % path)
     return
