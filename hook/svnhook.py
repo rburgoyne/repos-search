@@ -215,7 +215,7 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
   
   Diff for the path at this revision should be indexed in svnrev
   '''
-  assert isinstance(path, unicode)
+  #assert isinstance(path, unicode)
   if not isfile:
     options.logger.debug('Ignoring folder %s' % path)
     return
