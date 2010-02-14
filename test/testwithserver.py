@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import unittest
 import tempfile
@@ -51,10 +52,17 @@ def createInitialStructure():
   run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
   run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
   run(['svn', 'propset', 'cms:keywords', 'keywordfromsvnprop', propwc + '/shortpdf.pdf'])
+  # creating the invalid xml here so the error is not logged in rev 1 too
+  xml = propwc + '/invalidxml tag not closed.xml'
+  f = open(xml, 'w')
+  f.write('<?xml version="1.0"?>\n<document>\n<opentag>\n</document>\n')
+  f.close()
+  run(['svn', 'add', xml])
+  run(['svn', 'propset', 'some:prop', 'OnInvalidXml', xml])
   run(['svn', 'commit', '-m', 'Properties added', propwc])
-  print '# ------- common test data:'
+  print '# ---- common test data ----'
   run(['svnlook', 'tree', repo])
-  print '# ------- hook log:'
+  print '# ------- hook log ---------'
   f = open(hooklog, 'r')
   print f.read()
   f.close()
@@ -93,17 +101,54 @@ class ReposSearchTest(unittest.TestCase):
     
   def testFilename(self):
     r = searchMeta('shouldBeUNIQUEfilename')
-    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(r['response']['numFound'], 1,
+                     'Case should not matter, extension should not be needed')
     self.assertEqual(r['response']['docs'][0]['id'], 
                      u'%s^/docs/filenames/shouldBeUniqueFilename.txt' % reponame)
 
   def testFilenameWithExtension(self):
     r = searchMeta('shouldbeuniquefilename.txt')
     self.assertEqual(r['response']['numFound'], 1)
+    
+  def testFilenameStemmingDash(self):
+    r = searchMeta('subversion related')
+    self.assertEqual(r['response']['numFound'], 1, 'dash should be searchable as space')
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    # other stemming results
+    self.assertEqual(searchMeta('subversionrelated')['response']['numFound'], 1)
+    # these tests throw a KeyError if the search fails but assert that we get the expected hit
+    self.assertEqual(searchMeta('subversion document 2010')['response']['docs'][0]['id'], 
+                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    self.assertEqual(searchMeta('20100201')['response']['docs'][0]['id'], 
+                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    
+  def testFilenameUTF8(self):
+    r = searchMeta(u'Swedish åäö')
+    self.assertEqual(r['response']['numFound'], 1, 'unicode filename should not be a problem')
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     u'%s^/docs/filenames/In Swedish åäö' % reponame)  
 
   def testContentXslAndOds(self):
     r = searchContent('"cell B2"')
     self.assertEqual(r['response']['numFound'], 2)
+  
+  def testContentDocAndOdt(self):
+    r = searchContent('"Repos Search is ok"')
+    self.assertEqual(r['response']['numFound'], 2)
+    
+  def testPDFPrintedOnOsX(self):
+    r = searchContent('veryshortpdfcontents')
+    self.assertEqual(r['response']['numFound'], 1)
+  
+  def testContentInvalidXml(self):
+    r = searchMeta('invalid xml not closed')
+    self.assertEqual(r['response']['numFound'], 1)
+    error = r['response']['docs'][0]['text_error']
+    self.assertTrue(error.find('invalid') >= 0)
+    self.assertTrue(error.find('xml') >= 0)
+    self.assertEqual(r['response']['docs'][0]['svnprop_some_prop'], 'OnInvalidXml',
+                     'svn properties should be indexed even if document can not be parsed')
     
   def testSvnPropsTextfile(self):
     r = searchMeta('textwithsvnprops.txt')
@@ -141,11 +186,19 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
     self.assertEqual(doc['svnprop_svn_mime_type'], 'application/pdf', 'should index svn:mime-type')
     
-  def testSearchEmbeddedPDFMetadata(self):
+  def testSearchEmbeddedPDFTitle(self):
     r = searchMeta('"PDF Title"')
     docs = r['response']['docs']
     self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Title')
     self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+
+  def testSearchEmbeddedPDFSubject(self):
+    # TODO Should subject be matched in meta query?    
+    r = search('subject:"PDF subject"')
+    docs = r['response']['docs']
+    self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Subject')
+    self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+
 
 if __name__ == '__main__':
   createRepository()

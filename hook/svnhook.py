@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """Fulltext indexing of committed files.
    
    Copyright 2009 Staffan Olsson repossearch.com
@@ -49,6 +50,7 @@ import sys
 import logging
 import logging.handlers
 import os
+import traceback
 from optparse import OptionParser
 from subprocess import Popen
 from subprocess import PIPE
@@ -137,10 +139,17 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   revisionHandler(options, options.rev, dict())
   # parse change list into path events
   changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
+  errors = 0
   for change in changed.splitlines():
     m = changematch.match(change);
     p = "/" + m.group(3)
-    pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
+    try:
+      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
+    except (NameError, xml.parsers.expat.ExpatError) as e:
+      ''' Catch known indexing errors, log and continue with next path entry '''
+      options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc(e))) 
+      errors = errors + 1
+  return errors
 
 def repositoryDiff(options, revision, path):
   '''
@@ -446,11 +455,15 @@ if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
+  e = 0 # count errors, TODO add for each operation?
   if options.operation == 'index' or options.operation == 'batch':
-    repositoryHistoryReader(options, handleRevision, handlePathEntry)
+    e = repositoryHistoryReader(options, handleRevision, handlePathEntry)
   if options.operation == 'drop':
     indexDrop(options)    
   if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
     indexCommit(options)
   if options.operation == 'optimize':
     indexOptimize(options)
+  if e > 0:
+    options.logger.error('%d svnhead indexing operations failed' % e)
+    sys.exit(1)
