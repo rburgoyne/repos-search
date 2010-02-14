@@ -130,7 +130,6 @@ class ReposSearchTest(unittest.TestCase):
     # Even if CamelCase is split it must still match as one word, as below
     self.assertEqual(searchMeta('subversionrelated 11.2')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/SubversionRelated DNR333 ver 11.2.txt' % reponame)    
-
   
   def testFilenameTokenizerCodes(self):
     r = searchMeta('11.2')
@@ -223,6 +222,9 @@ class ReposSearchTest(unittest.TestCase):
     docs = r['response']['docs']
     self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Subject')
     self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+    
+  def testContentUTF8Txt(self):
+    self.assertEqual(searchContent(u'ÅÄÖåäö'.encode('utf-8'))['response']['numFound'], 1)
 
 
 if __name__ == '__main__':
