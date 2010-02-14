@@ -111,20 +111,35 @@ class ReposSearchTest(unittest.TestCase):
     r = searchMeta('shouldbeuniquefilename.txt')
     self.assertEqual(r['response']['numFound'], 1)
     
-  def testFilenameStemmingDash(self):
+  def testFilenameTokenizeDash(self):
     r = searchMeta('subversion related')
     self.assertEqual(r['response']['numFound'], 1, 'dash should be searchable as space')
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    # other stemming results
-    self.assertEqual(searchMeta('subversionrelated')['response']['numFound'], 1)
+    # TODO should CamelCase be split into separate words? in that case we should have 2 hits above
+    # Even if CamelCase is split it must still match as one word, as below
+    self.assertEqual(searchMeta('subversionrelated')['response']['numFound'], 2,
+                     '"subversionrelated" should match both subversion-related and SubversionRelated')
     # these tests throw a KeyError if the search fails but assert that we get the expected hit
+    # TODO should we really split on dashes when the adjacent chars are digits?
     self.assertEqual(searchMeta('subversion document 2010')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
     self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
   
-  def testFilenameStemmingWhitespaceComma(self):
+  def testFilenameTokenizerCodes(self):
+    r = searchMeta('11.2')
+    self.assertEqual(r['response']['numFound'], 1, 'string like 1.2 (version number) must be searchable')
+    r = searchMeta('DNR333')
+    self.assertEqual(r['response']['numFound'], 1, 'letters+digits could be a product code and must be searchable')
+  
+  def testFilenameLatin1Accents(self):
+    r = searchMeta('aeea')
+    self.assertEqual(r['response']['numFound'], 1, 'accented chars should be searchable without accent')
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/filenames/Latin1 accents áéèà.txt' % reponame)
+  
+  def testFilenameTokenizeWhitespaceComma(self):
     self.assertEqual(search('name:short not long filename txt')['response']['numFound'], 1,
                      'commas should be ignored, common words like "not" should be kept')
     
