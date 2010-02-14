@@ -112,24 +112,29 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)
     
   def testFilenameTokenizeDash(self):
-    r = searchMeta('subversion related')
+    r = search('name:(subversion AND related AND document2)')
     self.assertEqual(r['response']['numFound'], 1, 'dash should be searchable as space')
-    self.assertEqual(r['response']['docs'][0]['id'], 
+    self.assertEqual(r['response']['docs'][0]['id'],
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    # TODO should CamelCase be split into separate words? in that case we should have 2 hits above
-    # Even if CamelCase is split it must still match as one word, as below
-    self.assertEqual(searchMeta('subversionrelated')['response']['numFound'], 2,
-                     '"subversionrelated" should match both subversion-related and SubversionRelated')
-    # these tests throw a KeyError if the search fails but assert that we get the expected hit
-    # TODO should we really split on dashes when the adjacent chars are digits?
+    # How do we handle dashes when the adjacent chars are digits?
     self.assertEqual(searchMeta('subversion document 2010')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
+    self.assertEqual(searchMeta('2010-02-10')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    # TODO Should dash-separated words be joined? Difference between digits and letters?
+    #self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
+    #                 '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    #self.assertEqual(searchMeta('subversionrelated 2010-02-10')['response']['docs'][0]['id'], 
+    #                 '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)          
+    # TODO Should CamelCase be split into separate words? in that case we should have 2 hits above
+    # Even if CamelCase is split it must still match as one word, as below
+    self.assertEqual(searchMeta('subversionrelated 11.2')['response']['docs'][0]['id'], 
+                     '%s^/docs/filenames/SubversionRelated DNR333 ver 11.2.txt' % reponame)    
+
   
   def testFilenameTokenizerCodes(self):
     r = searchMeta('11.2')
-    self.assertEqual(r['response']['numFound'], 1, 'string like 1.2 (version number) must be searchable')
+    self.assertEqual(r['response']['numFound'], 1, 'string like 11.2 (version number) must be searchable')
     r = searchMeta('DNR333')
     self.assertEqual(r['response']['numFound'], 1, 'letters+digits could be a product code and must be searchable')
   
@@ -137,10 +142,10 @@ class ReposSearchTest(unittest.TestCase):
     r = searchMeta('aeea')
     self.assertEqual(r['response']['numFound'], 1, 'accented chars should be searchable without accent')
     self.assertEqual(r['response']['docs'][0]['id'], 
-                     '%s^/docs/filenames/Latin1 accents áéèà.txt' % reponame)
+                     u'%s^/docs/filenames/Latin1 accents áéèà.txt' % reponame)
   
   def testFilenameTokenizeWhitespaceComma(self):
-    self.assertEqual(search('name:short not long filename txt')['response']['numFound'], 1,
+    self.assertEqual(search('name:(short AND not AND long AND filename AND txt)')['response']['numFound'], 1,
                      'commas should be ignored, common words like "not" should be kept')
     
   def testFilenameUTF8(self):
@@ -165,8 +170,8 @@ class ReposSearchTest(unittest.TestCase):
     r = searchMeta('invalid not closed')
     self.assertEqual(r['response']['numFound'], 1)
     error = r['response']['docs'][0]['text_error']
-    self.assertTrue(error.find('invalid') >= 0)
-    self.assertTrue(error.find('xml') >= 0)
+    self.assertTrue(error.find('xml') >= 0, 'Got: %s' % error)
+    self.assertTrue(error.find('opentag') >= 0, 'Should specify the invalid tag. Got: %s' % error)    
     self.assertEqual(r['response']['docs'][0]['svnprop_some_prop'], 'OnInvalidXml',
                      'svn properties should be indexed even if document can not be parsed')
     
