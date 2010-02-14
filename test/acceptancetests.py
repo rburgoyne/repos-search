@@ -93,6 +93,14 @@ def searchMeta(query):
 def searchContent(query):
   return search(query, 'content')
 
+def searchOne(queryType, query):
+  r = search(query, queryType)
+  n = r['response']['numFound']
+  if n == 0:
+    raise NameError('No results for query "%s" type %s' % (query, queryType))
+  if n > 1:
+    raise NameError('%d results for query "%s" type %s: \n%s' % (n, query, queryType, repr(r)))
+  return r['response']['docs'][0]['id'].partition('^')[2]
 
 class ReposSearchTest(unittest.TestCase):
   
@@ -101,26 +109,22 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue(r.find('svnhead') > -1, r)
     
   def testFilename(self):
-    r = searchMeta('shouldBeUNIQUEfilename')
-    self.assertEqual(r['response']['numFound'], 1,
-                     'Case should not matter, extension should not be needed')
-    self.assertEqual(r['response']['docs'][0]['id'], 
-                     u'%s^/docs/filenames/shouldBeUniqueFilename.txt' % reponame)
+    self.assertEqual(searchOne('meta', 'shouldBeUNIQUEfilename'), 
+                     '/docs/filenames/shouldBeUniqueFilename.txt')
 
   def testFilenameWithExtension(self):
-    r = searchMeta('shouldbeuniquefilename.txt')
-    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(searchOne('meta', 'shouldbeuniquefilename.txt'), 
+                     '/docs/filenames/shouldBeUniqueFilename.txt')
     
   def testFilenameTokenizeDash(self):
-    r = search('name:(subversion AND related AND document2)')
-    self.assertEqual(r['response']['numFound'], 1, 'dash should be searchable as space')
-    self.assertEqual(r['response']['docs'][0]['id'],
-                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    self.assertEqual(searchOne('standard', 'name:(subversion AND related AND document2)'), 
+                     '/docs/filenames/Subversion-related Document2, 2010-02-10.txt',
+                     'dash should be searchable as space')
     # How do we handle dashes when the adjacent chars are digits?
-    self.assertEqual(searchMeta('subversion document 2010')['response']['docs'][0]['id'], 
-                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    self.assertEqual(searchMeta('2010-02-10')['response']['docs'][0]['id'], 
-                     '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+    self.assertEqual(searchOne('meta', 'subversion document 2010'), 
+                     '/docs/filenames/Subversion-related Document2, 2010-02-10.txt')    
+    self.assertEqual(searchOne('meta', '2010-02-10'), 
+                     '/docs/filenames/Subversion-related Document2, 2010-02-10.txt') 
     # TODO Should dash-separated words be joined? Difference between digits and letters?
     #self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
     #                 '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
