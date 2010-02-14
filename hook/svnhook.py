@@ -145,9 +145,10 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
     p = "/" + m.group(3)
     try:
       pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
-    except (NameError, xml.parsers.expat.ExpatError) as e:
+    except (NameError) as e:
       ''' Catch known indexing errors, log and continue with next path entry '''
-      options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc(e))) 
+      # for name errors it would probably be sufficient to write the error message, traceback is for development 
+      options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc())) 
       errors = errors + 1
   return errors
 
@@ -175,8 +176,14 @@ def repositoryGetProplist(options, revision, path):
   '''
   Returns proplist as dictionary with propname:value pairs
   '''
-  xml = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path], stdout=PIPE).communicate()[0]
-  return proplistToDict(xml)
+  p = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path], stdout=PIPE, stderr=PIPE)
+  (propxml, error) = p.communicate()
+  if p.returncode:
+    raise NameError('Proplist failed. %s' % error) # for example if svn version is <1.6
+  try:
+    return proplistToDict(propxml)
+  except xml.parsers.expat.ExpatError as e:
+    raise NameError('Failed to parse svnlook proplist xml, line %d offset %d in: %s' % (e.lineno, e.offset, propxml))
 
 def proplistToDict(xmlsource):
   dom = xml.dom.minidom.parseString(xmlsource)

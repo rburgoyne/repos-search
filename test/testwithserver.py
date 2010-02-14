@@ -20,7 +20,7 @@ hook = repo + '/hooks/post-commit'
 hooklog = hook + '.log'
 
 def run(cmd):
-  print '# ' + ' '.join(cmd)
+  #not properly quoted:#print '# ' + ' '.join(cmd)
   return check_call(cmd)
 
 def createRepository():
@@ -53,7 +53,7 @@ def createInitialStructure():
   run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
   run(['svn', 'propset', 'cms:keywords', 'keywordfromsvnprop', propwc + '/shortpdf.pdf'])
   # creating the invalid xml here so the error is not logged in rev 1 too
-  xml = propwc + '/invalidxml tag not closed.xml'
+  xml = propwc + '/invalid, tag not closed.xml'
   f = open(xml, 'w')
   f.write('<?xml version="1.0"?>\n<document>\n<opentag>\n</document>\n')
   f.close()
@@ -120,8 +120,12 @@ class ReposSearchTest(unittest.TestCase):
     # these tests throw a KeyError if the search fails but assert that we get the expected hit
     self.assertEqual(searchMeta('subversion document 2010')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    self.assertEqual(searchMeta('20100201')['response']['docs'][0]['id'], 
+    self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
                      '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
+  
+  def testFilenameStemmingWhitespaceComma(self):
+    self.assertEqual(search('name:short not long filename txt')['response']['numFound'], 1,
+                     'commas should be ignored, common words like "not" should be kept')
     
   def testFilenameUTF8(self):
     r = searchMeta(u'Swedish åäö')
@@ -142,7 +146,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)
   
   def testContentInvalidXml(self):
-    r = searchMeta('invalid xml not closed')
+    r = searchMeta('invalid not closed')
     self.assertEqual(r['response']['numFound'], 1)
     error = r['response']['docs'][0]['text_error']
     self.assertTrue(error.find('invalid') >= 0)
