@@ -129,10 +129,10 @@ class ReposSearchTest(unittest.TestCase):
                      'commas should be ignored, common words like "not" should be kept')
     
   def testFilenameUTF8(self):
-    r = searchMeta(u'Swedish åäö')
+    r = searchMeta(u'Swedish åäö'.encode('utf-8'))
     self.assertEqual(r['response']['numFound'], 1, 'unicode filename should not be a problem')
     self.assertEqual(r['response']['docs'][0]['id'], 
-                     u'%s^/docs/filenames/In Swedish åäö' % reponame)  
+                     u'%s^/docs/filenames/In Swedish Åäö.txt' % reponame)  
 
   def testContentXslAndOds(self):
     r = searchContent('"cell B2"')
