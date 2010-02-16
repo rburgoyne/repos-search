@@ -56,7 +56,7 @@ from subprocess import Popen
 from subprocess import PIPE
 from subprocess import check_call
 import re
-from tempfile import NamedTemporaryFile
+from tempfile import mkstemp
 from urllib import urlencode
 import xml.dom.minidom
 import httplib
@@ -160,17 +160,17 @@ def repositoryDiff(options, revision, path):
 
 def repositoryGetFile(options, revision, path):
   '''
-  Returns contents as NamedTemporaryFile that will be deleted on close()
+  Returns temporary file with contents. Should be deleted after use.
   '''
-  cat = NamedTemporaryFile('wb')
-  options.logger.debug("Writing %s to temp %s" % (path, cat.name))    
-  catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=cat)
+  (f, fpath) = mkstemp()
+  options.logger.debug("Writing %s to temp %s" % (path, fpath))    
+  catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=f)
   catp.communicate()
   if not catp.returncode is 0:
     options.logger.debug("Cat failed for %s. It must be a folder." % (path))
     return
-  cat.flush()
-  return cat
+  os.close(f)
+  return fpath
 
 def repositoryGetProplist(options, revision, path):
   '''
@@ -319,11 +319,11 @@ def indexSubmitFile_curl(optons, revision, path):
   name = indexGetName(path)
   params['literal.name'] = name.encode('utf8')
 
-  contents = repositoryGetFile(options, revision, path)
+  tempfile = repositoryGetFile(options, revision, path)
   (status, body) = runCurl(getCurlCommand(options) + [
          '%supdate/extract?%s' % (schemaUrl, urlencode(params)),
-         '-F', 'myfile=@%s' % contents.name])
-  contents.close()
+         '-F', 'myfile=@%s' % tempfile])
+  os.unlink(tempfile)
   if status == 200:
     options.logger.info("%s added %s" % (schema, id))
   else:
@@ -331,13 +331,13 @@ def indexSubmitFile_curl(optons, revision, path):
     options.logger.debug("Got status %d when indexing %s. Retrying with empty document." % (status, id))
     params['literal.text_error'] = body
     # of course empty file is not valid for all file types, but I guess tika does not use extension to detect type
-    f = open(contents.name, 'w')
+    f = open(tempfile, 'w')
     f.write('\n')
     f.close()
     (status2, body2) = runCurl(getCurlCommand(options) + [
            '%supdate/extract?%s' % (schemaUrl, urlencode(params)),
-           '-F', 'myfile=@%s' % contents.name])
-    os.unlink(contents.name)
+           '-F', 'myfile=@%s' % tempfile])
+    os.unlink(tempfile)
     if status2 == 200:
       options.logger.warn("Content parse error for %s; added to %s as empty" % (id, schema))
     else:
@@ -358,6 +358,7 @@ def runCurl(command):
   ''' executes curl with the arguments from getCurlCommand and returns the status code.
   It would be nice to have the response body on errors but curl -f does not work that way.
   '''
+  print " ".join(command)
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   (output, error) = p.communicate()
   # with curl -v we get this for every request, but there is no trace level
