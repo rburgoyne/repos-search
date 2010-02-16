@@ -145,7 +145,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
     p = "/" + m.group(3)
     try:
       pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
-    except (NameError) as e:
+    except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
       options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc())) 
@@ -182,7 +182,7 @@ def repositoryGetProplist(options, revision, path):
     raise NameError('Proplist failed. %s' % error) # for example if svn version is <1.6
   try:
     return proplistToDict(propxml)
-  except xml.parsers.expat.ExpatError as e:
+  except xml.parsers.expat.ExpatError, e:
     raise NameError('Failed to parse svnlook proplist xml, line %d offset %d in: %s' % (e.lineno, e.offset, propxml))
 
 def proplistToDict(xmlsource):
