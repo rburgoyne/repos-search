@@ -93,7 +93,8 @@ def searchMeta(query):
 def searchContent(query):
   return search(query, 'content')
 
-def searchOne(queryType, query):
+def s1(queryType, query):
+  ''' search, throw exception if number if hits is not 1, return the document id for the hit '''
   r = search(query, queryType)
   n = r['response']['numFound']
   if n == 0:
@@ -109,53 +110,53 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue(r.find('svnhead') > -1, r)
     
   def testFilename(self):
-    self.assertEqual(searchOne('meta', 'shouldBeUNIQUEfilename'), 
+    self.assertEqual(s1('meta', 'shouldBeUNIQUEfilename'), 
                      '/docs/filenames/shouldBeUniqueFilename.txt')
 
   def testFilenameWithExtension(self):
-    self.assertEqual(searchOne('meta', 'shouldbeuniquefilename.txt'), 
+    self.assertEqual(s1('meta', 'shouldbeuniquefilename.txt'), 
                      '/docs/filenames/shouldBeUniqueFilename.txt')
     
   def testFilenameTokenizeDash(self):
-    self.assertEqual(searchOne('standard', 'name:(subversion AND related AND document2)'), 
+    self.assertEqual(s1('standard', 'name:(subversion AND related AND document2)'), 
                      '/docs/filenames/Subversion-related Document2, 2010-02-10.txt',
                      'dash should be searchable as space')
     # How do we handle dashes when the adjacent chars are digits?
-    self.assertEqual(searchOne('meta', 'subversion document 2010'), 
+    self.assertEqual(s1('meta', 'subversion document 2010'), 
                      '/docs/filenames/Subversion-related Document2, 2010-02-10.txt')    
-    self.assertEqual(searchOne('meta', '2010-02-10'), 
+    self.assertEqual(s1('meta', '2010-02-10'), 
                      '/docs/filenames/Subversion-related Document2, 2010-02-10.txt') 
     # TODO Should dash-separated words be joined? Difference between digits and letters?
-    #self.assertEqual(searchMeta('20100210')['response']['docs'][0]['id'], 
-    #                 '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)
-    #self.assertEqual(searchMeta('subversionrelated 2010-02-10')['response']['docs'][0]['id'], 
-    #                 '%s^/docs/filenames/Subversion-related Document2, 2010-02-10.txt' % reponame)          
+    #self.assertEqual(s1('meta', '20100210'), 
+    #                 '/docs/filenames/Subversion-related Document2, 2010-02-10.txt')
+    #self.assertEqual(s1('meta', 'subversionrelated 2010-02-10'), 
+    #                 '/docs/filenames/Subversion-related Document2, 2010-02-10.txt')          
     # TODO Should CamelCase be split into separate words? in that case we should have 2 hits above
     # Even if CamelCase is split it must still match as one word, as below
-    self.assertEqual(searchMeta('subversionrelated 11.2')['response']['docs'][0]['id'], 
-                     '%s^/docs/filenames/SubversionRelated DNR333 ver 11.2.txt' % reponame)    
+    self.assertEqual(s1('meta', 'subversionrelated ver'), 
+                     '/docs/filenames/SubversionRelated DNR333 ver 11.2.txt')    
   
   def testFilenameTokenizerCodes(self):
-    r = searchMeta('11.2')
-    self.assertEqual(r['response']['numFound'], 1, 'string like 11.2 (version number) must be searchable')
-    r = searchMeta('DNR333')
-    self.assertEqual(r['response']['numFound'], 1, 'letters+digits could be a product code and must be searchable')
+    self.assertEqual(s1('meta', '11.2'), 
+                     '/docs/filenames/SubversionRelated DNR333 ver 11.2.txt',
+                     'string like 11.2 (version number) must be searchable')
+    self.assertEqual(s1('meta', 'DNR333'), 
+                     '/docs/filenames/SubversionRelated DNR333 ver 11.2.txt',
+                     'letters+digits could be a product code and must be searchable')
   
   def testFilenameLatin1Accents(self):
-    r = searchMeta('aeea')
-    self.assertEqual(r['response']['numFound'], 1, 'accented chars should be searchable without accent')
-    self.assertEqual(r['response']['docs'][0]['id'], 
-                     u'%s^/docs/filenames/Latin1 accents áéèà.txt' % reponame)
+    self.assertEqual(s1('meta', 'aeea'),
+                     u'/docs/filenames/Latin1 accents áéèà.txt',
+                     'accented chars should be searchable without accent')
   
   def testFilenameTokenizeWhitespaceComma(self):
-    self.assertEqual(search('name:(short AND not AND long AND filename AND txt)')['response']['numFound'], 1,
+    self.assertEqual(s1('standard', 'name:(short AND not AND long AND filename AND txt)'),
+                     '/docs/filenames/short, not long, filename.txt',
                      'commas should be ignored, common words like "not" should be kept')
     
-  def testFilenameUTF8(self):
-    r = searchMeta(u'Swedish åäö'.encode('utf-8'))
-    self.assertEqual(r['response']['numFound'], 1, 'unicode filename should not be a problem')
-    self.assertEqual(r['response']['docs'][0]['id'], 
-                     u'%s^/docs/filenames/In Swedish Åäö.txt' % reponame)  
+  def testFilenameUnicode(self):
+    self.assertEqual(s1('meta', u'Swedish åäö'.encode('utf-8')),
+                     u'/docs/filenames/In Swedish Åäö.txt')
 
   def testContentXslAndOds(self):
     r = searchContent('"cell B2"')
@@ -166,8 +167,8 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 2)
     
   def testPDFPrintedOnOsX(self):
-    r = searchContent('veryshortpdfcontents')
-    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(s1('content', 'veryshortpdfcontents'),
+                     '/docs/svnprops/shortpdf.pdf')
   
   def testContentInvalidXml(self):
     r = searchMeta('invalid not closed')
@@ -201,10 +202,8 @@ class ReposSearchTest(unittest.TestCase):
                      'meta search should include keywords properties with likely namespaces except svn')
 
   def testSearchOnCustomTagsField(self):
-    r = searchMeta('tagging-in-svnprop')
-    self.assertEqual(r['response']['numFound'], 1)
-    self.assertEqual(r['response']['docs'][0]['id'], 
-                     '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
+    self.assertEqual(s1('meta', 'tagging-in-svnprop'),
+                     '/docs/svnprops/textwithsvnprops.txt',
                      'meta search should include any *:kewords property value except svn:keywords')
     
   def testKeywordsFromPDFAndSvnProperty(self):
@@ -215,20 +214,19 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['svnprop_svn_mime_type'], 'application/pdf', 'should index svn:mime-type')
     
   def testSearchEmbeddedPDFTitle(self):
-    r = searchMeta('"PDF Title"')
-    docs = r['response']['docs']
-    self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Title')
-    self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+    self.assertEqual(s1('meta', '"PDF Title"'),
+                     '/docs/svnprops/shortpdf.pdf',
+                     'should match on part of PDF embedded Title')
 
   def testSearchEmbeddedPDFSubject(self):
     # TODO Should subject be matched in meta query?    
-    r = search('subject:"PDF subject"')
-    docs = r['response']['docs']
-    self.assertEqual(len(docs), 1, 'should match on part of PDF embedded Subject')
-    self.assertEqual(docs[0]['id'], '%s^/docs/svnprops/shortpdf.pdf' % reponame)
+    self.assertEqual(s1('standard', 'subject:"PDF subject"'),
+                     '/docs/svnprops/shortpdf.pdf',
+                     'should match on part of PDF embedded Subject')
     
   def testContentUTF8Txt(self):
-    self.assertEqual(searchContent(u'ÅÄÖåäö'.encode('utf-8'))['response']['numFound'], 1)
+    self.assertEqual(s1('content', u'ÅÄÖåäö'.encode('utf-8')),
+                     u'/docs/filenames/In Swedish Åäö.txt')
 
 
 if __name__ == '__main__':
