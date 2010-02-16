@@ -358,7 +358,6 @@ def runCurl(command):
   ''' executes curl with the arguments from getCurlCommand and returns the status code.
   It would be nice to have the response body on errors but curl -f does not work that way.
   '''
-  print " ".join(command)
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   (output, error) = p.communicate()
   # with curl -v we get this for every request, but there is no trace level
