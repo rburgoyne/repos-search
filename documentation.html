@@ -53,6 +53,16 @@ textarea {
 <p>This document explains how to set up the components required for fulltext searching in a Subversion repository:
 indexing server, post-commit hook and search gui.</p>
 
+<h3>System requirements</h3>
+<ul>
+<li>Subversion 1.6+</li>
+<li>Python 2.5 or 2.6</li>
+<li>Java 5+</li>
+<li><a href="http://curl.haxx.se/">curl</a></li>
+<li>Optionally PHP for the search UI in Apache. Not required when using the bundled Jetty server.</li>
+</ul>
+<p>Repos Search runs on Windows but the scripts examples below are for a typical Linux shell.</p>
+
 <h2 id="getstarted">Getting started with Repos Search beta</h2>
 
 <p>The Repos Search <a href="https://sourceforge.net/projects/reposserver/files/repossearch">download</a>
@@ -155,14 +165,11 @@ so it is sufficient to protect the proxy in <code>/repos-search/</code>.
 </p>
 
 <h2>Kown issues</h2>
-<p>To be addressed before leaving beta stage:</p>
 <ul>
-<li>The hook script does not recognize the trunk/branches/tags/ convention, so every branch and tag will be indexed.</li>
+<li>Folder names are not indexed, and thus can not be searched for.</li>
 <li>The sample UI has no form for &quot;advanced&quot; search.
 Standard search uses a <a href="http://wiki.apache.org/solr/DisMaxRequestHandler">DisMax</a> query,
-which does not support operators like OR.
-It does support quoted terms, for searching in phrases containing whitespace.
-</li>
+which does not support operators like OR.</li>
 </ul>
 
 <h2 id="community">Community</h2>
