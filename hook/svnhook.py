@@ -138,7 +138,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
   # event, revprop support not implemented
   revisionHandler(options, options.rev, dict())
   # parse change list into path events
-  changematch = re.compile(r"^([ADU_])([U\s])\s+(.+)$")
+  changematch = re.compile(r"^([ADU_])([U\s])\s{2}(.+)$")
   errors = 0
   for change in changed.splitlines():
     m = changematch.match(change);
