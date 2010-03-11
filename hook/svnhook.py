@@ -334,9 +334,10 @@ def indexSubmitFile_curl(optons, revision, path):
     f = open(tempfile, 'w')
     f.write('\n')
     f.close()
-    (status2, body2) = runCurl(getCurlCommand(options) + [
-           '%supdate/extract?%s' % (schemaUrl, urlencode(params)),
+    url = '%supdate/extract?%s' % (schemaUrl, urlencode(params))
+    (status2, body2) = runCurl(getCurlCommand(options) + [url,
            '-F', 'myfile=@%s' % tempfile])
+    options.logger.debug("Solr URL is %d bytes", len(url))
     os.unlink(tempfile)
     if status2 == 200:
       options.logger.warn("Content parse error for %s; added to %s as empty" % (id, schema))
@@ -362,8 +363,10 @@ def runCurl(command):
   (output, error) = p.communicate()
   # with curl -v we get this for every request, but there is no trace level
   if options.operation != 'batch':
-    options.logger.debug(error)
-    options.logger.debug(output)
+    if error:
+      options.logger.debug(error)
+    if output:
+      options.logger.debug(output)
   if p.returncode:
     return (0, output + error)
   return parseSolrExtractionResponse(output)
