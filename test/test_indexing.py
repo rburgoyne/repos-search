@@ -45,7 +45,7 @@ def createInitialStructure():
   # properties must be added in a working copy, using a small subfolder for performance
   propwc = tempfile.mkdtemp()
   run(['svn', 'co', repourl + '/docs/svnprops/', propwc])
-  txt =  propwc + '/textwithsvnprops.txt'
+  txt = propwc + '/textwithsvnprops.txt'
   run(['svn', 'propset', 'svn:keywords', 'Id LastChangedRevision HeadURL', txt])
   # Currently keywords properties are only treated as keywords if their namespace match the schema copyField rule 
   run(['svn', 'propset', 'cms:keywords', 'ReposSearch repossearch keywordfromsvnprop', txt])
@@ -53,6 +53,12 @@ def createInitialStructure():
   run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
   run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
   run(['svn', 'propset', 'cms:keywords', 'keywordfromsvnprop', propwc + '/shortpdf.pdf'])
+  # need to test that the server supports long query strings
+  (bigprop, bigpropf) = tempfile.mkstemp()
+  os.write(bigprop, 'a' * 30720) # 30k, we should expect servers to allow 32 k header size
+  os.close(bigprop)
+  run(['svn', 'propset', 'custom:big', '-F', bigpropf, propwc + '/longpropertyvalue.txt'])
+  os.remove(bigpropf)
   # creating the invalid xml here so the error is not logged in rev 1 too
   xml = propwc + '/invalid, tag not closed.xml'
   f = open(xml, 'w')
@@ -236,6 +242,11 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(s1('meta', 'leadingwhitespace'),
                      '/ leadingwhitespace.txt',
                      'Subversion allowes names taht start with whitespace so we should too')
+    
+  def testVeryLongPropertyValue(self):
+    self.assertEqual(s1('meta', 'longpropertyvalue.txt'),
+                     '/docs/svnprops/longpropertyvalue.txt',
+                     'longpropertyvalue.txt is not indexed, maybe the server can\'t handle 30k http headers')
     
 
 if __name__ == '__main__':
