@@ -227,7 +227,16 @@ class ReposSearchTest(unittest.TestCase):
   def testContentUTF8Txt(self):
     self.assertEqual(s1('content', u'ÅÄÖåäö'.encode('utf-8')),
                      u'/docs/filenames/In Swedish Åäö.txt')
-
+    
+  def testFilenameWithLeadingWhitespace(self):
+    '''Subversion and some OSes support filenames that start with whitespace'''
+    (h, f) = tempfile.mkstemp()
+    run(['svn', 'import', "%s" % f, repourl + '/ leadingwhitespace.txt', '-m', 'OK name?'])
+    os.remove(f)
+    self.assertEqual(s1('meta', 'leadingwhitespace'),
+                     '/ leadingwhitespace.txt',
+                     'Subversion allowes names taht start with whitespace so we should too')
+    
 
 if __name__ == '__main__':
   createRepository()
