@@ -217,7 +217,10 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
   '''
   #assert isinstance(path, unicode)
   if not isfile:
-    options.logger.debug('Ignoring folder %s' % path)
+    if action == 'D':
+      handleFolderDelete(options, options.rev, path)
+    else:
+      options.logger.debug('Ignoring %s folder %s' % (action, path))
     return
   options.logger.debug("%s%s  %s" % (action, propaction, path))
   if action == 'D':
@@ -234,6 +237,9 @@ def handleFileDelete(options, revision, path):
   Handles indexing of file deletion.
   '''
   indexDelete_httpclient(options, revision, path)
+
+def handleFolderDelete(options, revision, path):
+  indexDeleteFolder_httpclient(options, revision, path)
 
 def handleFileAdd(options, revision, path):
   indexSubmitFile_curl(options, revision, path)
@@ -283,25 +289,27 @@ def indexEscapePropname(svnProperty):
 
 def indexDelete_httpclient(options, revision, path):
   schema = options.schemahead
-  schemaUrl = options.solr + schema + '/'
+  url = urlparse(options.solr + schema + '/')
   id = indexGetId(options, revision, path)
   doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id.encode('utf8'))
-  options.logger.debug(doc)
-  u = urlparse(schemaUrl)
-  h = httplib.HTTPConnection(u.netloc)
-  h.putrequest('POST', u.path + 'update')
-  h.putheader('content-type', 'text/xml; charset=UTF-8')
-  h.putheader('content-length', str(len(doc)))
-  h.endheaders()
-  h.send(doc)
-  response = h.getresponse()
-  responseBody = response.read()
-  h.close()
-  if response.status == 200:
+  (status, body) = indexPost(url, doc)
+  if status is 200:
     options.logger.info("%s deleted %s" % (schema, id))
   else:
-    options.logger.error("Error dropping %s: %d %s" % (schema, response.status, responseBody))
+    options.logger.error("%s delete failed for %s: %d %s" % (schema, id, status, body))
 
+def indexDeleteFolder_httpclient(options, revision, path):
+  schema = options.schemahead
+  url = urlparse(options.solr + schema + '/')
+  folderId = indexGetId(options, None, path)
+  query = 'id:%s' % folderId.replace(':', '\\:').replace('^', '\\^') + '*'
+  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
+  (status, body) = indexPost(url, doc)  
+  if status is 200:
+    options.logger.info("%s deleted folder %s" % (schema, folderId))
+  else:
+    options.logger.error("%s folder delete failed for %s: %d %s" % (schema, query, status, body))
+    
 def indexSubmitFile_curl(optons, revision, path):
   ''' Python's httplib is not capable of POSTing files
   (multipart upload) so we use command line curl instead '''
@@ -396,9 +404,9 @@ def indexPost(url, doc):
   h.endheaders()
   h.send(doc)
   r = h.getresponse()
-  r.read()
+  body = r.read()
   h.close()
-  return r
+  return (r.status, body)
 
 def indexCommit(options):
   '''
@@ -407,11 +415,11 @@ def indexCommit(options):
   schema = options.schemahead
   schemaUrl = options.solr + schema + '/'
   url = urlparse(schemaUrl)
-  r = indexPost(url, '<commit/>')
-  if r.status is 200:
+  (status, body) = indexPost(url, '<commit/>')
+  if status is 200:
     options.logger.info("%s committed" % schema)
   else:
-    options.logger.error("Commit to %s failed with status %d" % (schema, r.status))
+    options.logger.error("Commit %s failed: %d %b" % (schema, status, body))
 
 def indexOptimize(options):
   '''
@@ -420,11 +428,11 @@ def indexOptimize(options):
   schema = options.schemahead
   schemaUrl = options.solr + schema + '/'
   url = urlparse(schemaUrl)
-  r = indexPost(url, '<optimize/>')
-  if r.status is 200:
+  (status, body) = indexPost(url, '<optimize/>')
+  if status is 200:
     options.logger.info("%s optimized" % schema)
   else:
-    options.logger.error("Optimize status %d" % r.status)  
+    options.logger.error("Optimize %s failed: %d %s" % (schema, status, body))  
   
 def indexDrop(options):
   schema = options.schemahead
@@ -432,11 +440,11 @@ def indexDrop(options):
   prefix = indexGetId(options, None, '')
   query = 'id:%s' % prefix.replace(':', '\\:').replace('^', '\\^') + '*'
   deleteDoc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
-  r = indexPost(url, deleteDoc)
-  if r.status is 200:
-    options.logger.info("%s deleted %s" % (schema, query))
+  (status, body) = indexPost(url, deleteDoc)
+  if status is 200:
+    options.logger.info("%s dropped %s" % (schema, query))
   else:
-    options.logger.error("Delete status %d for query %s" % (r.status, query))
+    options.logger.error("Drop %s failed: %d %s" % (schema, status, body))
 
 ### ----- hook start from post-commit arguments ----- ###
 

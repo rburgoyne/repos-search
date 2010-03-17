@@ -73,6 +73,7 @@ def createInitialStructure():
   f = open(hooklog, 'r')
   print f.read()
   f.close()
+  print '# Hook log path: %s' % hooklog
   print '# ------- setup done --------'
   print ''
 
@@ -237,11 +238,31 @@ class ReposSearchTest(unittest.TestCase):
   def testFilenameWithLeadingWhitespace(self):
     '''Subversion and some OSes support filenames that start with whitespace'''
     (h, f) = tempfile.mkstemp()
+    # note that this name looks weird in svnlook tree
     run(['svn', 'import', "%s" % f, repourl + '/ leadingwhitespace.txt', '-m', 'OK name?'])
     os.remove(f)
     self.assertEqual(s1('meta', 'leadingwhitespace'),
                      '/ leadingwhitespace.txt',
                      'Subversion allowes names taht start with whitespace so we should too')
+    
+  def testFileDelete(self):
+    (h, f) = tempfile.mkstemp()
+    run(['svn', 'import', "%s" % f, repourl + '/tobedeleted.txt', '-m', 'Add'])
+    os.remove(f)
+    self.assertEqual(s1('meta', 'tobedeleted'),'/tobedeleted.txt')
+    run(['svn', 'rm', repourl + '/tobedeleted.txt', '-m', 'Remove'])
+    self.assertEqual(searchMeta('tobedeleted')['response']['numFound'], 0)    
+    
+  def testFolderDelete(self):
+    d = tempfile.mkdtemp()
+    df = open(d + '/fileinshortlivedfolder', 'w').close()
+    run(['svn', 'import', "%s" % d, repourl + '/shortlived.folder', '-m', 'Add folder with file'])
+    # check that names starting with the exact same string are not deleted
+    run(['svn', 'import', "%s" % d, repourl + '/shortlived.folder2', '-m', 'Add folder with file 2'])
+    rmtree(d)
+    self.assertEqual(searchMeta('fileinshortlivedfolder')['response']['numFound'], 2)
+    run(['svn', 'rm', repourl + '/shortlived.folder', '-m', 'Remove folder'])
+    self.assertEqual(searchMeta('fileinshortlivedfolder')['response']['numFound'], 1) 
     
   def testVeryLongPropertyValue(self):
     self.assertEqual(s1('meta', 'longpropertyvalue.txt'),
@@ -254,3 +275,4 @@ if __name__ == '__main__':
   createInitialStructure()
   unittest.main()
   rmtree(repo)
+  

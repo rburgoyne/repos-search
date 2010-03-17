@@ -72,13 +72,16 @@ run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
 count = 0
 for r in range(1, youngest + 1):
   count = count + 1
-  result = run('python %s -o batch -r %d %s' % (options.indexer, r, " ".join(keepargs)))
+  cmd = 'python %s -o batch -r %d %s' % (options.indexer, r, " ".join(keepargs))
+  result = run(cmd)
   if result > 0:
-    raise NameError('Got exit code %d for command; %s' % (result, cmd))
+    raise NameError('Got exit code %d for command: %s' % (result, cmd))
+    # we want to abort indexing with an error message so that users don't search an incomplete index
     break
-  # Commit interval. Could also use autoCommit in solrconvig.xml or commitWithin at add.
+  # Commit interval. Could also use autoCommit in solrconfig.xml or commitWithin at add.
   # Not very clever because we don't know how many adds there are in a revision
   if count % 100 == 0:
     run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
-
+    
+run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
 run('python %s -o optimize %s' % (options.indexer, " ".join(keepargs)))
