@@ -8,6 +8,7 @@ $().ready(function() {
 		url: '/solr/svnhead/select/',
 		uiUrl: '/repos-search/',
 		parent: searchroot_parentUrl,
+		logger: true,
 		// customize some of the default ui using css
 		css: $.extend({}, ReposSearch.cssDefault, {
 			list: null,

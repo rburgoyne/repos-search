@@ -40,8 +40,8 @@ ReposSearch.init = function(options) {
 		/* URL to the parent path for search result links, no trailing slash.
 		   false to use default parent or parent from document prefix */
 		parent: false,		
-		/* true to enable event logger if there is a console */
-		logger: true
+		/* true to enable event logger if there is a window.console */
+		logger: false
 	}, options);
 	// logger
 	if (settings.logger && window.console && window.console.log) {
