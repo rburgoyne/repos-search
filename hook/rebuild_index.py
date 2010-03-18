@@ -69,9 +69,7 @@ print '# Latest revision is %d' % youngest
 
 run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
 
-count = 0
 for r in range(1, youngest + 1):
-  count = count + 1
   cmd = 'python %s -o batch -r %d %s' % (options.indexer, r, " ".join(keepargs))
   result = run(cmd)
   if result > 0:
@@ -80,7 +78,7 @@ for r in range(1, youngest + 1):
     break
   # Commit interval. Could also use autoCommit in solrconfig.xml or commitWithin at add.
   # Not very clever because we don't know how many adds there are in a revision
-  if count % 100 == 0:
+  if r % 100 == 0:
     run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
     
 run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
