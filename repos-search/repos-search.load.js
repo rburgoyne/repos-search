@@ -47,12 +47,6 @@ ReposSearch.init = function(options) {
 	if (settings.logger && window.console && window.console.log) {
 		new ReposSearch.EventLogger(console);
 	}
-	// insert base url in css properties that can contain urls
-	// TODO real css would be better here as it has relative urls
-	if (settings.css && settings.css.input) {
-		var c = settings.css && settings.css.input;
-		c.background = c.background && c.background.replace('{url}', settings.url);
-	}
 	// initialize query class
 	settings.uiUrl = settings.uiUrl || settings.url;
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
@@ -78,6 +72,11 @@ $(document).ready(function() {
 	}
 });
 
+ReposSearch.images = {
+	magnifier: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAAAAAA6mKC9AAAAxUlEQVQYGVWOzwqCQBDGv11FiFBEESLoJEgQePYFeoLoaYPOdhWKEiOICAlCwoMh7dpMQtFclvnt92dEh/+RvOruh00oqffHK8bhVAr6FEqqNP24koSJKbFL7ThCnqXOjABlFIgTz0tiFIqiCJSI2BKh1PQQ+DZ0qrcEyFmRIwBJTGByzkifZxhxi+hQbbasAJyFKxk868PlDt8/1e7SFgR027QvGKJeE3EoA5ahFdUN5qv65pCisQxO0KqpHuGQAC98Tz9vISxGFMQIZLQAAAAASUVORK5CYII=',
+	loading: 'data:image/gif;base64,R0lGODlhEAAQAPYAAP///2ZmZuTk5L6+vp+fn4yMjI6Ojqenp8bGxunp6cjIyHt7e319fYKCgoaGhouLi6WlpdXV1XZ2dqqqqvPz8/T09Nra2ri4uJWVlZ6entfX1+Li4oiIiHNzc7m5ucvLy52dnbCwsO3t7ba2tm5ubqSkpMPDw6Ojo9LS0o+Pj2tra8/Pz7+/v3R0dGlpafDw8Pj4+K2trbS0tPn5+bOzs8rKyvv7+/z8/NjY2N7e3vr6+ubm5s7OzvX19ePj4+7u7urq6uHh4dzc3NbW1uzs7Ofn5/b29ujo6K+vr9HR0dDQ0JOTk5eXl5ubm6CgoI2NjYmJidvb26ysrIODg/Ly8n9/f7q6upqamoCAgHd3d8XFxZSUlHBwcLe3t6GhoYWFhd3d3eDg4O/v79TU1LGxsb29vcTExJmZmby8vJKSkpGRkXp6esnJyW9vb21tbczMzGhoaMLCwnx8fHFxcYeHh6urq4GBgWpqaqmpqXl5eZiYmKamprKysgAAAAAAAAAAACH/C05FVFNDQVBFMi4wAwEAAAAh/h1CdWlsdCB3aXRoIEdJRiBNb3ZpZSBHZWFyIDQuMAAh/hVNYWRlIGJ5IEFqYXhMb2FkLmluZm8AIfkECQoAAAAsAAAAABAAEAAAB42AAIKDhIWFGyMpLYaFCBwkKi6CNjo3hQoLHSUrL4I3MD02gwIGEh6GNhQUlgADCxOMAD0/PYIEDBGxM0A/ggUNFLEAO0WCBg4VsTdBPoIHDxaxFEI7gggGF7E+Q0SCCRAYH4Y7KxZGgxEZICYbMDMJOAg83YQaIScHMTQeLDwJjCJQsJDhoUaOYMISBgIAIfkECQoAAAAsAAAAABAAEAAAB4yAAIKDhIWFOwNXWAxbXRuGADwYVQtZLVwkXyaFSk9TSBEUVEpeKlyERwRQm4UyhQoGI5CCN4NIS1GzADo2ggRMPbpGRoInTcSzFBWCF05BszpiywBJEAizVEDBAD8XUhqGLwJEvYI5MjRJCTo6L0VgG9ODQSZWLFofSkNhVJBUOUlqrBCSAIaugwACAQAh+QQJCgAAACwAAAAAEAAQAAAHiYAAgoOEhYUJChNpBl4sAoYAQwdLBg8ODQxqbIU4XmdoURUVQ1JrDAiDImROPIZoLVAbgmMQZpAAEG1dgiwTPrdKbmqCMkgwt1QuLYIeNDO3hTUXR9CEYGVDtzY6gxQfZr+FOj3Pg0c1H0FUNzcwFC8VNoVAQyhDQkE7QC/chkYJG3L4IBKvWrVAACH5BAkKAAAALAAAAAAQABAAAAePgACCg4SFhT8oHhBOIWxHhgA5FwcnGWdbak5KhUEjSGwbRj1CXQ9PPINUJjI4hmZfTDuCOVYokABIDAOCSiwJtxFrV4JsZjq3FBJVgm9sx5BUHXKCFjxit0ptS4JHKD63TiojgkZgOCKQcA1Bgy9gOSIwgjf0AHGFFEUCCSJUPTM2bumgIEYMBRgBbykcFAgAIfkECQoAAAAsAAAAABAAEAAAB4yAAIKDhIWFFGFvZR4mET+GAAkrcWUXNEgTMhaFRDwKFkAzMwIKJRAag0Y4PDuGSiATQIJAYxuQAGVbbII+OFS3Qmp1gmFCN7cVD0u8QceQFQ4GswIwt0N2XoIVCb+QdXIDgjZiP9WFHlkpAoMzVBQzgysncwsKhTZGMDqCLm50CLduODMwwtatg4ICAQAh+QQJCgAAACwAAAAAEAAQAAAHiYAAgoOEhYUwQDkoKxFBFIYAVEE4Y0ofCHEKPoUVG2BHVDY6IhpWVkGDNkA+L4ZCNGVigj0JrZBvUhGCVEQzkAA+B2i7sr9GXgeCFY/GTSeCMEY3v0JMZII2M9OQXWpsgzfbhSYPTkeGBCtUVGMxU09KhnZ3blwtWXIYPJBBI2kLDM6U2fGr4KBAACH5BAkKAAAALAAAAAAQABAAAAeIgACCg4SFhTc9Pzs+OyIwhgA6VEQJAkFCOFEihTYVLxUzADcVOyhJQIQwPTqGRx9KFYI3M6yQUWZBsjaQgkQsPLyFMx5lwYQzNB6CBi7AkAIxJoIyKl68WgcRghsOXBeGPE58m4Jaay14YxQVFlZ6XjiFCE95cnYOD2p7Q89lGQ8GDiBIYMxYIAAh+QQJCgAAACwAAAAAEAAQAAAHi4AAgoOEhYY3OkYVFUY2hoM2M0YUYkREPYUmhjoURTsUg0ENLo9UQT4zgiMqTo8ACRZEgkskK64UQzmCC1xUrjZKY4IMLb6POh+2AGdZKK5EWhGCZQt1rhEsQYICS1hxhhYXCMYAb1B0MlE9RkFsIRcbhSsgT2pMTV4HHmGPRwgxGU5cQPHDlcFBgQAAOwAAAAAAAAAAAA=='
+};
+
 /**
  * Minimal style, enough for css theming to be optional.
  * @static
@@ -88,7 +87,7 @@ ReposSearch.cssDefault = {
 		marginLeft: 10
 	},
 	input: {
-		background: "white url('{url}magnifier.png') no-repeat right"
+		background: "white url('" + ReposSearch.images.magnifier + "') no-repeat right"
 	},
 	dialog: {
 		position: 'absolute',
@@ -510,7 +509,6 @@ ReposSearch.LightUI = function(options) {
 		}).bind('enabled', function(ev, id) {
 			var list = $('<ul/>').attr('id', id).addClass('repos-search-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
-			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
 			// result presentation
 			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
@@ -526,7 +524,16 @@ ReposSearch.LightUI = function(options) {
 					next.remove();
 					q.pageNext();
 				}).appendTo(next);
-			});	
+			});
+			// loading animation
+			var loading = $('<img/>').addClass('loading').attr('src', ReposSearch.images.loading).css({marginLeft: 20});
+			list.bind('repos-search-query-sent', function() {
+				$(this).parent().append(loading);
+			}).bind('repos-search-query-returned', function() {
+				loading.remove();
+			});
+			// run search request
+			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
 		});
 		
 		// close button at bottom of dialog
