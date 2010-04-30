@@ -553,6 +553,9 @@
    <copyField source="*s_keywords" dest="allkeywords"/>
    <copyField source="*_tags" dest="allkeywords"/>
    
+   <!-- explicit title, original title is multivalued, TODO add test case -->
+   <copyField source="*_title" dest="title"/>
+   
    <!-- copy name to alphaNameSort, a field designed for sorting by name -->
    <!-- <copyField source="name" dest="alphaNameSort"/> -->
  

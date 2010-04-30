@@ -53,6 +53,8 @@ def createInitialStructure():
   run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
   run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
   run(['svn', 'propset', 'cms:keywords', 'keywordfromsvnprop', propwc + '/shortpdf.pdf'])
+  run(['svn', 'propset', 'custom:doc-title', 'SvnpropDocTitle with dash convention', propwc + '/shortpdf.pdf'])
+  run(['svn', 'propset', 'custom:title', 'SvnpropTitle in addition to embedded', propwc + '/shortpdf.pdf'])
   # need to test that the server supports long query strings
   (bigprop, bigpropf) = tempfile.mkstemp()
   os.write(bigprop, 'a' * 30720) # 30k, we should expect servers to allow 32 k header size
@@ -224,6 +226,22 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(s1('meta', '"PDF Title"'),
                      '/docs/svnprops/shortpdf.pdf',
                      'should match on part of PDF embedded Title')
+
+  def testTitleSvnProperty(self):
+    self.assertEqual(s1('meta', 'svnproptitle addition embedded'),
+                     '/docs/svnprops/shortpdf.pdf',
+                     'should match *:title svn property ')
+    return # fails in 1.0, the copy rule can not distinguish between namespace and property name with dash
+    r = searchMeta('svnpropdoctitle')
+    self.assertEqual(r['response']['numFound'], 0,
+                     'default rule should only match props named "title", any namespace');    
+  
+  def testTitleQueryStopword(self):
+    # assuming that "to" is a stopword in default config
+    return # fails in 1.0
+    self.assertEqual(s1('meta', 'svnproptitle addition to embedded'),
+                     '/docs/svnprops/shortpdf.pdf',
+                     'query that includes stopword should match')
 
   def testSearchEmbeddedPDFSubject(self):
     # TODO Should subject be matched in meta query?    
