@@ -79,7 +79,7 @@ ReposSearch.init = function(options) {
 	// initialize query class
 	settings.uiUrl = settings.uiUrl || settings.url;
 	ReposSearchRequest.prototype.url = settings.url || ReposSearchRequest.prototype.url;
-	// use mini search input to invoke Repos Search
+	// use mini search box input to invoke Repos Search sample ui
 	var ui = new ReposSearch.LightUI({
 		parent: settings.parent,
 		css: settings.css
@@ -455,24 +455,20 @@ ReposSearch.SampleSearchBox = function(options) {
 	// build mini UI
 	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
-	form.css(options.css.form).appendTo(settings.boxparent); // TODO display settings should be set in css
-	// url building
-	var s = location.search.indexOf('repossearch=');
-	if (s > 0) {
-		// repossearch is the last query parameter
-		var q = decodeURIComponent(location.search.substr(s + 12).replace(/\+/g,' '));
-		$('#repos-search-input').val(q);
+	form.css(options.css.form).appendTo(settings.boxparent);
+	// get current query string
+	var qs = $.deparam.querystring();
+	// display current search query, and invoke search
+	if (qs.repossearch) {
+		$('#repos-search-input').val(qs.repossearch);
 		settings.submit();
 	}
-	// Can not use browser's submit because then we need hidden fields for all existing query params
-	//form.attr('method', 'GET').attr('action','');		
-	form.submit(function(ev) {
-		ev.stopPropagation();
-		var href = location.href;
-		href += href.indexOf('?') == -1 ? '?' : '&';
-		href += 'repossearch=' + enccodeURIComponent(q);
-		location.href = href;
-	});
+	// preserve existing params in submit
+	for (var qsp in qs) {
+		if (qsp == 'repossearch') continue;
+		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
+	}
+	form.attr('method', 'GET').attr('action', window.location.hash);		
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repos-search-dialog-close', function(ev, dialog) {
 		$().trigger('repos-search-exited');
