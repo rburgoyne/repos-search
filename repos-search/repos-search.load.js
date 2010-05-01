@@ -175,7 +175,7 @@ ReposSearch.cssDefault = {
 		display: 'none'
 	},
 	resultPrevious: {
-		fontSize: '82.5%'
+		display: 'none'
 	}
 };
 
@@ -538,6 +538,7 @@ ReposSearch.LightUI = function(options) {
 			list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
 				var next = $('<li class="repos-search-next"/>').appendTo(this);
 				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
+					jQuery.bbq.pushState({repossearchfrom: start + shown + 1});
 					$('.repos-search-result', list).css(uiCss.resultPrevious);
 					next.remove();
 					q.pageNext();
