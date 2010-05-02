@@ -523,7 +523,18 @@ ReposSearch.LightUI = function(options) {
 		}).bind('enabled', function(ev, id) {
 			var list = $('<ul/>').attr('id', id).addClass('repos-search-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
-			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);			
+			var clear = function() {
+				$('.repos-search-result', list).remove();
+				// maybe we could reuse the next button
+				$('.repos-search-next', list).remove();
+			};
+			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
+			var search = function() {
+				clear();
+				var start = $.deparam.fragment()[id + '-start'] || 0;
+				q.setStart(start);
+				q.exec();
+			};
 			// result presentation
 			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
@@ -535,13 +546,8 @@ ReposSearch.LightUI = function(options) {
 			list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
 				var next = $('<li class="repos-search-next"/>').appendTo(this);
 				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-					var nextstart = start + shown;
+					var nextstart = start + shown;					
 					$.bbq.pushState('#' + id + '-start=' + nextstart);
-					// TODO use hashchange event, hash on link?
-					q.setStart(nextstart);
-					$('.repos-search-result', list).remove();
-					next.remove();
-					q.exec();
 				}).appendTo(next);
 			});
 			// loading animation
@@ -552,9 +558,9 @@ ReposSearch.LightUI = function(options) {
 				loading.remove();
 			});
 			// run search request
-			var start = $.deparam.fragment()[id + '-start'] || 0;
-			q.setStart(start);
-			q.exec();
+			$(window).bind('hashchange', search);
+			// Assuming that the BBQ plugin makes sure this only triggers the event once on ready even if many scripts use it
+			$(window).trigger('hashchange');
 		});
 		
 		// close button at bottom of dialog
