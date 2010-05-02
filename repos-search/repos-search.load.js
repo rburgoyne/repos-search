@@ -173,9 +173,6 @@ ReposSearch.cssDefault = {
 	},
 	resultindex: {
 		display: 'none'
-	},
-	resultPrevious: {
-		display: 'none'
 	}
 };
 
@@ -247,8 +244,8 @@ function ReposSearchRequest(options) {
 ReposSearchRequest.prototype.url = './';
 
 /**
- * Takes the user's query and a result container and produces
- * a series of search events.
+ * Takes the user's query and a result container and produces,
+ * at .exec(), a series of search events.
  * 
  * Results are appended to the resultList using a
  * microformat.
@@ -267,8 +264,12 @@ function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
 	this.parentUrlDefault = '/svn/';
 	this.start = 0;
 	this.r = null;
-	$().trigger('repos-search-started', [this.type, this.query, this.listE]);
-	this.exec();
+	// signal that a query type has been initiated
+	$().trigger('repos-search-started', [this.type, this.query, this.listE]);	
+}
+
+ReposSearchQuery.prototype.setStart = function(fromZero) {
+	this.start = fromZero;
 }
 
 ReposSearchQuery.prototype.exec = function() {
@@ -285,11 +286,6 @@ ReposSearchQuery.prototype.exec = function() {
 		}
 	});
 	listQ.trigger('repos-search-query-sent', [this.r]);
-};
-
-ReposSearchQuery.prototype.pageNext = function() {	
-	this.start = this.start + this.r.getRows();
-	this.exec();
 };
 
 /**
@@ -527,6 +523,7 @@ ReposSearch.LightUI = function(options) {
 		}).bind('enabled', function(ev, id) {
 			var list = $('<ul/>').attr('id', id).addClass('repos-search-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
+			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);			
 			// result presentation
 			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
@@ -538,10 +535,13 @@ ReposSearch.LightUI = function(options) {
 			list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
 				var next = $('<li class="repos-search-next"/>').appendTo(this);
 				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-					jQuery.bbq.pushState({repossearchfrom: start + shown + 1});
-					$('.repos-search-result', list).css(uiCss.resultPrevious);
+					var nextstart = start + shown;
+					$.bbq.pushState('#' + id + '-start=' + nextstart);
+					// TODO use hashchange event, hash on link?
+					q.setStart(nextstart);
+					$('.repos-search-result', list).remove();
 					next.remove();
-					q.pageNext();
+					q.exec();
 				}).appendTo(next);
 			});
 			// loading animation
@@ -552,7 +552,9 @@ ReposSearch.LightUI = function(options) {
 				loading.remove();
 			});
 			// run search request
-			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
+			var start = $.deparam.fragment()[id + '-start'] || 0;
+			q.setStart(start);
+			q.exec();
 		});
 		
 		// close button at bottom of dialog
