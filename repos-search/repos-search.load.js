@@ -584,6 +584,8 @@ ReposSearch.LightUI = function(options) {
 				q.exec();
 			};			
 			$(window).bind('hashchange', search);
+			// in this UI enable means search immediately
+			search();
 		});
 		
 		// close button at bottom of dialog
@@ -598,10 +600,7 @@ ReposSearch.LightUI = function(options) {
 		// automatically search fulltext if there are no results in meta
 		$('ul, ol', meta).one('repossearch-noresults', function() {
 			content.trigger('enable');
-		});
-		
-		// Assuming that the BBQ plugin makes sure this only triggers the event once on ready even if many scripts use it
-		$(window).trigger('hashchange');		
+		});		
 	};
 	
 	/**
