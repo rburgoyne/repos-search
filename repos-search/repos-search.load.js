@@ -147,15 +147,11 @@ ReposSearch.cssDefault = {
 		verticalAlign: 'middle'
 	},
 	close: {
-		textAlign: 'right',
 		float: 'right',
 		fontSize: '82.5%',
 		cursor: 'pointer',
 		color: '#666',
-		padding: '0.1em'
-	},
-	closeBottom: {
-		clear: 'both'
+		padding: '2px 5px 2px 20px'
 	},
 	queryDiv: {
 		width: '48.5%',
@@ -588,10 +584,6 @@ ReposSearch.LightUI = function(options) {
 			search();
 		});
 		
-		// close button at bottom of dialog
-		var closeBottom = $('.repossearch-dialog-close-button', this.dialog).clone(true).css(uiCss.closeBottom);
-		closeBottom.appendTo(this.dialog);
-			
 		// show ui
 		this.dialog.show('slow');
 	
@@ -662,7 +654,7 @@ ReposSearch.LightUI = function(options) {
 	var title = this.titleCreate();
 	this.dialog.append(title);
 	
-	var closeAction = $('<a href="javascript:void(0)" class="repossearch-dialog-close-button">close</a>').css(uiCss.close).click(this.destroy);
+	var closeAction = $('<img alt="close"/>').attr('src', ReposSearch.images.close).css(uiCss.close).click(this.destroy);
 	title.append(closeAction);
 
 	$('body').append(this.dialog.hide());
