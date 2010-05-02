@@ -528,19 +528,10 @@ ReposSearch.LightUI = function(options) {
 		}).bind('enabled', function(ev, id) {
 			var list = $('<ul/>').attr('id', id).addClass('repossearch-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
-			var clear = function() {
-				$('.repossearch-result', list).remove();
-				// maybe we could reuse the next button
-				$('.repossearch-next', list).remove();
-			};
-			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
-			var search = function() {
-				clear();
-				var start = $.deparam.fragment()[id + '-start'] || 0;
-				q.setStart(start);
-				q.exec();
-			};
 			// result presentation
+			list.bind('repossearch-query-sent', function() {
+				$('.repossearch-result', list).remove();
+			});
 			list.bind('repossearch-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
 				$('.repossearch-resultindex', microformatElement).css(uiCss.resultindex);
@@ -551,14 +542,21 @@ ReposSearch.LightUI = function(options) {
 			list.bind('repossearch-truncated', function(ev, start, shown, numFound) {
 				var next = $('<li class="repossearch-next"/>').appendTo(this);
 				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-					var nextstart = start + shown;					
-					$.bbq.pushState('#' + id + '-start=' + nextstart);
+					var nextstart = {};
+					nextstart[id + '-start'] = start + shown;					
+					$.bbq.pushState(nextstart);
 				}).appendTo(next);
+				list.one('repossearch-query-sent', function() {
+					next.remove();
+				});				
 			});
 			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 				var error = $('<li class="error repossearch-error"/>').appendTo(this);
 				$('<span/>').text('Error, server status ' + httpStatus).appendTo(error);
 				$('<pre/>').text(httpStatusText).appendTo(error);
+				list.one('repossearch-query-sent', function() {
+					error.remove();
+				});
 			});
 			// loading animation
 			var loading = $('<img/>').addClass('loading').attr('src', ReposSearch.images.loading).css({marginLeft: 20});
@@ -570,6 +568,12 @@ ReposSearch.LightUI = function(options) {
 				loading.remove();
 			});
 			// run search request
+			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
+			var search = function() {
+				var start = $.deparam.fragment()[id + '-start'] || 0;
+				q.setStart(start);
+				q.exec();
+			};			
 			$(window).bind('hashchange', search);
 			// Assuming that the BBQ plugin makes sure this only triggers the event once on ready even if many scripts use it
 			$(window).trigger('hashchange');
