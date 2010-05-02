@@ -269,7 +269,7 @@ function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
 
 ReposSearchQuery.prototype.setStart = function(fromZero) {
 	this.start = fromZero;
-}
+};
 
 ReposSearchQuery.prototype.exec = function() {
 	var instance = this;
