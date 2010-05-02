@@ -209,15 +209,17 @@ function ReposSearchRequest(options) {
 		data: params,
 		dataType: 'json',
 		success: function(json) {
-			// old event
+			// old global event
 			$().trigger('repos-search-query-returned', [params.qt, json]);
 			// new handling based on callback
 			instance.json = json;
 			options.success(instance);
 		},
 		error: function (xhr, textStatus, errorThrown) {
-			// old event
+			// old global event
 			$().trigger('repos-search-query-failed', [params.qt, xhr.status, xhr.statusText]);
+			// new handling based on callback
+			options.error(instance, xhr.status, xhr.statusText);
 		}
 	});
 	// Public response access methods
@@ -279,10 +281,13 @@ ReposSearchQuery.prototype.exec = function() {
 		type: this.type,
 		q: this.query,
 		start: this.start,
-		success: function(searchRequest){
+		success: function(searchRequest) {
 			// This event can be used to hide previous results, if there are any
 			listQ.trigger('repos-search-query-returned', [searchRequest]);
 			instance.presentResults(searchRequest.json, listQ);
+		},
+		error: function(searchRequest, httpStatus, httpStatusText) {
+			listQ.trigger('repos-search-query-failed', [searchRequest, httpStatus, httpStatusText]);
 		}
 	});
 	listQ.trigger('repos-search-query-sent', [this.r]);
@@ -550,11 +555,18 @@ ReposSearch.LightUI = function(options) {
 					$.bbq.pushState('#' + id + '-start=' + nextstart);
 				}).appendTo(next);
 			});
+			list.bind('repos-search-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
+				var error = $('<li class="error repos-search-error"/>').appendTo(this);
+				$('<span/>').text('Error, server status ' + httpStatus).appendTo(error);
+				$('<pre/>').text(httpStatusText).appendTo(error);
+			});
 			// loading animation
 			var loading = $('<img/>').addClass('loading').attr('src', ReposSearch.images.loading).css({marginLeft: 20});
 			list.bind('repos-search-query-sent', function() {
 				$(this).parent().append(loading);
 			}).bind('repos-search-query-returned', function() {
+				loading.remove();
+			}).bind('repos-search-query-failed', function() {
 				loading.remove();
 			});
 			// run search request
