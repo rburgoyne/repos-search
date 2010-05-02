@@ -471,7 +471,7 @@ ReposSearch.SampleSearchBox = function(options) {
 		if (qsp == 'repossearch') continue;
 		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
 	}
-	form.attr('method', 'GET').attr('action', window.location.hash);		
+	form.attr('method', 'GET').attr('action','');//must clear hash to reset start index//window.location.hash);		
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repossearch-dialog-close', function(ev, dialog) {
 		$().trigger('repossearch-exited');
