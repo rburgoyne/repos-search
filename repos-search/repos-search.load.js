@@ -210,14 +210,14 @@ function ReposSearchRequest(options) {
 		dataType: 'json',
 		success: function(json) {
 			// old global event
-			$().trigger('repos-search-query-returned', [params.qt, json]);
+			$().trigger('repossearch-query-returned', [params.qt, json]);
 			// new handling based on callback
 			instance.json = json;
 			options.success(instance);
 		},
 		error: function (xhr, textStatus, errorThrown) {
 			// old global event
-			$().trigger('repos-search-query-failed', [params.qt, xhr.status, xhr.statusText]);
+			$().trigger('repossearch-query-failed', [params.qt, xhr.status, xhr.statusText]);
 			// new handling based on callback
 			options.error(instance, xhr.status, xhr.statusText);
 		}
@@ -267,7 +267,7 @@ function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
 	this.start = 0;
 	this.r = null;
 	// signal that a query type has been initiated
-	$().trigger('repos-search-started', [this.type, this.query, this.listE]);	
+	$().trigger('repossearch-started', [this.type, this.query, this.listE]);	
 }
 
 ReposSearchQuery.prototype.setStart = function(fromZero) {
@@ -283,14 +283,14 @@ ReposSearchQuery.prototype.exec = function() {
 		start: this.start,
 		success: function(searchRequest) {
 			// This event can be used to hide previous results, if there are any
-			listQ.trigger('repos-search-query-returned', [searchRequest]);
+			listQ.trigger('repossearch-query-returned', [searchRequest]);
 			instance.presentResults(searchRequest.json, listQ);
 		},
 		error: function(searchRequest, httpStatus, httpStatusText) {
-			listQ.trigger('repos-search-query-failed', [searchRequest, httpStatus, httpStatusText]);
+			listQ.trigger('repossearch-query-failed', [searchRequest, httpStatus, httpStatusText]);
 		}
 	});
-	listQ.trigger('repos-search-query-sent', [this.r]);
+	listQ.trigger('repossearch-query-sent', [this.r]);
 };
 
 /**
@@ -302,7 +302,7 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 	var num = parseInt(json.response.numFound, 10);
 	var start = parseInt(json.response.start, 10);
 	if (num === 0) {
-		listQ.trigger('repos-search-noresults');
+		listQ.trigger('repossearch-noresults');
 		return;
 	}
 	var n = json.response.docs.length;
@@ -311,20 +311,20 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 		var e = this.presentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
 		listQ.append(e);
-		listQ.trigger('repos-search-result', [e[0], doc]); // event arg is the element, not jQuery bucket
+		listQ.trigger('repossearch-result', [e[0], doc]); // event arg is the element, not jQuery bucket
 	}
 	if (start + n < num) {
-		listQ.trigger('repos-search-truncated', [json.response.start, n, num]);
+		listQ.trigger('repossearch-truncated', [json.response.start, n, num]);
 	}
 };
 
 /**
  * Produce the element that presents a search hit.
  * 
- * The element is also a microformat for processing in repos-search-result event handlers:
- * $('.repos-search-resultbase').text() contains the base
- * $('.repos-search-resultpath').text() contains path to file excluding filename
- * $('.repos-search-resultfile').text() contains filename
+ * The element is also a microformat for processing in repossearch-result event handlers:
+ * $('.repossearch-resultbase').text() contains the base
+ * $('.repossearch-resultpath').text() contains path to file excluding filename
+ * $('.repossearch-resultfile').text() contains filename
  * 
  * @param json the item from the solr "response.docs" array
  * @return jQuery element
@@ -332,15 +332,15 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 ReposSearchQuery.prototype.presentItem = function(json) {
 	var m = /(.*\/)?([^\/]*)?\^(\/?.*\/)([^\/]*)/.exec(json.id);
 	if (!m) return $("<li/>").text("Unknown id format in seach result: " + json.id);
-	var li = $('<li/>').addClass('repos-search-result');
+	var li = $('<li/>').addClass('repossearch-result');
 	var root = m[1] || this.parentUrl || this.parentUrlDefault;
 	if (m[2]) {
 		root += m[2];
-		li.append('<a class="repos-search-resultbase" href="' + root + '/">' + m[2] + '</a>');
+		li.append('<a class="repossearch-resultbase" href="' + root + '/">' + m[2] + '</a>');
 	}
-	li.append('<a class="repos-search-resultpath" href="' + root + m[3] + '">' + m[3] + '</a>');
-	li.append('<a class="repos-search-resultfile" href="' + root + m[3] + m[4] + '">' + m[4] + '</a>');
-	var indexed = $('<dl class="repos-search-resultindex"/>').appendTo(li);
+	li.append('<a class="repossearch-resultpath" href="' + root + m[3] + '">' + m[3] + '</a>');
+	li.append('<a class="repossearch-resultfile" href="' + root + m[3] + m[4] + '">' + m[4] + '</a>');
+	var indexed = $('<dl class="repossearch-resultindex"/>').appendTo(li);
 	var fields = ReposSearch.getPropFields(json);
 	for (var i = 0; i < fields.length; i++) {
 		var key = fields[i];
@@ -391,33 +391,33 @@ ReposSearch.getPropFields = function(json) {
 ReposSearch.EventLogger = function(consoleApi) {
 	var logger = consoleApi;
 	// root event bound to document node
-	$().bind('repos-search-started', function(ev, type, userQuery, r) {
+	$().bind('repossearch-started', function(ev, type, userQuery, r) {
 		logger.log(ev.type, this, type, userQuery, r);
 		
-		$(r).bind('repos-search-query-sent', function(ev, searchRequest) {
+		$(r).bind('repossearch-query-sent', function(ev, searchRequest) {
 			logger.log(ev.type, this, searchRequest);
 		});
-		$(r).bind('repos-search-query-returned', function(ev, searchRequest) {
+		$(r).bind('repossearch-query-returned', function(ev, searchRequest) {
 			logger.log(ev.type, this, searchRequest);
 		});
-		$(r).bind('repos-search-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
+		$(r).bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 			logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 		});
-		$(r).bind('repos-search-result', function(ev, microformatElement, solrDoc) {
+		$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc) {
 			var e = microformatElement;
 			logger.log(ev.type, this, e, 
-				'base=' + $('.repos-search-resultbase', e).text(),
-				'path=' + $('.repos-search-resultpath', e).text(),
-				'file=' + $('.repos-search-resultfile', e).text(),
+				'base=' + $('.repossearch-resultbase', e).text(),
+				'path=' + $('.repossearch-resultpath', e).text(),
+				'file=' + $('.repossearch-resultfile', e).text(),
 				solrDoc);
 		});
-		$(r).bind('repos-search-truncated', function(ev, start, shown, numFound) {
+		$(r).bind('repossearch-truncated', function(ev, start, shown, numFound) {
 			logger.log(ev.type, this, 'showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
 		});
 	});
 	
 	// LightUI's events, triggered on the divs
-	$().bind('repos-search-dialog-open', function(ev, dialog) {
+	$().bind('repossearch-dialog-open', function(ev, dialog) {
 		logger.log(ev.type, dialog);
 	});
 };
@@ -430,15 +430,15 @@ ReposSearch.SampleSearchBox = function(options) {
 	// presentation settings
 	var settings = {
 		// the small search box in the container
-		box: $('<input id="repos-search-input" type="text" name="repossearch" size="20"/>').css(options.css.input),
+		box: $('<input id="repossearch-input" type="text" name="repossearch" size="20"/>').css(options.css.input),
 		
 		// the page that includes Repos Search can provide an element with
-		// class "repos-search-container" to control the placement of the input box
-		boxparent: $('.repos-search-container')[0] || $('#commandbar')[0] || $('body')[0],
+		// class "repossearch-container" to control the placement of the input box
+		boxparent: $('.repossearch-container')[0] || $('#commandbar')[0] || $('body')[0],
 		
 		// how to get search terms from the input box
 		getSearchString: function() {
-			return $('#repos-search-input').val();
+			return $('#repossearch-input').val();
 		},
 		
 		// form event handler, with error handling so we never risk to trigger default submit
@@ -454,14 +454,14 @@ ReposSearch.SampleSearchBox = function(options) {
 	};
 	$.extend(settings, options);
 	// build mini UI
-	var form = $('<form id="repos-search-form"><input type="submit" style="display:none"/></form>');
+	var form = $('<form id="repossearch-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
 	form.css(options.css.form).appendTo(settings.boxparent);
 	// get current query string
 	var qs = $.deparam.querystring();
 	// display current search query, and invoke search
 	if (qs.repossearch) {
-		$('#repos-search-input').val(qs.repossearch);
+		$('#repossearch-input').val(qs.repossearch);
 		settings.submit();
 	}
 	// preserve existing params in submit
@@ -471,8 +471,8 @@ ReposSearch.SampleSearchBox = function(options) {
 	}
 	form.attr('method', 'GET').attr('action', window.location.hash);		
 	// the search UI decides the execution model, and this one supports only one search at a time
-	$().bind('repos-search-dialog-close', function(ev, dialog) {
-		$().trigger('repos-search-exited');
+	$().bind('repossearch-dialog-close', function(ev, dialog) {
+		$().trigger('repossearch-exited');
 		// remove bookmarkable state
 		var s = location.href.indexOf('repossearch=');
 		if (s > 0) {
@@ -480,11 +480,11 @@ ReposSearch.SampleSearchBox = function(options) {
 		}	
 	});
 	// update mini UI based on dialog events
-	$().bind('repos-search-exited', function() {
-		$('#repos-search-input').val('');
+	$().bind('repossearch-exited', function() {
+		$('#repossearch-input').val('');
 	});
-	$().bind('repos-search-input-change', function(ev, searchString) {
-		$('#repos-search-input').val(searchString);
+	$().bind('repossearch-input-change', function(ev, searchString) {
+		$('#repossearch-input').val(searchString);
 	});	
 };
 
@@ -496,7 +496,7 @@ ReposSearch.SampleSearchBox = function(options) {
 ReposSearch.LightUI = function(options) {
 	
 	this.settings = $.extend({
-		id: 'repos-search-',
+		id: 'repossearch-',
 		parent: '/svn'
 	}, options);
 	
@@ -509,7 +509,7 @@ ReposSearch.LightUI = function(options) {
 	 */	
 	this.destroy = function(ev) {
 		var d = $('#' + uiSettings.id + 'dialog');
-		$().trigger('repos-search-dialog-close', [d[0]]);
+		$().trigger('repossearch-dialog-close', [d[0]]);
 		d.remove();
 	};
 	
@@ -518,7 +518,7 @@ ReposSearch.LightUI = function(options) {
 	 * @param {String} query Valid solr query from the user
 	 */
 	this.run = function(query) {
-		$('.repos-search-dialog-title-label', this.dialog).text(query);
+		$('.repossearch-dialog-title-label', this.dialog).text(query);
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		
@@ -526,12 +526,12 @@ ReposSearch.LightUI = function(options) {
 		all.bind('disabled', function() {
 			$('ul, ol', this).remove();
 		}).bind('enabled', function(ev, id) {
-			var list = $('<ul/>').attr('id', id).addClass('repos-search-result-list').css(uiCss.list).appendTo(this);
+			var list = $('<ul/>').attr('id', id).addClass('repossearch-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
 			var clear = function() {
-				$('.repos-search-result', list).remove();
+				$('.repossearch-result', list).remove();
 				// maybe we could reuse the next button
-				$('.repos-search-next', list).remove();
+				$('.repossearch-next', list).remove();
 			};
 			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
 			var search = function() {
@@ -541,32 +541,32 @@ ReposSearch.LightUI = function(options) {
 				q.exec();
 			};
 			// result presentation
-			list.bind('repos-search-result', function(ev, microformatElement, solrDoc) {
+			list.bind('repossearch-result', function(ev, microformatElement, solrDoc) {
 				$(microformatElement).css(uiCss.result);
-				$('.repos-search-resultindex', microformatElement).css(uiCss.resultindex);
+				$('.repossearch-resultindex', microformatElement).css(uiCss.resultindex);
 			});
-			list.bind('repos-search-noresults', function() {
-				var nohits = $('<li class="repos-search-nohits"/>').text('No hits').appendTo(this);
+			list.bind('repossearch-noresults', function() {
+				var nohits = $('<li class="repossearch-nohits"/>').text('No hits').appendTo(this);
 			});
-			list.bind('repos-search-truncated', function(ev, start, shown, numFound) {
-				var next = $('<li class="repos-search-next"/>').appendTo(this);
+			list.bind('repossearch-truncated', function(ev, start, shown, numFound) {
+				var next = $('<li class="repossearch-next"/>').appendTo(this);
 				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
 					var nextstart = start + shown;					
 					$.bbq.pushState('#' + id + '-start=' + nextstart);
 				}).appendTo(next);
 			});
-			list.bind('repos-search-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
-				var error = $('<li class="error repos-search-error"/>').appendTo(this);
+			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
+				var error = $('<li class="error repossearch-error"/>').appendTo(this);
 				$('<span/>').text('Error, server status ' + httpStatus).appendTo(error);
 				$('<pre/>').text(httpStatusText).appendTo(error);
 			});
 			// loading animation
 			var loading = $('<img/>').addClass('loading').attr('src', ReposSearch.images.loading).css({marginLeft: 20});
-			list.bind('repos-search-query-sent', function() {
+			list.bind('repossearch-query-sent', function() {
 				$(this).parent().append(loading);
-			}).bind('repos-search-query-returned', function() {
+			}).bind('repossearch-query-returned', function() {
 				loading.remove();
-			}).bind('repos-search-query-failed', function() {
+			}).bind('repossearch-query-failed', function() {
 				loading.remove();
 			});
 			// run search request
@@ -576,7 +576,7 @@ ReposSearch.LightUI = function(options) {
 		});
 		
 		// close button at bottom of dialog
-		var closeBottom = $('.repos-search-dialog-close-button', this.dialog).clone(true).css(uiCss.closeBottom);
+		var closeBottom = $('.repossearch-dialog-close-button', this.dialog).clone(true).css(uiCss.closeBottom);
 		closeBottom.appendTo(this.dialog);
 			
 		// show ui
@@ -585,7 +585,7 @@ ReposSearch.LightUI = function(options) {
 		// run query for metadata by default
 		meta.trigger('enable');
 		// automatically search fulltext if there are no results in meta
-		$('ul, ol', meta).one('repos-search-noresults', function() {
+		$('ul, ol', meta).one('repossearch-noresults', function() {
 			content.trigger('enable');
 		});
 	};
@@ -628,11 +628,11 @@ ReposSearch.LightUI = function(options) {
 	 * @private
 	 */
 	this.titleCreate = function() {
-		var title = $('<div class="repos-search-dialog-title"/>').css(uiCss.dialogTitle)
+		var title = $('<div class="repossearch-dialog-title"/>').css(uiCss.dialogTitle)
 			.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
 			.attr('id', this.settings.id+'dialog-title-link').css(uiCss.dialogTitleLink));
-		$('<span class="repos-search-dialog-title-separator"/>').text(' - ').appendTo(title);
-		$('<em class="repos-search-dialog-title-label"/>').appendTo(title);
+		$('<span class="repossearch-dialog-title-separator"/>').text(' - ').appendTo(title);
+		$('<em class="repossearch-dialog-title-label"/>').appendTo(title);
 		return title;
 	};
 		
@@ -649,12 +649,12 @@ ReposSearch.LightUI = function(options) {
 	var title = this.titleCreate();
 	this.dialog.append(title);
 	
-	var closeAction = $('<a href="javascript:void(0)" class="repos-search-dialog-close-button">close</a>').css(uiCss.close).click(this.destroy);
+	var closeAction = $('<a href="javascript:void(0)" class="repossearch-dialog-close-button">close</a>').css(uiCss.close).click(this.destroy);
 	title.append(closeAction);
 
 	$('body').append(this.dialog.hide());
 	
 	// publish page wide event so extensions can get hold of search events
-	$().trigger('repos-search-dialog-open', [this.dialog[0]]);	
+	$().trigger('repossearch-dialog-open', [this.dialog[0]]);	
 	
 };

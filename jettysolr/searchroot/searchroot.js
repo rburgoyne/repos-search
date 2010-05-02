@@ -31,8 +31,8 @@ $().ready(function() {
 	});
 });
 
-$().bind('repos-search-started', function(ev, type, userQuery, r) {
-	$(r).bind('repos-search-result', function(ev, microformatElement, solrDoc) {
+$().bind('repossearch-started', function(ev, type, userQuery, r) {
+	$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc) {
 		// if we don't have a parentUrl none of the links can work, unless prefix is server+parent
 		if (solrDoc.id.indexOf('://') == -1 && !searchroot_parentUrl) {
 			$('a', this).removeAttr('href');
