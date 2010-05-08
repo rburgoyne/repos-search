@@ -461,25 +461,23 @@ ReposSearch.SampleSearchBox = function(options) {
 	form.css(options.css.form).appendTo(settings.boxparent);
 	// get current query string
 	var qs = $.deparam.querystring();
-	// display current search query, and invoke search
-	if (qs.repossearch) {
-		$('#repossearch-input').val(qs.repossearch);
-		settings.submit();
-	}
 	// preserve existing params in submit
 	for (var qsp in qs) {
 		if (qsp == 'repossearch') continue;
 		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
 	}
-	form.attr('method', 'GET').attr('action','');//must clear hash to reset start index//window.location.hash);		
+	//form.attr('method', 'GET').attr('action', window.location.hash);
+	// must clear hash to reset start index
+	form.attr('method', 'GET').attr('action', '');
+	// display current search query, and invoke search
+	if (qs.repossearch) {
+		$('#repossearch-input').val(qs.repossearch);
+		settings.submit();
+	}
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repossearch-dialog-close', function(ev, dialog) {
 		$().trigger('repossearch-exited');
-		// remove bookmarkable state
-		var s = location.href.indexOf('repossearch=');
-		if (s > 0) {
-			location.href = location.href.substr(0, s);
-		}	
+		form.submit();
 	});
 	// update mini UI based on dialog events
 	$().bind('repossearch-exited', function() {
