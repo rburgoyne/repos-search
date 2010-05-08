@@ -48,7 +48,7 @@ def createInitialStructure():
   txt = propwc + '/textwithsvnprops.txt'
   run(['svn', 'propset', 'svn:keywords', 'Id LastChangedRevision HeadURL', txt])
   # Currently keywords properties are only treated as keywords if their namespace match the schema copyField rule 
-  run(['svn', 'propset', 'cms:keywords', 'ReposSearch repossearch keywordfromsvnprop', txt])
+  run(['svn', 'propset', 'cms:keywords', 'ReposSearch repossearch keywordfromsvnprop 600K', txt])
   run(['svn', 'propset', 'whatever:tags', 'metadataindexing tagging-in-svnprop', txt])
   run(['svn', 'propset', 'custom:someurl', 'Visit http://repossearch.com/', txt])
   run(['svn', 'propset', 'svn:mime-type', 'application/pdf', propwc + '/shortpdf.pdf'])
@@ -208,12 +208,18 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(len(docs), 2, 'should be two files with this keyword')    
     self.assertEqual(r['response']['docs'][1]['id'], # could probably be index 0, ranking not tested 
                      '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
-                     'meta search should include keywords properties with likely namespaces except svn')
+                     'meta search should include *:kewords property with likely namespaces except svn:keywords')
 
   def testSearchOnCustomTagsField(self):
     self.assertEqual(s1('meta', 'tagging-in-svnprop'),
                      '/docs/svnprops/textwithsvnprops.txt',
-                     'meta search should include any *:kewords property value except svn:keywords')
+                     'meta search should include any *:tags property')
+    self.assertEqual(searchMeta('tagging')['response']['numFound'], 0, 'Unlike title keywords should not be split')
+    
+  def testKeywordsCaseInsensitive(self):
+    self.assertEqual(searchMeta('600')['response']['numFound'], 0, 'Unlike title keywords should not be split')
+    self.assertEqual(s1('meta', '600K'), '/docs/svnprops/textwithsvnprops.txt')
+    self.assertEqual(s1('meta', '600k'), '/docs/svnprops/textwithsvnprops.txt', 'should be case insensitive')    
     
   def testKeywordsFromPDFAndSvnProperty(self):
     r = search('allkeywords:(keywordinsaveaspdf AND keywordfromsvnprop)')
@@ -238,7 +244,6 @@ class ReposSearchTest(unittest.TestCase):
   
   def testTitleQueryStopword(self):
     # assuming that "to" is a stopword in default config
-    return # fails in 1.0
     self.assertEqual(s1('meta', 'svnproptitle addition to embedded'),
                      '/docs/svnprops/shortpdf.pdf',
                      'query that includes stopword should match')
