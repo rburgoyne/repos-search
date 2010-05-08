@@ -308,7 +308,7 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 		var e = this.presentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
 		listQ.append(e);
-		listQ.trigger('repossearch-result', [e[0], doc]); // event arg is the element, not jQuery bucket
+		listQ.trigger('repossearch-result', [e[0], doc, start + i + 1]); // event arg is the element, not jQuery bucket
 	}
 	if (start + n < num) {
 		listQ.trigger('repossearch-truncated', [json.response.start, n, num]);
@@ -400,9 +400,9 @@ ReposSearch.EventLogger = function(consoleApi) {
 		$(r).bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 			logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 		});
-		$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc) {
+		$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
 			var e = microformatElement;
-			logger.log(ev.type, this, e, 
+			logger.log(ev.type, this, e, hitNumber,
 				'base=' + $('.repossearch-resultbase', e).text(),
 				'path=' + $('.repossearch-resultpath', e).text(),
 				'file=' + $('.repossearch-resultfile', e).text(),
@@ -532,7 +532,7 @@ ReposSearch.LightUI = function(options) {
 			list.bind('repossearch-query-sent', function() {
 				$('.repossearch-result', list).remove();
 			});
-			list.bind('repossearch-result', function(ev, microformatElement, solrDoc) {
+			list.bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
 				$(microformatElement).css(uiCss.result);
 				$('.repossearch-resultindex', microformatElement).css(uiCss.resultindex);
 			});
@@ -639,7 +639,7 @@ ReposSearch.LightUI = function(options) {
 		$('<em class="repossearch-dialog-title-label"/>').appendTo(title);
 		return title;
 	};
-		
+	
 	this.fixIE = function(context) {
 		$(':checkbox', context).click(function(ev) {
 			ev.stopPropagation();
