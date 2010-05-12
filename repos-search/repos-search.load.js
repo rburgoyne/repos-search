@@ -612,12 +612,19 @@ ReposSearch.LightUI = function(options) {
 		// show ui
 		this.dialog.show('slow');
 	
-		// run query for metadata by default
-		meta.trigger('enable');
-		// automatically search fulltext if there are no results in meta
-		$('ul, ol', meta).one('repossearch-noresults', function() {
+		// run query directly if set in bookmarkable hash
+		var hash = $.deparam.fragment();
+		if (hash[uiSettings.id + 'meta-start'] !== null) {
+			meta.trigger('enable');
+		}
+		if (hash[uiSettings.id + 'content-start'] !== null) {
 			content.trigger('enable');
-		});		
+		} else {
+			// automatically search fulltext if there are no results in meta
+			$('ul, ol', meta).one('repossearch-noresults', function() {
+				content.trigger('enable');
+			});
+		}
 	};
 	
 	/**
