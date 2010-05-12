@@ -471,9 +471,8 @@ ReposSearch.SampleSearchBox = function(options) {
 		if (qsp == 'repossearch') continue;
 		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
 	}
-	//form.attr('method', 'GET').attr('action', window.location.hash);
-	// must clear hash to reset start index
-	form.attr('method', 'GET').attr('action', '');
+	// run meta query immediately
+	form.attr('method', 'GET').attr('action', '#repossearch-meta-start=0');
 	// display current search query, and invoke search
 	if (qs.repossearch) {
 		$('#repossearch-input').val(qs.repossearch);
@@ -544,7 +543,7 @@ ReposSearch.LightUI = function(options) {
 				$('.repossearch-resultindex', microformatElement).css(uiCss.resultindex);
 			});
 			list.bind('repossearch-noresults', function() {
-				var nohits = $('<li class="repossearch-nohits"/>').text('No hits').appendTo(this);
+				var nohits = $('<li class="repossearch-nohits"/>').css(uiCss.resultinfo).text('No hits').appendTo(this);
 				list.one('repossearch-query-sent', function() {
 					nohits.remove();
 				});	
@@ -571,14 +570,14 @@ ReposSearch.LightUI = function(options) {
 				};
 				var current = $('> :eq(' + Math.floor(start / pagesize) + ')', pages);
 				current.removeAttr('href');
-				current.prev().clone(true).html('&laquo;').prependTo(pages);
-				current.next().clone(true).html('&raquo;').appendTo(pages);
-				var c1 = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo).prependTo(this);
-				c1.append(pages);
-				var c2 = c1.clone(true).appendTo(this);
+				current.prev().clone(true).add('<span/>').slice(0,1).html('&laquo;').prependTo(pages);
+				current.next().clone(true).add('<span/>').slice(0,1).html('&raquo;').appendTo(pages);
+				var head = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo).prependTo(this);
+				head.append(pages);
+				var foot = head.clone(true).appendTo(this);
 				$(this).one('repossearch-query-sent', function() {
-					c1.remove();
-					c2.remove();
+					head.remove();
+					foot.remove();
 				});
 			});
 			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
