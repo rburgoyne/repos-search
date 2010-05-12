@@ -310,11 +310,9 @@ ReposSearchQuery.prototype.presentResults = function(json, listQ) {
 		var e = this.presentItem(doc);
 		e.addClass(i % 2 ? 'even' : 'odd');
 		listQ.append(e);
-		listQ.trigger('repossearch-result', [e[0], doc, start + i + 1]); // event arg is the element, not jQuery bucket
+		listQ.trigger('repossearch-result', [e[0], doc, start + i]); // event arg is the element, not jQuery bucket
 	}
-	if (start + n < num) {
-		listQ.trigger('repossearch-truncated', [json.response.start, n, num]);
-	}
+	listQ.trigger('repossearch-displayed', [json.response.start, n, num]);
 };
 
 /**
@@ -410,8 +408,8 @@ ReposSearch.EventLogger = function(consoleApi) {
 				'file=' + $('.repossearch-resultfile', e).text(),
 				solrDoc);
 		});
-		$(r).bind('repossearch-truncated', function(ev, start, shown, numFound) {
-			logger.log(ev.type, this, 'showed ' + start + ' to ' + (start+shown) + ' of ' + numFound);
+		$(r).bind('repossearch-displayed', function(ev, start, shown, numFound) {
+			logger.log(ev.type, this, 'showed from index ' + (start) + ' to ' + (start+shown) + ', total count ' + numFound);
 		});
 	});
 	
@@ -479,6 +477,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repossearch-dialog-close', function(ev, dialog) {
 		$().trigger('repossearch-exited');
+		form.attr('action', '#'); // removes state
 		form.submit();
 	});
 	// update mini UI based on dialog events
@@ -515,32 +514,6 @@ ReposSearch.LightUI = function(options) {
 		d.remove();
 	};
 	
-	this.enableCount = function(list) {
-		var from = false;
-		var to = false;
-		//var info = $('<p/>');
-		//info.before(list);
-		var info = $('<li class="repossearch-resultcount"/>').css(uiCss.resultinfo).appendTo(list);
-		var ifrom = $('<span/>');
-		var ito = $('<span/>');
-		var itotal = $('<span/>');
-		info.append('Displaying results ').append(ifrom).append(' to ').append(ito).append()
-		list.bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
-			if (!from || from > hitNumber) {
-				from = hitNumber;
-				ifrom.text(from);
-			}
-			if (!to || to < hitNumber) {
-				to = hitNumber;
-				ito.text(to);
-			}
-		});
-		list.bind('repossearch-truncated', function(ev, start, shown, numFound) {
-			info.append(' of ').append(itotal);
-			itotal.text(numFound);
-		});
-	};
-	
 	/**
 	 * Creates interactive search result presentation.
 	 * @param {String} query Valid solr query from the user
@@ -571,17 +544,39 @@ ReposSearch.LightUI = function(options) {
 					nohits.remove();
 				});	
 			});
-			that.enableCount(list);
-			list.bind('repossearch-truncated', function(ev, start, shown, numFound) {
-				var next = $('<li class="repossearch-next"/>').css(uiCss.resultinfo).appendTo(this);
-				var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-					var nextstart = {};
-					nextstart[id + '-start'] = start + shown;		
-					$.bbq.pushState(nextstart);
-				}).appendTo(next);
+			list.bind('repossearch-displayed', function(ev, start, shown, numFound) {
+				var next = start + shown < numFound && start + shown;
+				var prev = start > 0 && Math.max(0, start - shown);
+				if (next !== false) {
+					var nextp = $('<li class="repossearch-next"/>').css(uiCss.resultinfo).appendTo(this);
+					var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
+						var nextstart = {};
+						nextstart[id + '-start'] = next;
+						$.bbq.pushState(nextstart);
+					}).appendTo(nextp);
+					list.one('repossearch-query-sent', function() {
+						nextp.remove();
+					});
+				}
+				if (prev !== false) {
+					var prevp = $('<li class="repossearch-prev"/>').css(uiCss.resultinfo).prependTo(this);
+					var preva = $('<a href="javascript:void(0)"/>').html('&laquo; previous results').click(function() {
+						var prevstart = {};
+						prevstart[id + '-start'] = prev;
+						$.bbq.pushState(prevstart);
+					}).appendTo(prevp);
+					list.one('repossearch-query-sent', function() {
+						prevp.remove();
+					});
+				}
+				var infop = $('<li class="repossearch-resultcount"/>').css(uiCss.resultinfo).prependTo(list);
+				var ifrom = $('<span/>').text(start + 1);
+				var ito = $('<span/>').text(start + shown);
+				var itotal = $('<span/>').text(numFound);
+				infop.append('Displaying results ').append(ifrom).append(' to ').append(ito).append(' of ').append(itotal);
 				list.one('repossearch-query-sent', function() {
-					next.remove();
-				});				
+					infop.remove();
+				});
 			});
 			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 				var error = $('<li class="error repossearch-error"/>').css(uiCss.resultinfo).appendTo(this);
