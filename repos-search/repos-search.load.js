@@ -164,7 +164,12 @@ ReposSearch.cssDefault = {
 		paddingLeft: '0.4em'
 	},
 	resultinfo: {
-		listStyleType: 'none'
+		listStyleType: 'none',
+		fontSize: '82.5%'
+	},
+	pagelink: {
+		paddingLeft: '.3em',
+		paddingRight: '.3em'
 	},
 	result: {
 		marginLeft: '1em',
@@ -545,37 +550,35 @@ ReposSearch.LightUI = function(options) {
 				});	
 			});
 			list.bind('repossearch-displayed', function(ev, start, shown, numFound) {
-				var next = start + shown < numFound && start + shown;
-				var prev = start > 0 && Math.max(0, start - shown);
-				if (next !== false) {
-					var nextp = $('<li class="repossearch-next"/>').css(uiCss.resultinfo).appendTo(this);
-					var nexta = $('<a href="javascript:void(0)"/>').html('&raquo; more results').click(function() {
-						var nextstart = {};
-						nextstart[id + '-start'] = next;
-						$.bbq.pushState(nextstart);
-					}).appendTo(nextp);
-					list.one('repossearch-query-sent', function() {
-						nextp.remove();
-					});
+				var pagesize = 10;
+				if (numFound <= pagesize) return;
+				if (start % pagesize !== 0) {
+					return; // paging not supported if start index does not match page size
 				}
-				if (prev !== false) {
-					var prevp = $('<li class="repossearch-prev"/>').css(uiCss.resultinfo).prependTo(this);
-					var preva = $('<a href="javascript:void(0)"/>').html('&laquo; previous results').click(function() {
-						var prevstart = {};
-						prevstart[id + '-start'] = prev;
-						$.bbq.pushState(prevstart);
-					}).appendTo(prevp);
-					list.one('repossearch-query-sent', function() {
-						prevp.remove();
-					});
-				}
-				var infop = $('<li class="repossearch-resultcount"/>').css(uiCss.resultinfo).prependTo(list);
-				var ifrom = $('<span/>').text(start + 1);
-				var ito = $('<span/>').text(start + shown);
-				var itotal = $('<span/>').text(numFound);
-				infop.append('Displaying results ').append(ifrom).append(' to ').append(ito).append(' of ').append(itotal);
-				list.one('repossearch-query-sent', function() {
-					infop.remove();
+				var pages = $('<span class="repossearch-resultpages"/>');
+				var link = function(start, size) {
+					return $('<a href="javascript:void(0)" class="repossearch-resultpage"/>')
+						.css(uiCss.pagelink)
+						.text('' + (start + 1) + '-' + (start + size))
+						.click(function() {
+							var nextstart = {};
+							nextstart[id + '-start'] = start;
+							$.bbq.pushState(nextstart);
+						});
+				};
+				for (var s = 0; s < Math.min(numFound, Math.max(pagesize * 10, start + pagesize * 5)); s += pagesize) {
+					var p = link(s, Math.min(pagesize, numFound - s)).appendTo(pages);
+				};
+				var current = $('> :eq(' + Math.floor(start / pagesize) + ')', pages);
+				current.removeAttr('href');
+				current.prev().clone(true).html('&laquo;').prependTo(pages);
+				current.next().clone(true).html('&raquo;').appendTo(pages);
+				var c1 = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo).prependTo(this);
+				c1.append(pages);
+				var c2 = c1.clone(true).appendTo(this);
+				$(this).one('repossearch-query-sent', function() {
+					c1.remove();
+					c2.remove();
 				});
 			});
 			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
