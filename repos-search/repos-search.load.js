@@ -160,12 +160,14 @@ ReposSearch.cssDefault = {
 		paddingLeft: '1em'
 	},
 	list: {
+		listStyleType: 'none',	
 		listStylePosition: 'inside',
 		paddingLeft: '0.4em'
 	},
 	resultinfo: {
-		listStyleType: 'none',
-		fontSize: '82.5%'
+		listStyleType: 'none',		
+		fontSize: '82.5%',
+		lineHeight: '150%'
 	},
 	pagelink: {
 		paddingLeft: '.3em',
@@ -570,7 +572,7 @@ ReposSearch.LightUI = function(options) {
 					var p = link(s, Math.min(pagesize, numFound - s)).appendTo(pages);
 				};
 				var current = $('> :eq(' + Math.floor(start / pagesize) + ')', pages);
-				current.removeAttr('href');
+				current.removeAttr('href').addClass('repossearch-pagelink-current');
 				current.prev().clone(true).add('<span/>').slice(0,1).html('&laquo;').prependTo(pages);
 				current.next().clone(true).add('<span/>').slice(0,1).html('&raquo;').appendTo(pages);
 				var head = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo).prependTo(this);
