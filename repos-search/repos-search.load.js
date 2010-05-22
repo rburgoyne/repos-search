@@ -481,7 +481,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// the search UI decides the execution model, and this one supports only one search at a time
 	$().bind('repossearch-dialog-close', function(ev, dialog) {
 		$().trigger('repossearch-exited');
-		form.attr('action', '#'); // removes state
+		form.attr('action', '#'); // removes state, maybe done by 'disabled' event handler too
 		form.submit();
 	});
 	// update mini UI based on dialog events
@@ -528,9 +528,16 @@ ReposSearch.LightUI = function(options) {
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		var all = $(meta).add(content);
-		all.bind('disabled', function() {
+		all.bind('disabled', function(ev, id) {
 			$('ul, ol', this).remove();
+			$.bbq.removeState(id + '-start');
 		}).bind('enabled', function(ev, id) {
+			var setQueryState = function(startIndex) {
+				var nextstart = {};
+				nextstart[id + '-start'] = startIndex;
+				$.bbq.pushState(nextstart);
+			};
+			setQueryState(0);
 			var list = $('<ul/>').attr('id', id).addClass('repossearch-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
 			
@@ -560,9 +567,7 @@ ReposSearch.LightUI = function(options) {
 						.css(uiCss.pagelink)
 						.text('' + (start + 1) + '-' + (start + size))
 						.click(function() {
-							var nextstart = {};
-							nextstart[id + '-start'] = start;
-							$.bbq.pushState(nextstart);
+							setQueryState(start);
 						});
 				};
 				for (var s = 0; s < Math.min(numFound, Math.max(pagesize * 10, start + pagesize * 5)); s += pagesize) {
@@ -614,10 +619,10 @@ ReposSearch.LightUI = function(options) {
 	
 		// run query directly if set in bookmarkable hash
 		var hash = $.deparam.fragment();
-		if (hash[uiSettings.id + 'meta-start'] !== null) {
+		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
 			meta.trigger('enable');
 		}
-		if (hash[uiSettings.id + 'content-start'] !== null) {
+		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
 			content.trigger('enable');
 		} else {
 			// automatically search fulltext if there are no results in meta
@@ -651,7 +656,7 @@ ReposSearch.LightUI = function(options) {
 				div.trigger('disabled', [id]);
 			}
 		});
-		// event to programmatically enable/disable
+		// event to programmatically enable, unlike 'enabled' which is triggered any time the query type is started
 		div.bind('enable', function() {
 			var c = $(':checkbox', this);
 			if (!c.is(':checked')) {
