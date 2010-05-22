@@ -622,9 +622,14 @@ ReposSearch.LightUI = function(options) {
 		} else {
 			// automatically search fulltext if there are no results in meta
 			$('ul, ol', meta).one('repossearch-noresults', function() {
+				// TODO set hash, and set/unset hash och checkbox click
 				content.trigger('enable');
 			});
 		}
+		// Instead of the above, we could have a generic hashchange handler here
+		// probably with a trigger onload
+		// which should also replace the hashchange handling in run		
+		// but how do we detect which search query that changed?
 	};
 	
 	/**
