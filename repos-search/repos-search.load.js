@@ -422,11 +422,6 @@ ReposSearch.EventLogger = function(consoleApi) {
 	$().bind('repossearch-dialog-open', function(ev, dialog) {
 		logger.log(ev.type, dialog);
 	});
-	
-	// Other events that might have effects
-	$(window).bind('hashchange', function(ev) {
-		logger.log(ev.type, window.location.hash);
-	});
 };
 
 /**
@@ -568,6 +563,7 @@ ReposSearch.LightUI = function(options) {
 						.text('' + (start + 1) + '-' + (start + size))
 						.click(function() {
 							setQueryState(start);
+							search(); // instead of relying on hashchange
 						});
 				};
 				for (var s = 0; s < Math.min(numFound, Math.max(pagesize * 10, start + pagesize * 5)); s += pagesize) {
@@ -608,8 +604,9 @@ ReposSearch.LightUI = function(options) {
 				var start = $.deparam.fragment()[id + '-start'] || 0;
 				q.setStart(start);
 				q.exec();
-			};			
-			$(window).bind('hashchange', search);
+			};
+			// might cause multiple searches if handler does not chech which state it was that changed
+			//$(window).bind('hashchange', search);
 			// in this UI enable means search immediately
 			search();
 		});
