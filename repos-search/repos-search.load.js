@@ -680,7 +680,7 @@ ReposSearch.LightUI = function(options) {
 		var title = $('<div class="repossearch-dialog-title"/>').css(uiCss.dialogTitle)
 			.append($('<a target="_blank" href="http://repossearch.com/" title="repossearch.com">Repos Search</a>"')
 			.attr('id', this.settings.id+'dialog-title-link').css(uiCss.dialogTitleLink));
-		$('<img alt="close"/>').attr('src', ReposSearch.images.close).css(uiCss.close).click(this.destroy).appendTo(title);
+		$('<img alt="close"/>').attr('src', ReposSearch.images.close).css(uiCss.close).click(this.destroy).prependTo(title);
 		$('<span class="repossearch-dialog-title-separator"/>').text(' - ').appendTo(title);
 		$('<em class="repossearch-dialog-title-label"/>').appendTo(title);
 		return title;
