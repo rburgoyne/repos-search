@@ -568,13 +568,17 @@ ReposSearch.LightUI = function(options) {
 							search(); // instead of relying on hashchange
 						});
 				};
+				// generate page links
 				for (var s = 0; s < Math.min(numFound, Math.max(pagesize * 10, start + pagesize * 5)); s += pagesize) {
 					var p = link(s, Math.min(pagesize, numFound - s)).appendTo(pages);
 				};
+				// current page
 				var current = $('> :eq(' + Math.floor(start / pagesize) + ')', pages);
-				current.removeAttr('href').addClass('repossearch-pagelink-current');
 				current.prev().clone(true).add('<span/>').slice(0,1).html('&laquo;').prependTo(pages);
 				current.next().clone(true).add('<span/>').slice(0,1).html('&raquo;').appendTo(pages);
+				// mark current page
+				current = current.replaceWith($('<span/>').text(current.text()).attr('class', current.attr('class')).attr('style', current.attr('style')));
+				// add to result element
 				var pageinfo = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo);
 				pageinfo.append(pages).appendTo(this);
 				// show at top too://pageinfo = $([pageinfo[0], pageinfo.clone(true).prependTo(this)[0]]);
