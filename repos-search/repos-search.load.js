@@ -160,14 +160,14 @@ ReposSearch.cssDefault = {
 		paddingLeft: '1em'
 	},
 	list: {
-		listStyleType: 'none',	
+		listStyleType: 'none',
 		listStylePosition: 'inside',
 		paddingLeft: '0.4em'
 	},
 	resultinfo: {
-		listStyleType: 'none',		
+		listStyleType: 'none',
 		fontSize: '82.5%',
-		lineHeight: '150%'
+		lineHeight: '200%'
 	},
 	pagelink: {
 		paddingLeft: '.3em',
@@ -575,12 +575,11 @@ ReposSearch.LightUI = function(options) {
 				current.removeAttr('href').addClass('repossearch-pagelink-current');
 				current.prev().clone(true).add('<span/>').slice(0,1).html('&laquo;').prependTo(pages);
 				current.next().clone(true).add('<span/>').slice(0,1).html('&raquo;').appendTo(pages);
-				var head = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo).prependTo(this);
-				head.append(pages);
-				var foot = head.clone(true).appendTo(this);
+				var pageinfo = $('<li class="repossearch-resultinfo"/>').css(uiCss.resultinfo);
+				pageinfo.append(pages).appendTo(this);
+				// show at top too://pageinfo = $([pageinfo[0], pageinfo.clone(true).prependTo(this)[0]]);
 				$(this).one('repossearch-query-sent', function() {
-					head.remove();
-					foot.remove();
+					pageinfo.remove();
 				});
 			});
 			list.bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
