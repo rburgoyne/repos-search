@@ -629,15 +629,18 @@ ReposSearch.LightUI = function(options) {
 		this.dialog.show('slow');
 	
 		// run query directly if set in bookmarkable hash
-		if (location.hash) {
-			var hash = $.deparam.fragment();
-			if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
-				meta.trigger('enable');
-			}
-			if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
-				content.trigger('enable');
-			}
-		} else {
+		var n = 0;
+		var hash = $.deparam.fragment();
+		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
+			meta.trigger('enable');
+			n++;
+		}
+		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
+			content.trigger('enable');
+			n++;
+		}
+		// default query if nothing specified
+		if (!n) {
 			// default after submit
 			meta.trigger('enable');
 			// automatically search fulltext if there are no results in meta
