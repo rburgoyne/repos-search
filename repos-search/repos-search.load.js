@@ -461,6 +461,16 @@ ReposSearch.SampleSearchBox = function(options) {
 	var form = $('<form id="repossearch-form"><input type="submit" style="display:none"/></form>');
 	form.append(settings.box);
 	form.css(options.css.form).appendTo(settings.boxparent);
+	// make search box icon clickable
+	settings.box.click(function(ev) {
+		if (!$(this).val()) return; // don't react on click if input is empty
+		var iconw = 20; // clickable area's width in pixels
+		var clickx = ev.pageX;
+		var inputright = $(this).offset().left + $(this).width(); // x coordinate of right border of input with icon
+		if (clickx >= inputright - iconw) {
+			form.submit();
+		}
+	});
 	// get current query string
 	var qs = $.deparam.querystring();
 	// preserve existing params in submit
