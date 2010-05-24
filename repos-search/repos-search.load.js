@@ -543,7 +543,7 @@ ReposSearch.LightUI = function(options) {
 				nextstart[id + '-start'] = startIndex;
 				$.bbq.pushState(nextstart);
 			};
-			setQueryState(0);
+			if (typeof $.deparam.fragment()[id + '-start'] == 'undefined') setQueryState(0); // API not well defined, who sets the hash?
 			var list = $('<ul/>').attr('id', id).addClass('repossearch-result-list').css(uiCss.list).appendTo(this);
 			var qname = list.attr('id').substr(uiSettings.id.length);
 			
