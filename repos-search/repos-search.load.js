@@ -478,8 +478,7 @@ ReposSearch.SampleSearchBox = function(options) {
 		if (qsp == 'repossearch') continue;
 		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
 	}
-	// run meta query immediately
-	form.attr('method', 'GET').attr('action', '#repossearch-meta-start=0');
+	form.attr('method', 'GET').attr('action', '#'); // as long as IE resets hash on submit we must set action=# for consistency
 	// display current search query, and invoke search
 	if (qs.repossearch) {
 		$('#repossearch-input').val(qs.repossearch);
@@ -630,13 +629,17 @@ ReposSearch.LightUI = function(options) {
 		this.dialog.show('slow');
 	
 		// run query directly if set in bookmarkable hash
-		var hash = $.deparam.fragment();
-		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
-			meta.trigger('enable');
-		}
-		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
-			content.trigger('enable');
+		if (location.hash) {
+			var hash = $.deparam.fragment();
+			if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
+				meta.trigger('enable');
+			}
+			if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
+				content.trigger('enable');
+			}
 		} else {
+			// default after submit
+			meta.trigger('enable');
 			// automatically search fulltext if there are no results in meta
 			$('ul, ol', meta).one('repossearch-noresults', function() {
 				// TODO set hash, and set/unset hash och checkbox click
