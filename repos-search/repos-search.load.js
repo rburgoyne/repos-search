@@ -419,11 +419,12 @@ ReposSearch.EventLogger = function(consoleApi) {
 			logger.log(ev.type, this, 'showed from index ' + (start) + ' to ' + (start+shown) + ', total count ' + numFound);
 		});
 	});
-	
+
 	// LightUI's events, triggered on the divs
 	$().bind('repossearch-dialog-open', function(ev, dialog) {
 		logger.log(ev.type, dialog);
 	});
+
 };
 
 /**
@@ -441,15 +442,17 @@ ReposSearch.SampleSearchBox = function(options) {
 		boxparent: $('.repossearch-container')[0] || $('#commandbar')[0] || $('body')[0],
 		
 		// how to get search terms from the input box
-		getSearchString: function() {
+		getInputString: function() {
 			return $('#repossearch-input').val();
 		},
 		
-		// form event handler, with error handling so we never risk to trigger default submit
+		// submit function for search box, instead of real form submit
+		// - simply produces an hashchange
 		submit: function(ev) {
 			ev && ev.stopPropagation();
 			try {
-				options.submithandler(this.getSearchString());
+				var q = this.getInputString();
+				$.bbq.pushState({repossearch: q});
 			} catch (e) {
 				alert('Repos Search error: ' + e);
 			}
@@ -458,9 +461,14 @@ ReposSearch.SampleSearchBox = function(options) {
 	};
 	$.extend(settings, options);
 	// build mini UI
-	var form = $('<form id="repossearch-form"><input type="submit" style="display:none"/></form>');
-	form.append(settings.box);
-	form.css(options.css.form).appendTo(settings.boxparent);
+	settings.box.appendTo(settings.boxparent);
+	// submit on enter like real form
+	settings.box.keypress(function(event) {
+		if (event.keyCode == '13') {
+			event.preventDefault();
+			settings.submit();
+		}
+	});
 	// make search box icon clickable
 	settings.box.click(function(ev) {
 		if (!$(this).val()) return; // don't react on click if input is empty
@@ -468,35 +476,33 @@ ReposSearch.SampleSearchBox = function(options) {
 		var clickx = ev.pageX;
 		var inputright = $(this).offset().left + $(this).width(); // x coordinate of right border of input with icon
 		if (clickx >= inputright - iconw) {
-			form.submit();
+			settings.submit();
 		}
 	});
-	// get current query string
-	var qs = $.deparam.querystring();
-	// preserve existing params in submit
-	for (var qsp in qs) {
-		if (qsp == 'repossearch') continue;
-		$('<input type="hidden"/>').attr('name', qsp).attr('value', qs[qsp]).appendTo(form);
-	}
-	form.attr('method', 'GET').attr('action', '#'); // as long as IE resets hash on submit we must set action=# for consistency
-	// display current search query, and invoke search
-	if (qs.repossearch) {
-		$('#repossearch-input').val(qs.repossearch);
-		settings.submit();
-	}
-	// the search UI decides the execution model, and this one supports only one search at a time
+	// handle search term change, hash may change for other reasons so we have to diff
+	var lastq = '';
+	$(window).bind("hashchange.repossearch", function(e) {
+		var q = $.deparam.fragment().repossearch || '';
+		if (q != lastq) {
+			lastq = q;
+			if (q) {
+				settings.box.val(q);
+				options.submithandler(q);
+			} else {
+				$().trigger('repossearch-exited');
+			}
+		}
+	});
+	// check for search terms from load
+	$(window).trigger("hashchange.repossearch");
+	// remove search term on gui close, and publish exit event like when the search box is cleared manually
 	$().bind('repossearch-dialog-close', function(ev, dialog) {
 		$().trigger('repossearch-exited');
-		form.attr('action', '#'); // removes state, maybe done by 'disabled' event handler too
-		form.submit();
 	});
-	// update mini UI based on dialog events
 	$().bind('repossearch-exited', function() {
-		$('#repossearch-input').val('');
+		settings.box.val('');
+		$.bbq.removeState('repossearch');
 	});
-	$().bind('repossearch-input-change', function(ev, searchString) {
-		$('#repossearch-input').val(searchString);
-	});	
 };
 
 /**
@@ -521,7 +527,7 @@ ReposSearch.LightUI = function(options) {
 	this.destroy = function(ev) {
 		var d = $('#' + uiSettings.id + 'dialog');
 		$().trigger('repossearch-dialog-close', [d[0]]);
-		d.remove();
+		d.hide();
 	};
 	
 	/**
@@ -531,9 +537,11 @@ ReposSearch.LightUI = function(options) {
 	this.run = function(query) {
 		var that = this;
 		$('.repossearch-dialog-title-label', this.dialog).text(query);
+		this.previous && this.previous.trigger('disabled').remove(); // remove previous search
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		var all = $(meta).add(content);
+		this.previous = all;
 		all.bind('disabled', function(ev, id) {
 			$('ul, ol', this).remove();
 			$.bbq.removeState(id + '-start');
@@ -559,10 +567,15 @@ ReposSearch.LightUI = function(options) {
 				var nohits = $('<li class="repossearch-nohits"/>').css(uiCss.resultinfo).text('No hits').appendTo(this);
 				list.one('repossearch-query-sent', function() {
 					nohits.remove();
-				});	
+				});
 			});
 			list.bind('repossearch-displayed', function(ev, start, shown, numFound) {
 				var pagesize = 10;
+				if (start >= numFound) {
+					var starterror = $('<li/>').css(uiCss.resultinfo).appendTo(this).text(
+							'Start index ' + start + ' does not exist. There are ' + numFound + ' results.');
+					return;
+				}				
 				if (numFound <= pagesize) return;
 				if (start % pagesize !== 0) {
 					return; // paging not supported if start index does not match page size
@@ -619,8 +632,6 @@ ReposSearch.LightUI = function(options) {
 				q.setStart(start);
 				q.exec();
 			};
-			// might cause multiple searches if handler does not chech which state it was that changed
-			//$(window).bind('hashchange', search);
 			// in this UI enable means search immediately
 			search();
 		});
@@ -673,6 +684,9 @@ ReposSearch.LightUI = function(options) {
 			} else {
 				div.trigger('disabled', [id]);
 			}
+		});
+		$().bind('repossearch-exited', function() {
+			div.trigger('disabled', [id]);
 		});
 		// event to programmatically enable, unlike 'enabled' which is triggered any time the query type is started
 		div.bind('enable', function() {
