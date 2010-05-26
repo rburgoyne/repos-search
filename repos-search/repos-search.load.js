@@ -85,7 +85,7 @@ ReposSearch.init = function(options) {
 		css: settings.css
 	});
 	var box = new ReposSearch.SampleSearchBox({
-		submithandler: function(q){ ui.run(q); },
+		searchhandler: function(q){ ui.start(q); },
 		css: settings.css
 	});
 };
@@ -487,7 +487,7 @@ ReposSearch.SampleSearchBox = function(options) {
 			lastq = q;
 			if (q) {
 				settings.box.val(q);
-				options.submithandler(q);
+				options.searchhandler(q);
 			} else {
 				$().trigger('repossearch-exited');
 			}
@@ -534,10 +534,10 @@ ReposSearch.LightUI = function(options) {
 	 * Creates interactive search result presentation.
 	 * @param {String} query Valid solr query from the user
 	 */
-	this.run = function(query) {
+	this.start = function(query) {
 		var that = this;
 		$('.repossearch-dialog-title-label', this.dialog).text(query);
-		this.previous && this.previous.trigger('disabled').remove(); // remove previous search
+		this.previous && this.previous.remove(); // remove previous search
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		var all = $(meta).add(content);
@@ -674,6 +674,7 @@ ReposSearch.LightUI = function(options) {
 	 * @private Not tested to be callable from outside LightUI
 	 */
 	this.queryCreate = function(id, headline) {
+		$.bbq.removeState(id + '-start'); // remove previous state when query is initialized
 		var div = $('<div/>').attr('id', id + '-div').css(uiCss.queryDiv);
 		var h = $('<h3/>').text(headline).css(uiCss.headline).appendTo(div);
 		// checkbox to enable/disable
