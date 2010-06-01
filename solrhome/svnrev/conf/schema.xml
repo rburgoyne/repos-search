@@ -18,16 +18,32 @@
 
 <schema name="Repos Search svnrev" version="1.1">
 	<types>
+		<!-- not analyzed, byt indexed/stored verbatim -->
 		<fieldtype name="string" class="solr.StrField"
 			sortMissingLast="true" omitNorms="true" />
+			
+		<!-- prefix is everything up to the root marker -->
+		<fieldType name="prefixFromPath" class="solr.TextField">
+			<analyzer type="index">
+				<tokenizer class="solr.PatternTokenizerFactory" pattern="\^.*" />
+			</analyzer>
+			<analyzer type="query">
+				<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			</analyzer>
+		</fieldType>			
 	</types>
 
 	<fields>
 		<field name="id" type="string" indexed="true" stored="true"
 			multiValued="false" required="true" />
-		<field name="checksum" type="string" indexed="true" stored="true"
+		<field name="md5" type="string" indexed="true" stored="true"
 			multiValued="false" required="true" />
+			
+		<!-- Derived fields -->
+		<field name="id_repo" type="prefixFromPath" indexed="true" stored="false"/>			
 	</fields>
+
+	<copyField source="id" dest="id_repo"/>
 
 	<!-- field to use to determine and enforce document uniqueness. -->
 	<uniqueKey>id</uniqueKey>

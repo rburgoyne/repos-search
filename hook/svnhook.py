@@ -63,6 +63,9 @@ import httplib
 from urlparse import urlparse
 from xml.sax.saxutils import escape
 
+from changehandlerbase import indexGetId, indexPost
+from handler_svnrev import ReposSearchSvnrevChangeHandler
+
 """ hook options """
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
@@ -83,6 +86,8 @@ parser.add_option("", "--svnlook", dest="svnlook", default="svnlook",
   help="The svnlook command, defaults to 'svnlook' in PATH.")
 parser.add_option("", "--curl", dest="curl", default="curl",
   help="The curl command, defaults to 'curl' in PATH.")
+parser.add_option("", "--md5", dest="md5", default="/sbin/md5",
+  help="The md5 command, default to 'md5' in PATH.")
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
   help="Solr host, port and root path. With trailing slash. Default: %default")
 parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
@@ -204,6 +209,9 @@ def handleRevision(options, revision, revprops):
   '''
   pass
 
+def getChangeHandlers():
+  return [ReposSearchSvnrevChangeHandler()]
+
 def handlePathEntry(options, revision, path, action, propaction, isfile):
   '''
   Event handler for changed path in revision.
@@ -215,6 +223,8 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
   
   Diff for the path at this revision should be indexed in svnrev
   '''
+  # until we refactor this stuff we get new change handlers for every path change
+  handlers = getChangeHandlers()
   #assert isinstance(path, unicode)
   if not isfile:
     if action == 'D':
@@ -227,10 +237,16 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
     handleFileDelete(options, options.rev, path)
   elif action == 'A':
     handleFileAdd(options, options.rev, path)
+    for handler in handlers:
+      handler.onChange(options, options.rev, path)
   elif action == 'U':
     handleFileChange(options, options.rev, path)
+    for handler in handlers:
+      handler.onChange(options, options.rev, path)
   elif propaction == 'U':
     handleFileChange(options, options.rev, path)
+  for handler in handlers:
+    handler.onRevisionComplete(options, options.rev)
     
 def handleFileDelete(options, revision, path):
   '''
@@ -248,19 +264,6 @@ def handleFileChange(optins, revision, path):
   indexSubmitFile_curl(options, revision, path)
 
 ### ----- cummunication with indexing server ----- ###
-
-def indexGetId(options, revision, path):
-  '''
-  Builds the string used as id in index.
-  Concatenates prefix, base, root marker and path.
-  '''
-  id = '^' + path
-  if options.base:
-    id = options.base + id
-  if options.prefix:
-    id = options.prefix + id  
-    
-  return id
 
 def indexGetName(path):
   '''
@@ -290,7 +293,7 @@ def indexEscapePropname(svnProperty):
 def indexDelete_httpclient(options, revision, path):
   schema = options.schemahead
   url = urlparse(options.solr + schema + '/')
-  id = indexGetId(options, revision, path)
+  id = indexGetId(options, None, path)
   doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id.encode('utf8'))
   (status, body) = indexPost(url, doc)
   if status is 200:
@@ -315,7 +318,7 @@ def indexSubmitFile_curl(optons, revision, path):
   (multipart upload) so we use command line curl instead '''
   schema = options.schemahead
   schemaUrl = options.solr + schema + '/'
-  id = indexGetId(options, revision, path)
+  id = indexGetId(options, None, path)
   params = {"literal.id": id.encode('utf8'), 
             "literal.svnrevision": revision,
             "commit": "false"}
@@ -393,26 +396,14 @@ def parseSolrExtractionResponse(output):
     return (0, 'Indexing response could not be parsed:\n' + output)
   return (int(m.groups()[0]), m.groups()[1].strip())
 
-def indexPost(url, doc):
-  '''
-  http client implementation of post to index
-  '''
-  h = httplib.HTTPConnection(url.netloc)
-  h.putrequest('POST', url.path +'update')
-  h.putheader('content-type', 'text/xml; charset=UTF-8')
-  h.putheader('content-length', len(doc))
-  h.endheaders()
-  h.send(doc)
-  r = h.getresponse()
-  body = r.read()
-  h.close()
-  return (r.status, body)
-
 def indexCommit(options):
   '''
   Issues commit command to Solr to make recent indexing searchable.
   '''
-  schema = options.schemahead
+  indexCommitSchema(options, options.schemahead)
+  indexCommitSchema(options, 'svnrev')
+  
+def indexCommitSchema(options, schema):
   schemaUrl = options.solr + schema + '/'
   url = urlparse(schemaUrl)
   (status, body) = indexPost(url, '<commit/>')

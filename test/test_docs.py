@@ -86,13 +86,13 @@ def curl(url):
   r = urllib2.urlopen(url)
   return r.read()
 
-def search(query, queryType='standard'):
+def search(query, queryType='standard', schema='svnhead'):
   '''
   queryType: standard/None, meta, content
   query: solr escaped but not urlencoded query
   '''
   # todo encode and stuff
-  r = curl(solr + 'svnhead/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
+  r = curl(solr + schema + '/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
   #print '\n' + r 
   return json.loads(r)
 
@@ -117,6 +117,11 @@ class ReposSearchTest(unittest.TestCase):
   def testServerIsUp(self):
     r = curl(solr + '')
     self.assertTrue(r.find('svnhead') > -1, r)
+  
+  def testRepo(self):
+    # tests query tokenizer on repo field, implicit OR, don't knoe if this is a feature
+    r = search('id_repo:(repo1 %s repo2)' % reponame)
+    self.assertTrue(r['response']['numFound'] > 0)
     
   def testFilename(self):
     self.assertEqual(s1('meta', 'shouldBeUNIQUEfilename'), 
@@ -292,6 +297,11 @@ class ReposSearchTest(unittest.TestCase):
                      '/docs/svnprops/longpropertyvalue.txt',
                      'longpropertyvalue.txt is not indexed, maybe the server can\'t handle 30k http headers')
     
+  def testMd5(self):
+    r = search('md5:64458944e1162dfcf05673d24dfdd0f6', 'standard', 'svnrev')
+    self.assertEqual(r['response']['numFound'], 1)    
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/OpenOffice Calc.ods@1' % reponame)
 
 if __name__ == '__main__':
   createRepository()

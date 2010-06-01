@@ -1,0 +1,85 @@
+
+Change events are published svn repository changes
+- Revision info that can be extracted using svnlook in a post-commit hook
+possibly with the -t switch
+
+--------------
+
+>>>$ REPO=tmprepo
+>>>$ svnadmin create $REPO
+>>>$ svnlook youngest $REPO
+0
+>>>$ svn co file://$(pwd)/$REPO $REPO-wc
+>>>$ mkdir $REPO-wc/folder/
+>>>$ echo "ABC" > $REPO-wc/folder/abc.txt
+>>>$ svn commit $REPO-wc -m ""
+>>>$ svn add $REPO-wc/*
+>>>$ svn commit $REPO-wc -m ""
+>>>$ svnlook changed -r 1 --copy-info $REPO
+A   folder/
+A   folder/abc.txt
+>>>$ svn cp $REPO-wc/folder/abc.txt $REPO-wc/folder/efg.txt 
+>>>$ svn commit $REPO-wc -m ""
+>>>$ svnlook changed -r 2 --copy-info $REPO
+A + folder/efg.txt
+    (from folder/abc.txt:r1)
+>>>$ svn cp $REPO-wc/folder/abc.txt $REPO-wc/folder/hij.txt 
+A         tmprepo-wc/folder/hij.txt
+>>>$ echo "edited" > $REPO-wc/folder/hij.txt
+>>>$ svn status $REPO-wc
+D       tmprepo-wc/folder/hij.txt
+A  +    tmprepo-wc/folder/hij1.txt
+>>>$ svn commit $REPO-wc -m "copy and edit in the same commit"
+>>>$ svnlook changed -r 3 --copy-info $REPO
+A + folder/hij.txt
+    (from folder/abc.txt:r1)
+>>>$ svn cp $REPO-wc/folder $REPO-wc/folder2
+>>>$ svn status $REPO-wc
+A  +    tmprepo-wc/folder2
+>>>$ svn commit $REPO-wc -m "folder copy"
+>>>$ svnlook changed -r 4 --copy-info $REPO
+A + folder2/
+    (from folder/:r3)
+>>>$ svn rm $REPO-wc/folder2
+>>>$ svn status $REPO-wc
+D       tmprepo-wc/folder2
+D       tmprepo-wc/folder2/efg.txt
+D       tmprepo-wc/folder2/abc.txt
+D       tmprepo-wc/folder2/hij.txt
+>>>$ svn commit $REPO-wc -m "folder delete"
+>>>$ svnlook changed -r 5 --copy-info $REPO
+D   folder2/
+>>>$ svn cp $REPO-wc/folder $REPO-wc/folder2
+A         tmprepo-wc/folder2
+>>>$ echo "edited" > $REPO-wc/folder2/abc.txt
+>>>$ svn status $REPO-wc
+A  +    tmprepo-wc/folder2
+M  +    tmprepo-wc/folder2/abc.txt
+>>>$ svn commit $REPO-wc -m "copy folder and edit a file inside copy destination"
+>>>$ svnlook changed -r 6 --copy-info $REPO
+A + folder2/
+    (from folder/:r3)
+U   folder2/abc.txt
+
+
+There should be primitive events based on the status letter, see
+http://svnbook.red-bean.com/nightly/en/svn.ref.svnlook.c.changed.html.
+onAdd (with copy-from info)
+onDelete
+onChange
+onPropChange
+onChangeAndPropChange
+
+And a first level of derived events
+propertyChanged (new or modified, with diff)
+propertyDeleted (each property name)
+contentChanged (including add from copy and parent folder copy)
+contentDeleted (including parent folder deleted)
+propertyOrContentChanged (needed for fulltext indexing in svnhead)
+
+Or is it better with fewer methods but change objects that are possibly empty?
+onAdd
+onChange (always called after onAdd)
+onDelete (including parent folder delete, with content and properties object for previous release)
+
+Maybe interpret the change letters in the change handler base class?
