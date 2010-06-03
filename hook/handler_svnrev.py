@@ -48,7 +48,7 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     d.appendChild(self.solrField(self.doc, 'md5', md5))
     self.docs.appendChild(d)
     self.count = self.count + 1
-    options.logger.debug('svnhead md5 %s for %s' % (md5, id))
+    options.logger.debug('svnrev md5 %s for %s' % (md5, id))
     
   def getSolrXml(self):
     return self.doc.toxml()
@@ -60,7 +60,7 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     url = urlparse(options.solr + schema + '/')
     (status, body) = indexPost(url, self.getSolrXml())
     if status is 200:
-      options.logger.info("%s indexed %d" % (schema, rev))
+      options.logger.info("%s indexed %d files in rev %d" % (schema, self.count, rev))
     else:
       options.logger.error("%s add failed: %d %s" % (schema, status, body))
   

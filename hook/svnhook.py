@@ -127,7 +127,7 @@ def optionsPreprocess(options):
 ### ----- hook backend to read from repository ----- ###
 
 
-def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
+def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHandlers):
   '''
   Iterates through repository revision and calls the given handlers
   for parse events: new revision and changed path in revision.
@@ -149,12 +149,14 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler):
     m = changematch.match(change);
     p = "/" + m.group(3)
     try:
-      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'))
+      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'), changeHandlers)
     except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
       options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc())) 
       errors = errors + 1
+  for handler in changeHandlers:
+    handler.onRevisionComplete(options, options.rev)
   return errors
 
 def repositoryDiff(options, revision, path):
@@ -212,7 +214,7 @@ def handleRevision(options, revision, revprops):
 def getChangeHandlers():
   return [ReposSearchSvnrevChangeHandler()]
 
-def handlePathEntry(options, revision, path, action, propaction, isfile):
+def handlePathEntry(options, revision, path, action, propaction, isfile, handlers):
   '''
   Event handler for changed path in revision.
   Path is unicode with leading slash, trailing slash for folders.
@@ -222,9 +224,9 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
   schema at [prefix][base][path]
   
   Diff for the path at this revision should be indexed in svnrev
+  
+  Handlers is a new concept for pluggable change handlers.
   '''
-  # until we refactor this stuff we get new change handlers for every path change
-  handlers = getChangeHandlers()
   #assert isinstance(path, unicode)
   if not isfile:
     if action == 'D':
@@ -245,8 +247,6 @@ def handlePathEntry(options, revision, path, action, propaction, isfile):
       handler.onChange(options, options.rev, path)
   elif propaction == 'U':
     handleFileChange(options, options.rev, path)
-  for handler in handlers:
-    handler.onRevisionComplete(options, options.rev)
     
 def handleFileDelete(options, revision, path):
   '''
@@ -465,9 +465,10 @@ if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
+  changeHandlers = getChangeHandlers()
   e = 0 # count errors, TODO add for each operation?
   if options.operation == 'index' or options.operation == 'batch':
-    e = repositoryHistoryReader(options, handleRevision, handlePathEntry)
+    e = repositoryHistoryReader(options, handleRevision, handlePathEntry, changeHandlers)
   if options.operation == 'drop':
     indexDrop(options)    
   if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':

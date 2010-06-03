@@ -302,6 +302,8 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)    
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/OpenOffice Calc.ods@1' % reponame)
+    r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'standard', 'svnrev')
+    self.assertEqual(r['response']['numFound'], 5, "all test documents with only a newline")
 
 if __name__ == '__main__':
   createRepository()
