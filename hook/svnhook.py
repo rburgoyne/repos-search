@@ -86,8 +86,8 @@ parser.add_option("", "--svnlook", dest="svnlook", default="svnlook",
   help="The svnlook command, defaults to 'svnlook' in PATH.")
 parser.add_option("", "--curl", dest="curl", default="curl",
   help="The curl command, defaults to 'curl' in PATH.")
-parser.add_option("", "--md5", dest="md5", default="/sbin/md5",
-  help="The md5 command, default to 'md5' in PATH.")
+parser.add_option("", "--md5", dest="md5", default="md5sum",
+  help="The md5 command, defaults to 'md5sum' in PATH.") # on osx link /sbin/md5 to /usr/sbin/md5sum
 parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr/",
   help="Solr host, port and root path. With trailing slash. Default: %default")
 parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
