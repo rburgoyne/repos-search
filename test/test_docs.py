@@ -119,13 +119,21 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue(r.find('svnhead') > -1, r)
   
   def testRepo(self):
-    # tests query tokenizer on repo field, implicit OR, don't knoe if this is a feature
+    # tests query tokenizer on repo field, implicit OR, don't know if this is a feature
     r = search('id_repo:(repo1 %s repo2)' % reponame)
     self.assertTrue(r['response']['numFound'] > 0)
     
   def testFilename(self):
     self.assertEqual(s1('meta', 'shouldBeUNIQUEfilename'), 
                      '/docs/filenames/shouldBeUniqueFilename.txt')
+
+  def testDerivedFieldSearch(self):
+    r = search('name:shouldBeUniqueFilename.txt')
+    self.assertEqual(r['response']['numFound'], 1)
+    r = search('name:shouldBeUniqueFilename.txt AND extension:txt')
+    self.assertEqual(r['response']['numFound'], 1)
+    r = search('folder:/docs/filenames/')
+    self.assertTrue(r['response']['numFound'] > 0)
 
   def testFilenameWithExtension(self):
     self.assertEqual(s1('meta', 'shouldbeuniquefilename.txt'), 
@@ -302,6 +310,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)    
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/OpenOffice Calc.ods@1' % reponame)
+    self.assertEqual(r['response']['docs'][0]['rev'], 1);
     r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'standard', 'svnrev')
     self.assertEqual(r['response']['numFound'], 5, "all test documents with only a newline")
 

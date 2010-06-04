@@ -23,7 +23,8 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
   def getMd5(self, options, rev, path):
     p1 = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=PIPE)
     p = Popen([options.md5], stdin=p1.stdout, stdout=PIPE)
-    (md5, error) = p.communicate()
+    (md5out, error) = p.communicate()
+    md5 = md5out.split()[0]
     if p.returncode:
       raise NameError('md5 command failed. %s' % error.decode('utf8'))
     return md5.decode('utf8').strip()
@@ -45,6 +46,7 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     md5 = self.getMd5(options, rev, path)
     d = self.doc.createElement('doc')
     d.appendChild(self.solrField(self.doc, 'id', id))
+    d.appendChild(self.solrField(self.doc, 'rev', "%s" % rev))
     d.appendChild(self.solrField(self.doc, 'md5', md5))
     self.docs.appendChild(d)
     self.count = self.count + 1

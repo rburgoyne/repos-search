@@ -18,9 +18,11 @@
 
 <schema name="Repos Search svnrev" version="1.1">
 	<types>
-		<!-- not analyzed, byt indexed/stored verbatim -->
+		<!-- not analyzed, but indexed/stored verbatim -->
 		<fieldtype name="string" class="solr.StrField"
 			sortMissingLast="true" omitNorms="true" />
+		<fieldType name="long" class="solr.TrieLongField"
+			precisionStep="0" omitNorms="true" positionIncrementGap="0"/>
 			
 		<!-- prefix is everything up to the root marker -->
 		<fieldType name="prefixFromPath" class="solr.TextField">
@@ -36,10 +38,12 @@
 	<fields>
 		<field name="id" type="string" indexed="true" stored="true"
 			multiValued="false" required="true" />
+		<field name="rev" type="long" indexed="true" stored="true"
+			multiValued="false" required="true" />
 		<field name="md5" type="string" indexed="true" stored="true"
 			multiValued="false" required="true" />
-			
-		<!-- Derived fields -->
+		
+   		<!-- Derived field. Identifies the repository. -->		
 		<field name="id_repo" type="prefixFromPath" indexed="true" stored="false"/>			
 	</fields>
 

@@ -441,6 +441,17 @@
 		</analyzer>
 	</fieldType>
 
+	<!-- path to parent folder of the indexed item -->
+	<fieldType name="folderFromPath" class="solr.TextField">
+		<analyzer type="index">
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\^(.*\/)" group="1" />
+			<!-- don't make it lowercase, should be useful for building URLs -->
+		</analyzer>
+		<analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+		</analyzer>
+	</fieldType>
+
  </types>
 
 
@@ -472,11 +483,20 @@
    -->
 
    <field name="id" type="string" indexed="true" stored="true" required="true" /> 
-   <!-- Exact file or folder name for wildcard searches -->
+   <!-- Exact file name for wildcard searches -->
    <field name="name" type="filename" indexed="true" stored="false" />
+   
    <!-- Derived fields -->
+   <!-- Identifies the repository.
+   		For single repository setups this can be empty.
+   		For one parent path with multiple repositories this can be the repo name (i.e. "base").
+   		For multiple parent paths or servers arbitrary prefixes must be given at index time.
+   -->
    <field name="id_repo" type="prefixFromPath" indexed="true" stored="false"/>
+   <!-- Filename extension -->
    <field name="extension" type="extensionFromPath" indexed="true" stored="false"/>
+   <!-- The part of the path up to and including last slash -->
+   <field name="folder" type="folderFromPath" indexed="true" stored="false"/>
 
    <!-- Common metadata fields, named specifically to match up with
      SolrCell metadata when parsing rich documents such as Word, PDF.
@@ -550,6 +570,7 @@
         or to add multiple fields to the same field for easier/faster searching.  -->
 
    <copyField source="id" dest="id_repo"/>
+   <copyField source="id" dest="folder"/>
    <copyField source="name" dest="extension"/>
    
    <!-- svn:keywords is not a good name so it must be overridden-->
