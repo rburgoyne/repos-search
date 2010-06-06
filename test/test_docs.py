@@ -313,6 +313,23 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['docs'][0]['rev'], 1);
     r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'standard', 'svnrev')
     self.assertEqual(r['response']['numFound'], 5, "all test documents with only a newline")
+    
+  def testFolderFacetingInHead(self):
+    schema = 'svnhead'
+    c = curl(solr + schema + '/select?q=extension:txt&indent=on&wt=json&rows=1&facet=on&facet.field=folder&fq=id_repo:%s' % reponame)
+    r = json.loads(c)
+    facet = r['facet_counts']['facet_fields']['folder'];
+    # The json structure is quite odd for faceting
+    # which makes this test dependent on facet sort order
+    # Also, numbers may change when we add test data
+    self.assertEqual(facet[0], '/docs/filenames/')
+    self.assertEqual(facet[1], 6)
+    self.assertEqual(facet[2], '/docs/svnprops/')
+    self.assertEqual(facet[3], 2)
+    self.assertEqual(facet[4], '/')
+    self.assertEqual(facet[5], 1)
+    self.assertEqual(facet[6], '/docs/')
+    self.assertEqual(facet[7], 0)
 
 if __name__ == '__main__':
   createRepository()
