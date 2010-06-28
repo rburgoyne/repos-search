@@ -482,7 +482,7 @@ ReposSearch.SampleSearchBox = function(options) {
 	// handle search term change, hash may change for other reasons so we have to diff
 	var lastq = '';
 	$(window).bind("hashchange.repossearch", function(e) {
-		var q = $.deparam.fragment().repossearch || '';
+		var q = $.deparam.fragment().repossearch || '';
 		if (q != lastq) {
 			lastq = q;
 			if (q) {
@@ -536,11 +536,41 @@ ReposSearch.LightUI = function(options) {
 	 */
 	this.start = function(query) {
 		var that = this;
-		$('.repossearch-dialog-title-label', this.dialog).text(query);
-		this.previous && this.previous.remove(); // remove previous search
 		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
 		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
 		var all = $(meta).add(content);
+		this.startQueries(query, all);
+		
+		// run query directly if set in bookmarkable hash
+		var n = 0;
+		var hash = $.deparam.fragment();
+		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
+			meta.trigger('enable');
+			n++;
+		}
+		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
+			content.trigger('enable');
+			n++;
+		}
+		// default query if nothing specified
+		if (!n) {
+			// default after submit
+			meta.trigger('enable');
+			// automatically search fulltext if there are no results in meta
+			$('ul, ol', meta).one('repossearch-noresults', function() {
+				// TODO set hash, and set/unset hash och checkbox click
+				content.trigger('enable');
+			});
+		}
+		// Instead of the above, we could have a generic hashchange handler here
+		// probably with a trigger onload
+		// which should also replace the hashchange handling in run		
+		// but how do we detect which search query that changed?		
+	};
+	
+	this.startQueries = function(query, all) {
+		$('.repossearch-dialog-title-label', this.dialog).text(query);
+		this.previous && this.previous.remove(); // remove previous search		
 		this.previous = all;
 		all.bind('disabled', function(ev, id) {
 			$('ul, ol', this).remove();
@@ -638,32 +668,6 @@ ReposSearch.LightUI = function(options) {
 		
 		// show ui
 		this.dialog.show('slow');
-	
-		// run query directly if set in bookmarkable hash
-		var n = 0;
-		var hash = $.deparam.fragment();
-		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
-			meta.trigger('enable');
-			n++;
-		}
-		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
-			content.trigger('enable');
-			n++;
-		}
-		// default query if nothing specified
-		if (!n) {
-			// default after submit
-			meta.trigger('enable');
-			// automatically search fulltext if there are no results in meta
-			$('ul, ol', meta).one('repossearch-noresults', function() {
-				// TODO set hash, and set/unset hash och checkbox click
-				content.trigger('enable');
-			});
-		}
-		// Instead of the above, we could have a generic hashchange handler here
-		// probably with a trigger onload
-		// which should also replace the hashchange handling in run		
-		// but how do we detect which search query that changed?
 	};
 	
 	/**
