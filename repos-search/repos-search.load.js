@@ -85,7 +85,7 @@ ReposSearch.init = function(options) {
 		css: settings.css
 	});
 	var box = new ReposSearch.SampleSearchBox({
-		searchhandler: function(q){ ui.start(q); },
+		searchhandler: function(q){ ui.startDefault(q); },
 		css: settings.css
 	});
 };
@@ -261,29 +261,35 @@ ReposSearchRequest.prototype.url = './';
  * @param {String} type Query type: 'meta', 'content' or any other type from the Solr schema
  * @param {String} userQuery The search query
  * @param {String} parentUrl For presentation of the results, the prefix to base and path
- * @param {Element|jQuery} resultList OL or UL, possibly containing old results
  */
-function ReposSearchQuery(type, userQuery, parentUrl, resultList) {
+function ReposSearchQuery(type, userQuery, parentUrl) {
 	this.type = type;
 	this.query = userQuery;
-	this.listQ = $(resultList);
-	this.listE = this.listQ[0];
 	this.parentUrl = parentUrl;
 	this.parentUrlDefault = '/svn/';
 	this.start = 0;
 	this.r = null;
-	// signal that a query type has been initiated
-	$().trigger('repossearch-started', [this.type, this.query, this.listE]);	
 }
 
 ReposSearchQuery.prototype.setStart = function(fromZero) {
 	this.start = fromZero;
 };
 
-ReposSearchQuery.prototype.exec = function() {
+ReposSearchQuery.prototype.getRequestDefault = function(spec) {
+	return new ReposSearchRequest(spec);
+};
+
+ReposSearchQuery.prototype.getRequest = function(spec) {
+	return this.getRequestDefault(spec);
+};
+
+/**
+ * @param {Element|jQuery} resultList OL or UL, possibly containing old results
+ */
+ReposSearchQuery.prototype.exec = function(resultList) {
 	var instance = this;
-	var listQ = this.listQ; // closure scope
-	this.r = new ReposSearchRequest({
+	var listQ = $(resultList);
+	this.r = this.getRequest({
 		type: this.type,
 		q: this.query,
 		start: this.start,
@@ -296,7 +302,7 @@ ReposSearchQuery.prototype.exec = function() {
 			listQ.trigger('repossearch-query-failed', [searchRequest, httpStatus, httpStatusText]);
 		}
 	});
-	listQ.trigger('repossearch-query-sent', [this.r]);
+	listQ.trigger('repossearch-query-sent', [this.r, resultList]);
 };
 
 /**
@@ -395,29 +401,40 @@ ReposSearch.getPropFields = function(json) {
 ReposSearch.EventLogger = function(consoleApi) {
 	var logger = consoleApi;
 	// root event bound to document node
-	$().bind('repossearch-started', function(ev, type, userQuery, r) {
-		logger.log(ev.type, this, type, userQuery, r);
+	$().bind('repossearch-created', function(ev, id, container) {
+		logger.log(ev.type, this, id, container);
 		
-		$(r).bind('repossearch-query-sent', function(ev, searchRequest) {
-			logger.log(ev.type, this, searchRequest);
+		$(container).bind('enabled', function() {
+			logger.log('enabled', this.constructor, this);
+		}).bind('disabled', function() {
+			logger.log('disabled', this.constructor, this);
 		});
-		$(r).bind('repossearch-query-returned', function(ev, searchRequest) {
-			logger.log(ev.type, this, searchRequest);
-		});
-		$(r).bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
-			logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
-		});
-		$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
-			var e = microformatElement;
-			logger.log(ev.type, this, e, hitNumber,
-				'base=' + $('.repossearch-resultbase', e).text(),
-				'path=' + $('.repossearch-resultpath', e).text(),
-				'file=' + $('.repossearch-resultfile', e).text(),
-				solrDoc);
-		});
-		$(r).bind('repossearch-displayed', function(ev, start, shown, numFound) {
-			logger.log(ev.type, this, 'showed from index ' + (start) + ' to ' + (start+shown) + ', total count ' + numFound);
-		});
+		
+		$(container).bind('repossearch-resultlist-created', function(ev, r) {
+			logger.log(ev.type, this, r);
+			
+			$(r).bind('repossearch-query-sent', function(ev, searchRequest) {
+				logger.log(ev.type, this, searchRequest);
+			});
+			$(r).bind('repossearch-query-returned', function(ev, searchRequest) {
+				logger.log(ev.type, this, searchRequest);
+			});
+			$(r).bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
+				logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
+			});
+			$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
+				return; // to verbose
+				var e = microformatElement;
+				logger.log(ev.type, this, e, hitNumber,
+					'base=' + $('.repossearch-resultbase', e).text(),
+					'path=' + $('.repossearch-resultpath', e).text(),
+					'file=' + $('.repossearch-resultfile', e).text(),
+					solrDoc);
+			});
+			$(r).bind('repossearch-displayed', function(ev, start, shown, numFound) {
+				logger.log(ev.type, this, 'showed from index ' + (start) + ' to ' + (start+shown) + ', total count ' + numFound);
+			});
+		});		
 	});
 
 	// LightUI's events, triggered on the divs
@@ -521,6 +538,9 @@ ReposSearch.LightUI = function(options) {
 	var uiCss = this.settings.css;
 	var uiSettings = this.settings;
 
+	// new query containers
+	var _querySpecs = {};
+	
 	/**
 	 * Removes the dialog.
 	 */	
@@ -528,51 +548,125 @@ ReposSearch.LightUI = function(options) {
 		var d = $('#' + uiSettings.id + 'dialog');
 		$().trigger('repossearch-dialog-close', [d[0]]);
 		d.hide();
+		this.clear();
 	};
 	
 	/**
-	 * Creates interactive search result presentation.
+	 * Allows startDefault to start over with the same dialog.
+	 * A better solution would be to separate setup and run.
+	 */
+	this.clear = function() {
+		for (var s in _querySpecs) {
+			if (_querySpecs.hasOwnProperty(s)) {
+				_querySpecs[s].jq.remove();
+				delete _querySpecs[s];
+			}
+		}
+	};
+	
+	/**
+	 * Creates interactive search result presentation with default query types.
 	 * @param {String} query Valid solr query from the user
 	 */
-	this.start = function(query) {
-		var that = this;
-		var meta = this.queryCreate(uiSettings.id + 'meta', 'Titles and keywords');
-		var content = this.queryCreate(uiSettings.id + 'content', 'Text contents');
-		var all = $(meta).add(content);
-		this.startQueries(query, all);
+	this.startDefault = function(query) {
+		this.clear();
+		this.addQuerySpec({
+			title: 'Titles and keywords',
+			query: new ReposSearchQuery('meta', query, uiSettings.parent)
+		});
+		this.addQuerySpec({
+			title: 'Text contents',
+			query: new ReposSearchQuery('content', query, uiSettings.parent)
+		});
+		var numEnabled = this.start(query);
 		
-		// run query directly if set in bookmarkable hash
-		var n = 0;
-		var hash = $.deparam.fragment();
-		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
-			meta.trigger('enable');
-			n++;
-		}
-		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
-			content.trigger('enable');
-			n++;
-		}
 		// default query if nothing specified
-		if (!n) {
+		if (!numEnabled) {
+			// events are always triggered on DOM elements
+			var meta = this.getQuerySpec('meta').jq;
+			var content = this.getQuerySpec('content').jq;
 			// default after submit
 			meta.trigger('enable');
 			// automatically search fulltext if there are no results in meta
-			$('ul, ol', meta).one('repossearch-noresults', function() {
+			meta.find('ul, ol').one('repossearch-noresults', function() {
 				// TODO set hash, and set/unset hash och checkbox click
 				content.trigger('enable');
 			});
 		}
+	};
+	
+	/**
+	 * Initializes the queres added using addQuerySpec(),
+	 * enables them based on back button support (none enabled by default).
+	 * @return the number of enabled queries
+	 */
+	this.start = function(query) {
+		this.init(query);
+		
+		// run query directly if set in bookmarkable hash
+		// TODO make generic
+		var n = 0;
+		var hash = $.deparam.fragment();
+		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
+			this.getQuerySpec('meta').jq.trigger('enable');
+			n++;
+		}
+		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
+			this.getQuerySpec('content').jq.trigger('enable');
+			n++;
+		}
 		// Instead of the above, we could have a generic hashchange handler here
 		// probably with a trigger onload
 		// which should also replace the hashchange handling in run		
-		// but how do we detect which search query that changed?		
+		// but how do we detect which search query that changed?
+		return n;
 	};
 	
-	this.startQueries = function(query, all) {
-		$('.repossearch-dialog-title-label', this.dialog).text(query);
-		this.previous && this.previous.remove(); // remove previous search		
-		this.previous = all;
-		all.bind('disabled', function(ev, id) {
+	/**
+	 * @param {Object} querySpec Settings for new query
+	 * @param {String} searchQuery The query input, normally directly from the user
+	 */
+	this.addQuerySpec = function(querySpec, searchQuery) {
+		var spec = $.extend({
+			}, querySpec);
+		// validate
+		if (!spec.query) {
+			alert('Repos Search Query instance is required');
+			return;
+		}
+		// default behavior
+		spec.name = spec.name || spec.query.type;
+		spec.id = uiSettings.id + spec.name;
+		spec.title = spec.title || spec.name;
+		spec.jq = this.createContainer(spec.id, spec.title);
+		spec.elem = spec.jq[0];
+		// store
+		_querySpecs[spec.id] = spec;
+	};
+	
+	this.getQuerySpec = function(name) {
+		return _querySpecs[uiSettings.id + name];
+	};
+	
+	/**
+	 * Sets up the event handlers that execute searches
+	 * for the queries added with addQuerySpec.
+	 */
+	this.init = function(labelText) {
+		$('.repossearch-dialog-title-label', this.dialog).text(labelText);
+		
+		for (var s in _querySpecs) {
+			if (_querySpecs.hasOwnProperty(s)) {
+				this.initQuery(_querySpecs[s]);
+			}
+		}
+		
+		// show ui
+		this.dialog.show('slow');
+	};
+	
+	this.initQuery = function(spec) {
+		spec.jq.bind('disabled', function(ev, id) {
 			$('ul, ol', this).remove();
 			$.bbq.removeState(id + '-start');
 		}).bind('enabled', function(ev, id) {
@@ -583,7 +677,7 @@ ReposSearch.LightUI = function(options) {
 			};
 			if (typeof $.deparam.fragment()[id + '-start'] == 'undefined') setQueryState(0); // API not well defined, who sets the hash?
 			var list = $('<ul/>').attr('id', id).addClass('repossearch-result-list').css(uiCss.list).appendTo(this);
-			var qname = list.attr('id').substr(uiSettings.id.length);
+			$(this).trigger('repossearch-resultlist-created', [list]);
 			
 			// result presentation
 			list.bind('repossearch-query-sent', function() {
@@ -656,18 +750,15 @@ ReposSearch.LightUI = function(options) {
 				loading.remove();
 			});
 			// run search request
-			var q = new ReposSearchQuery(qname, query, uiSettings.parent, list);
+			var q = spec.query;
 			var search = function() {
 				var start = $.deparam.fragment()[id + '-start'] || 0;
 				q.setStart(start);
-				q.exec();
+				q.exec(list);
 			};
 			// in this UI enable means search immediately
 			search();
 		});
-		
-		// show ui
-		this.dialog.show('slow');
 	};
 	
 	/**
@@ -677,12 +768,13 @@ ReposSearch.LightUI = function(options) {
 	 * @return {jQuery} the div, UI events will be triggered on this div
 	 * @private Not tested to be callable from outside LightUI
 	 */
-	this.queryCreate = function(id, headline) {
+	this.createContainer = function(id, headline) {
 		$.bbq.removeState(id + '-start'); // remove previous state when query is initialized
 		var div = $('<div/>').attr('id', id + '-div').css(uiCss.queryDiv);
 		var h = $('<h3/>').text(headline).css(uiCss.headline).appendTo(div);
 		// checkbox to enable/disable
 		var c = $('<input type="checkbox">').attr('id', id + '-enable').prependTo(h);
+		// the checkbox triggers the real search events (the reverse would be better, so that search logic does not require a checkbox)
 		c.css(uiCss.headlineCheckbox).change(function(){
 			if ($(this).is(':checked')) {
 				div.trigger('enabled', [id]);
@@ -702,8 +794,11 @@ ReposSearch.LightUI = function(options) {
 		});
 		// there's always someting	
 		if ($.browser.msie) this.fixIE(div);
-		// return the element that gets the events, use .parent() to get the div
+		// show
 		div.appendTo(this.dialog);
+		// trigger event that contains the div, which can be used to bind to repossearch-query-sent
+		$().trigger('repossearch-created', [id, div]);
+		// return the element that gets the events, use .parent() to get the div
 		return div;
 	};
 	
