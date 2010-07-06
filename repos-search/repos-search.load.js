@@ -598,6 +598,8 @@ ReposSearch.LightUI = function(options) {
 	/**
 	 * Initializes the queres added using addQuerySpec(),
 	 * enables them based on back button support (none enabled by default).
+	 * It is by design that the UI must know the query before it is initialized,
+	 * so that it can handle paging etc.
 	 * @return the number of enabled queries
 	 */
 	this.start = function(query) {
@@ -769,7 +771,6 @@ ReposSearch.LightUI = function(options) {
 	 * @private Not tested to be callable from outside LightUI
 	 */
 	this.createContainer = function(id, headline) {
-		$.bbq.removeState(id + '-start'); // remove previous state when query is initialized
 		var div = $('<div/>').attr('id', id + '-div').css(uiCss.queryDiv);
 		var h = $('<h3/>').text(headline).css(uiCss.headline).appendTo(div);
 		// checkbox to enable/disable
@@ -784,6 +785,8 @@ ReposSearch.LightUI = function(options) {
 		});
 		$().bind('repossearch-exited', function() {
 			div.trigger('disabled', [id]);
+			// remove hash state
+			$.bbq.removeState(id + '-start');
 		});
 		// event to programmatically enable, unlike 'enabled' which is triggered any time the query type is started
 		div.bind('enable', function() {
