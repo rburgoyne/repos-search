@@ -548,14 +548,14 @@ ReposSearch.LightUI = function(options) {
 		var d = $('#' + uiSettings.id + 'dialog');
 		$().trigger('repossearch-dialog-close', [d[0]]);
 		d.hide();
-		this.clear();
+		this.clearQuerySpecs();
 	};
 	
 	/**
 	 * Allows startDefault to start over with the same dialog.
 	 * A better solution would be to separate setup and run.
 	 */
-	this.clear = function() {
+	this.clearQuerySpecs = function() {
 		for (var s in _querySpecs) {
 			if (_querySpecs.hasOwnProperty(s)) {
 				_querySpecs[s].jq.remove();
@@ -569,7 +569,7 @@ ReposSearch.LightUI = function(options) {
 	 * @param {String} query Valid solr query from the user
 	 */
 	this.startDefault = function(query) {
-		this.clear();
+		this.clearQuerySpecs();
 		this.addQuerySpec({
 			title: 'Titles and keywords',
 			query: new ReposSearchQuery('meta', query, uiSettings.parent)
@@ -606,16 +606,15 @@ ReposSearch.LightUI = function(options) {
 		this.init(query);
 		
 		// run query directly if set in bookmarkable hash
-		// TODO make generic
 		var n = 0;
 		var hash = $.deparam.fragment();
-		if (typeof hash[uiSettings.id + 'meta-start'] != 'undefined') {
-			this.getQuerySpec('meta').jq.trigger('enable');
-			n++;
-		}
-		if (typeof hash[uiSettings.id + 'content-start'] != 'undefined') {
-			this.getQuerySpec('content').jq.trigger('enable');
-			n++;
+		for (var s in _querySpecs) {
+			if (_querySpecs.hasOwnProperty(s)) {
+				if (typeof hash[s + '-start'] != 'undefined') {
+					_querySpecs[s].jq.trigger('enable');
+					n++;
+				}
+			}
 		}
 		// Instead of the above, we could have a generic hashchange handler here
 		// probably with a trigger onload
