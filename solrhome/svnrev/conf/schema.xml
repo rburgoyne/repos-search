@@ -40,7 +40,11 @@
 			multiValued="false" required="true" />
 		<field name="rev" type="long" indexed="true" stored="true"
 			multiValued="false" required="true" />
+		<!-- lower case hex representation of MD5 digest -->
 		<field name="md5" type="string" indexed="true" stored="true"
+			multiValued="false" required="true" />
+		<!-- lower case hex representation of SHA-1 digest -->
+		<field name="sha1" type="string" indexed="true" stored="true"
 			multiValued="false" required="true" />
 		
    		<!-- Derived field. Identifies the repository. -->		

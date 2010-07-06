@@ -21,13 +21,20 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     return indexGetId(options, rev, path)
   
   def getMd5(self, options, rev, path):
+    return self.getDigest(options, rev, path, options.md5)
+
+  def getSha1(self, options, rev, path):
+    return self.getDigest(options, rev, path, options.sha1)
+    
+  def getDigest(self, options, rev, path, commandName):
     p1 = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=PIPE)
-    p = Popen([options.md5], stdin=p1.stdout, stdout=PIPE)
-    (md5out, error) = p.communicate()
-    md5 = md5out.split()[0]
+    p = Popen([commandName], stdin=p1.stdout, stdout=PIPE)
+    (digest, error) = p.communicate()
+    # output may include whitespace and filename after the checksum
+    sum = digest.split()[0]
     if p.returncode:
-      raise NameError('md5 command failed. %s' % error.decode('utf8'))
-    return md5.decode('utf8').strip()
+      raise NameError('%s command failed. %s' % (commandName, error.decode('utf8')))
+    return sum.decode('utf8').strip()
   
   def solrField(self, d, name, value):
     f = d.createElement("field")
@@ -43,14 +50,16 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     if path.endswith('/'):
       return
     id = self.getId(options, rev, path)
-    md5 = self.getMd5(options, rev, path)
     d = self.doc.createElement('doc')
     d.appendChild(self.solrField(self.doc, 'id', id))
     d.appendChild(self.solrField(self.doc, 'rev', "%s" % rev))
+    md5 = self.getMd5(options, rev, path)
     d.appendChild(self.solrField(self.doc, 'md5', md5))
+    sha1 = self.getSha1(options, rev, path)
+    d.appendChild(self.solrField(self.doc, 'sha1', sha1))
     self.docs.appendChild(d)
     self.count = self.count + 1
-    options.logger.debug('svnrev md5 %s for %s' % (md5, id))
+    options.logger.debug('svnrev SHA-1 is %s for %s' % (sha1, id))
     
   def getSolrXml(self):
     return self.doc.toxml()
