@@ -559,6 +559,8 @@ ReposSearch.LightUI = function(options) {
 		for (var s in _querySpecs) {
 			if (_querySpecs.hasOwnProperty(s)) {
 				_querySpecs[s].jq.remove();
+				// hash can be cleared for existing queries but not on page load (when _querySpecs is empty)
+				$.bbq.removeState(s + '-start');
 				delete _querySpecs[s];
 			}
 		}
@@ -598,8 +600,14 @@ ReposSearch.LightUI = function(options) {
 	/**
 	 * Initializes the queres added using addQuerySpec(),
 	 * enables them based on back button support (none enabled by default).
+	 * 
 	 * It is by design that the UI must know the query before it is initialized,
 	 * so that it can handle paging etc.
+	 * 
+	 * Note that start is called both on query change and on page load with query
+	 * so it can not clear the bookmarkable status. That must be done in the query
+	 * input change handler or when existing queries are cleared.
+	 * 
 	 * @return the number of enabled queries
 	 */
 	this.start = function(query) {
