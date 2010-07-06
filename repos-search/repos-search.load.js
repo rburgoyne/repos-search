@@ -497,6 +497,11 @@ ReposSearch.SampleSearchBox = function(options) {
 		}
 	});
 	// handle search term change, hash may change for other reasons so we have to diff
+	// TODO Complete back button support in result paging, requires:
+	//  - No call to search() in page link click in the UI
+	//  - Handle the fact that when queries are enabled they need to change the hash again (risk of infinite loop)
+	//  - Abort or hide ongoing queries if the user does repeated clicks on back quickly
+	//  - It would help if it was possible to do $.bbq.pushState without triggering hashchange
 	var lastq = '';
 	$(window).bind("hashchange.repossearch", function(e) {
 		var q = $.deparam.fragment().repossearch || '';
