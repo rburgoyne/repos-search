@@ -313,12 +313,29 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['docs'][0]['rev'], 1);
     r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'standard', 'svnrev')
     self.assertEqual(r['response']['numFound'], 5, "all test documents with only a newline")
-    
+  
+  def testSha1(self):
+    r = search('sha1:43b02cb0b0681f1dbe34145af744fb7b2a587eca', 'standard', 'svnrev')
+    self.assertEqual(r['response']['numFound'], 1)
+    self.assertEqual(r['response']['docs'][0]['id'], 
+                     '%s^/docs/OpenOffice Calc.ods@1' % reponame)
+    self.assertEqual(r['response']['docs'][0]['rev'], 1);    
+  
+  def testNonasciiPath(self):
+    self.assertEqual(s1('meta', u'über'.encode('utf-8')), u'/docs/nötäscii/über.bin')
+    run(['svn', 'rm', repourl + u'/docs/nötäscii', '-m', 'Delete folder not ascii'])
+    r = searchMeta(u'über'.encode('utf-8'))
+    self.assertEqual(r['response']['numFound'], 0, 'svnhead should now have deleted the folder contents')
+  
   def testFolderFacetingInHead(self):
     schema = 'svnhead'
-    c = curl(solr + schema + '/select?q=extension:txt&indent=on&wt=json&rows=1&facet=on&facet.field=folder&fq=id_repo:%s' % reponame)
+    query = 'q=extension:txt&indent=on&wt=json&rows=1&facet=on&facet.field=folder&fq=id_repo:%s' % reponame
+    c = curl(solr + schema + '/select?' + query)
     r = json.loads(c)
     facet = r['facet_counts']['facet_fields']['folder'];
+    # Note that folders from all repositories will be in the result but count will be 0 if not matched in q and fq
+    print query
+    print repr(facet)
     # The json structure is quite odd for faceting
     # which makes this test dependent on facet sort order
     # Also, numbers may change when we add test data

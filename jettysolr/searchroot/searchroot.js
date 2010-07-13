@@ -31,13 +31,11 @@ $().ready(function() {
 	});
 });
 
-$().bind('repossearch-started', function(ev, type, userQuery, r) {
-	$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc) {
-		// if we don't have a parentUrl none of the links can work, unless prefix is server+parent
-		if (solrDoc.id.indexOf('://') == -1 && !searchroot_parentUrl) {
-			$('a', this).removeAttr('href');
-		}
-	});
+$().bind('repossearch-result', function(ev, microformatElement, solrDoc) {
+	// if we don't have a parentUrl none of the links can work, unless prefix is server+parent
+	if (solrDoc.id.indexOf('://') == -1 && !searchroot_parentUrl) {
+		$('a', this).removeAttr('href');
+	}
 });
 
 function stats(xml) {
