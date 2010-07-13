@@ -332,21 +332,19 @@ class ReposSearchTest(unittest.TestCase):
     query = 'q=extension:txt&indent=on&wt=json&rows=1&facet=on&facet.field=folder&fq=id_repo:%s' % reponame
     c = curl(solr + schema + '/select?' + query)
     r = json.loads(c)
-    facet = r['facet_counts']['facet_fields']['folder'];
     # Note that folders from all repositories will be in the result but count will be 0 if not matched in q and fq
-    print query
-    print repr(facet)
-    # The json structure is quite odd for faceting
-    # which makes this test dependent on facet sort order
-    # Also, numbers may change when we add test data
-    self.assertEqual(facet[0], '/docs/filenames/')
-    self.assertEqual(facet[1], 6)
-    self.assertEqual(facet[2], '/docs/svnprops/')
-    self.assertEqual(facet[3], 2)
-    self.assertEqual(facet[4], '/')
-    self.assertEqual(facet[5], 1)
-    self.assertEqual(facet[6], '/docs/')
-    self.assertEqual(facet[7], 0)
+    facet = r['facet_counts']['facet_fields']['folder'];
+    # The json structure is, oddly, an array for facet results
+    folders = dict()
+    i = 0
+    while (i < len(facet)):
+      folders[facet[i]] = facet[i + 1]
+      i = i + 2
+    
+    self.assertEqual(folders['/docs/filenames/'], 6)
+    self.assertEqual(folders['/docs/svnprops/'], 2)
+    self.assertEqual(folders['/'], 1)
+    self.assertEqual(folders['/docs/'], 0)
 
 if __name__ == '__main__':
   createRepository()
