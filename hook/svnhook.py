@@ -308,6 +308,7 @@ def indexDeleteFolder_httpclient(options, revision, path):
   url = urlparse(options.solr + schema + '/')
   folderId = indexGetId(options, None, path)
   query = 'id:%s' % folderId.replace(':', '\\:').replace('^', '\\^').encode('utf8') + '*'
+  options.logger.debug("%s folder delete %s" % (schema, query))
   doc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
   (status, body) = indexPost(url, doc)  
   if status is 200:
