@@ -9,6 +9,7 @@ from shutil import rmtree, copyfile
 import urllib2
 from urllib import quote
 import json
+import re
 
 # global settings for the test
 # currently assumes a manually started server
@@ -345,6 +346,17 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(folders['/docs/svnprops/'], 2)
     self.assertEqual(folders['/'], 1)
     self.assertEqual(folders['/docs/'], 0)
+    
+  def testImageDescription(self):
+    r = search('testJPEG_commented_pspcs2mac')
+    self.assertEqual(r['response']['numFound'], 1, 'should find image')
+    doc = r['response']['docs'][0]
+    self.assertEqual(doc['content_type'][0], 'image/jpeg')
+    self.assertEqual(doc['title'][0], u'Tosteberga Ängar')
+    self.assertEqual(doc['author'], u'Some Tourist')
+    self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
+    self.assertTrue(re.search(r"bird watching", doc['keywords']))
+    pass
 
 if __name__ == '__main__':
   createRepository()
