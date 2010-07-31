@@ -356,7 +356,16 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
     self.assertTrue(re.search(r"bird watching", doc['keywords']))
-    pass
+    # platform independent application
+    r = search('testJPEG_commented_xnviewmp026')
+    self.assertEqual(r['response']['numFound'], 1, 'should find other image')
+    doc = r['response']['docs'][0]
+    self.assertEqual(doc['content_type'][0], 'image/jpeg')
+    self.assertEqual(doc['title'][0], u'Tosteberga Ängar', 'Should accept Iptc.Application2.Headline as title')
+    self.assertEqual(doc['author'], u'Some Tourist')
+    self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
+    self.assertEqual(doc['comment'], u'Bird site (embedded comment)\n(new line)')
+    self.assertTrue(re.search(r"bird watching", doc['keywords']))
 
 if __name__ == '__main__':
   createRepository()
