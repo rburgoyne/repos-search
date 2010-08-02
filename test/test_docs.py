@@ -347,7 +347,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(folders['/'], 1)
     self.assertEqual(folders['/docs/'], 0)
     
-  def testImageDescription(self):
+  def testImageMetadata(self):
     r = search('testJPEG_commented_pspcs2mac')
     self.assertEqual(r['response']['numFound'], 1, 'should find image')
     doc = r['response']['docs'][0]
@@ -356,16 +356,32 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
     self.assertTrue(re.search(r"bird watching", doc['keywords']))
-    # platform independent application
-    r = search('testJPEG_commented_xnviewmp026')
-    self.assertEqual(r['response']['numFound'], 1, 'should find other image')
-    doc = r['response']['docs'][0]
-    self.assertEqual(doc['content_type'][0], 'image/jpeg')
-    self.assertEqual(doc['title'][0], u'Tosteberga Ängar', 'Should accept Iptc.Application2.Headline as title')
-    self.assertEqual(doc['author'], u'Some Tourist')
-    self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
-    self.assertEqual(doc['comment'], u'Bird site (embedded comment)\n(new line)')
-    self.assertTrue(re.search(r"bird watching", doc['keywords']))
+    
+  def testImageComment(self):
+    #r = search('description:"Bird site in north eastern Skåne"')
+    docs = search('description:"Bird site in north eastern"')['response']['docs']
+    ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
+    print("comment matches: " + repr(ids))
+    self.assertTrue('/docs/images/testJPEG_commented_gthumb.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_acdsee9.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_pspcs2mac.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_digikam120.jpg' in ids, 'comments as XMP only by default')
+    
+  def testImageTitle(self):
+    #docs = search('title:"Tosteberga Ängar"')['response']['docs']
+    docs = search('title:"Tosteberga"')['response']['docs']
+    ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
+    print("title matches: " + repr(ids))
+    self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids, 'tagged as Iptc.Application2.Headline')
+    
+  def testImageAuthor(self):
+    docs = search('author:"Some Tourist"')['response']['docs']
+    ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
+    print("author matches: " + repr(ids))  
+    self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
 
 if __name__ == '__main__':
   createRepository()
