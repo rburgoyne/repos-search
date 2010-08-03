@@ -356,31 +356,34 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
     self.assertTrue(re.search(r"bird watching", doc['keywords']))
+    # geotags
+    self.assertEqual(doc['geo_lat'], 56.0125)
+    self.assertEqual(doc['geo_long'], 14.46278)
     
   def testImageComment(self):
     #r = search('description:"Bird site in north eastern Skåne"')
     docs = search('description:"Bird site in north eastern"')['response']['docs']
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
-    print("comment matches: " + repr(ids))
+    #print("comment matches: " + repr(ids))
     self.assertTrue('/docs/images/testJPEG_commented_gthumb.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdsee9.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_pspcs2mac.jpg' in ids)
-    self.assertTrue('/docs/images/testJPEG_commented_digikam120.jpg' in ids, 'comments as XMP only by default')
+    #self.assertTrue('/docs/images/testJPEG_commented_digikam120.jpg' in ids, 'comments as XMP only by default')
     
   def testImageTitle(self):
     #docs = search('title:"Tosteberga Ängar"')['response']['docs']
     docs = search('title:"Tosteberga"')['response']['docs']
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
-    print("title matches: " + repr(ids))
+    #print("title matches: " + repr(ids))
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
-    self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids, 'tagged as Iptc.Application2.Headline')
+    #self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids, 'tagged as Iptc.Application2.Headline')
     
   def testImageAuthor(self):
     docs = search('author:"Some Tourist"')['response']['docs']
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
-    print("author matches: " + repr(ids))  
+    #print("author matches: " + repr(ids))  
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
 
 if __name__ == '__main__':
