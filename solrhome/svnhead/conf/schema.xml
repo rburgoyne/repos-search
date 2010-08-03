@@ -513,6 +513,8 @@
    <field name="content_type" type="string" indexed="true" stored="true" multiValued="true"/>
    <field name="last_modified" type="date" indexed="true" stored="true"/>
    <field name="links" type="string" indexed="true" stored="true" multiValued="true"/>
+   <!-- DublinCore date, i.e. creation date. Modification date is not needed when in svn. -->
+   <!-- awaiting https://issues.apache.org/jira/browse/TIKA-451 <field name="date" type="date" indexed="true" stored="true"/> -->
 
    <!-- Tika "Geographic" metadata for geotagged photos etc. -->
    <field name="geo_lat" type="float" indexed="true" stored="true"/>

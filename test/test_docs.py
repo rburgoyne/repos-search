@@ -331,6 +331,7 @@ class ReposSearchTest(unittest.TestCase):
   def testFolderFacetingInHead(self):
     schema = 'svnhead'
     query = 'q=extension:txt&indent=on&wt=json&rows=1&facet=on&facet.field=folder&fq=id_repo:%s' % reponame
+    query = query + '&mincount=1'
     c = curl(solr + schema + '/select?' + query)
     r = json.loads(c)
     # Note that folders from all repositories will be in the result but count will be 0 if not matched in q and fq
@@ -356,6 +357,8 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
     self.assertTrue(re.search(r"bird watching", doc['keywords']))
+    # There is no time zone info in EXIF date. This is at 09:02 in UTC but only CPS timestamp shows that.
+    #self.assertEqual(doc['date'], '2010:07:28T11:02:12', 'EXIF date time created (digitized)')
     # geotags
     self.assertEqual(doc['geo_lat'], 56.0125)
     self.assertEqual(doc['geo_long'], 14.46278)
