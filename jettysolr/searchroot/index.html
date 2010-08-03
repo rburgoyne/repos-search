@@ -15,6 +15,8 @@ searchroot_parentUrl = false; // root URL as prefix to result links
 <script type="text/javascript" src="customizations.js"></script>
 <script type="text/javascript" src="searchroot.js"></script>
 
+<script type="text/javascript" src="/repos-search/find-by-checksum.js"></script>
+
 <style type="text/css">
 body {
 	font-family: sans-serif;
@@ -93,6 +95,20 @@ h1, h2, h3 {
 <dt>Documents indexed without contents due to parse errors</dt>
 <dd><a class="stat_parseErrors" href="/solr/svnhead/select?qt=standard&q=text_error%3A*&indent=on">search for text_error:*</a></dd>
 </dl>
+
+<form id="findchecksum">
+<p>
+<label for="findmd5">Find object by <a href="http://en.wikipedia.org/wiki/Md5">MD5</a>:</label>
+<input id="findmd5" name="findmd5" type="text" size="32"/>
+<input id="submitmd5" type="submit" value="find"/>
+</p>
+<p>
+<label for="findsha1">Find object by <a href="http://en.wikipedia.org/wiki/SHA-1">SHA-1</a>:</label>
+<input id="findsha1" name="findsha1" type="text" size="40"/>
+<input id="submitsha1" type="submit" value="find"/>
+</p>
+</form>
+
 <p><a href="/solr/">Solr</a></p>
 </div>
 </body>
