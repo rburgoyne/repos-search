@@ -135,6 +135,10 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(r['response']['numFound'], 1)
     r = search('folder:/docs/filenames/')
     self.assertTrue(r['response']['numFound'] > 0)
+    r = search('folder:"/docs/filenames"')
+    self.assertEqual(r['response']['numFound'], 0, 'should not match if the trailing slash is not there') # or can we match both?
+    r = search('folder:"/docs/images/howto screenshots/"')
+    self.assertEqual(r['response']['numFound'], 1, 'should match folder with whitespace')
 
   def testFilenameWithExtension(self):
     self.assertEqual(s1('meta', 'shouldbeuniquefilename.txt'), 
@@ -388,6 +392,7 @@ class ReposSearchTest(unittest.TestCase):
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
     #print("author matches: " + repr(ids))  
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
+    
 
 if __name__ == '__main__':
   createRepository()

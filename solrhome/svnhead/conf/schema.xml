@@ -441,14 +441,14 @@
 		</analyzer>
 	</fieldType>
 
-	<!-- path to parent folder of the indexed item -->
+	<!-- path to parent folder of the indexed item, with trailing slash -->
 	<fieldType name="folderFromPath" class="solr.TextField">
 		<analyzer type="index">
 			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\^(.*\/)" group="1" />
 			<!-- don't make it lowercase, should be useful for building URLs -->
 		</analyzer>
 		<analyzer type="query">
-			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
 		</analyzer>
 	</fieldType>
 
