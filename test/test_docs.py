@@ -360,7 +360,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['title'][0], u'Tosteberga Ängar')
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
-    self.assertTrue(re.search(r"bird watching", doc['keywords']))
+    self.assertTrue(re.search(r"bird_watching", doc['keywords']))
     # There is no time zone info in EXIF date. This is at 09:02 in UTC but only CPS timestamp shows that.
     #self.assertEqual(doc['date'], '2010:07:28T11:02:12', 'EXIF date time created (digitized)')
     # geotags
@@ -368,7 +368,6 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['geo_long'], 14.46278)
     
   def testImageComment(self):
-    #r = search('description:"Bird site in north eastern Skåne"')
     docs = search('description:"Bird site in north eastern"')['response']['docs']
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
     #print("comment matches: " + repr(ids))
@@ -376,8 +375,19 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdsee9.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_itag.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_pspcs2mac.jpg' in ids)
     #self.assertTrue('/docs/images/testJPEG_commented_digikam120.jpg' in ids, 'comments as XMP only by default')
+
+  def testImageCommentNonAscii(self):
+    docs = search(u'description:"Bird site in north eastern Skåne"'.encode('utf-8'))['response']['docs']
+    ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
+    # only exif: self.assertTrue('/docs/images/testJPEG_commented_gthumb.jpg' in ids)
+    # XMP not read by jempbox: self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_acdsee9.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_itag.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_pspcs2mac.jpg' in ids)
     
   def testImageTitle(self):
     #docs = search('title:"Tosteberga Ängar"')['response']['docs']
