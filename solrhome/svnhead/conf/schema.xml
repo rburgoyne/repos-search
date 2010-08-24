@@ -585,6 +585,8 @@
    <copyField source="*r_keywords" dest="allkeywords"/>
    <copyField source="*s_keywords" dest="allkeywords"/>
    <copyField source="*_tags" dest="allkeywords"/>
+   <!-- most applications using XMP, Dublin Core, save keywords to "subject" -->
+   <copyField source="subject" dest="allkeywords"/>
    
    <!-- explicit title, original title is multivalued, TODO add test case -->
    <copyField source="*_title" dest="title"/>

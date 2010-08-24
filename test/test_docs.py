@@ -138,7 +138,7 @@ class ReposSearchTest(unittest.TestCase):
     r = search('folder:"/docs/filenames"')
     self.assertEqual(r['response']['numFound'], 0, 'should not match if the trailing slash is not there') # or can we match both?
     r = search('folder:"/docs/images/howto screenshots/"')
-    self.assertEqual(r['response']['numFound'], 1, 'should match folder with whitespace')
+    self.assertTrue(r['response']['numFound'] > 0, 'should match folder with whitespace')
 
   def testFilenameWithExtension(self):
     self.assertEqual(s1('meta', 'shouldbeuniquefilename.txt'), 
@@ -383,7 +383,7 @@ class ReposSearchTest(unittest.TestCase):
     docs = search(u'description:"Bird site in north eastern Skåne"'.encode('utf-8'))['response']['docs']
     ids = [docs[i]['id'].partition('^')[2] for i in range(len(docs))]
     # only exif: self.assertTrue('/docs/images/testJPEG_commented_gthumb.jpg' in ids)
-    # XMP not read by jempbox: self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
+    self.assertTrue('/docs/images/testJPEG_commented_xnviewmp026.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_acdsee9.jpg' in ids)
     self.assertTrue('/docs/images/testJPEG_commented_itag.jpg' in ids)
