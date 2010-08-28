@@ -540,6 +540,7 @@ ReposSearch.LightUI = function(options) {
 	}, options);
 	
 	// for closure scope, 
+	var _that = this;
 	var uiCss = this.settings.css;
 	var uiSettings = this.settings;
 
@@ -553,7 +554,7 @@ ReposSearch.LightUI = function(options) {
 		var d = $('#' + uiSettings.id + 'dialog');
 		$().trigger('repossearch-dialog-close', [d[0]]);
 		d.hide();
-		this.clearQuerySpecs();
+		_that.clearQuerySpecs();
 	};
 	
 	/**
