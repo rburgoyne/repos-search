@@ -504,16 +504,20 @@
      multiple values for them.
    -->
    <field name="title" type="textgen" indexed="true" stored="true"/>
-   <field name="subject" type="text" indexed="true" stored="true"/>
+   <!-- In DublinCore 'subject' is often keywords, Tika 0.8+ extracts them as a list -->
+   <!-- The keywords type is ok even if subject is a short summary because it does lower case and splits on whitespace, but
+   		use string instead if keywords with whitespace are common, but note that individual words would not be searchable -->
+   <field name="subject" type="keywords" indexed="true" stored="true" multiValued="true"/>
    <field name="description" type="text" indexed="true" stored="true"/>
    <field name="comments" type="text" indexed="true" stored="true"/>
+   <!-- Author might actually be multi-value in XMP. If >1 authors appear, the patched extractor separates them with ", " -->
    <field name="author" type="textgen" indexed="true" stored="true"/>
-   <field name="keywords" type="keywords" indexed="true" stored="true"/>
+   <field name="keywords" type="keywords" indexed="true" stored="true" multiValued="true"/>
    <field name="category" type="textgen" indexed="true" stored="true"/>
    <field name="content_type" type="string" indexed="true" stored="true"/>
    <field name="last_modified" type="date" indexed="true" stored="true"/>
    <field name="links" type="string" indexed="true" stored="true" multiValued="true"/>
-   <!-- DublinCore date, i.e. creation date. Modification date is not needed when in svn. -->
+   <!-- DublinCore date, i.e. creation date. Modification date is not needed when in SVN. -->
    <field name="date" type="date" indexed="true" stored="true"/>
 
    <!-- Tika "Geographic" metadata for geotagged photos etc. -->
