@@ -40,6 +40,7 @@
     If 'null' (or absent), cores will not be manageable via REST
   -->
   <cores adminPath="/admin/cores">
+  	<core name="messages" instanceDir="messages" />
     <core name="svnhead" instanceDir="svnhead" />
     <core name="svnrev" instanceDir="svnrev" />
   </cores>

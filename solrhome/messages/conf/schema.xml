@@ -1,0 +1,54 @@
+<?xml version="1.0" ?>
+<!--
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+-->
+
+<!-- 
+ Very simple core typically used for log messages from indexing scripts.
+ Posted messages will get id and timestamp automatically.
+ -->
+<schema name="generic timestamped messages" version="1.1">
+ <types>
+  <fieldType name="string"  class="solr.StrField" sortMissingLast="true" omitNorms="true"/>
+  <fieldType name="uuid" class="solr.UUIDField" />
+  <fieldType name="date" class="solr.DateField" />
+  <fieldType name="sha1" class="solr.StrField" />
+ </types>
+
+ <fields>   
+  <!-- general -->
+  <field name="id"        type="uuid"     indexed="true"  stored="true"  multiValued="false" default="NEW"/>
+  <field name="timestamp" type="date"     indexed="true"  stored="true"  multiValued="false" default="NOW" />
+  <!-- sender identification -->
+  <field name="source"    type="string"   indexed="true"  stored="true"  multiValued="false" />
+  <!-- message type -->
+  <field name="category"  type="string"   indexed="true"  stored="true"  multiValued="false" />
+  <!-- TODO general text and indexed=true so that parts of message body are searchable -->
+  <field name="body"      type="string"   indexed="false" stored="true"  multiValued="false" />
+  <!-- TODO solve how to make checksum of body without relying on the sender -->
+  <!-- http://www.mail-archive.com/solr-user@lucene.apache.org/msg40471.html -->
+  <field name="body_sha1" type="string"   indexed="true"  stored="true"  multiValued="false" /> 
+ </fields>
+
+ <!-- field to use to determine and enforce document uniqueness. -->
+ <uniqueKey>id</uniqueKey>
+
+ <!-- field for the QueryParser to use when an explicit fieldname is absent -->
+ <defaultSearchField>category</defaultSearchField>
+
+ <!-- SolrQueryParser configuration: defaultOperator="AND|OR" -->
+ <solrQueryParser defaultOperator="OR"/>
+</schema>
