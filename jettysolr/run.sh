@@ -15,4 +15,5 @@ echo "solr.home: $SEARCHHOME"
 cd $JETTY
 echo "Use Ctrl+C to stop Jetty"
 java -Djetty.port=$PORT -Dsolr.solr.home=$SEARCHHOME -jar start.jar
+# java -Djetty.port=$PORT -Dsolr.solr.home=$SEARCHHOME -jar start.jar etc/jetty.xml etc/jetty-ajp.xml
 cd ..
