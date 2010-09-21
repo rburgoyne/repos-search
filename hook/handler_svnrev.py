@@ -7,6 +7,8 @@ from urlparse import urlparse
 from subprocess import Popen
 from subprocess import PIPE
 
+import hashlib
+
 from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
 
 class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
@@ -21,20 +23,25 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     return indexGetId(options, rev, path)
   
   def getMd5(self, options, rev, path):
-    return self.getDigest(options, rev, path, options.md5)
+    return self.getDigest(options, rev, path, hashlib.md5)
 
   def getSha1(self, options, rev, path):
-    return self.getDigest(options, rev, path, options.sha1)
+    return self.getDigest(options, rev, path, hashlib.sha1)
     
   def getDigest(self, options, rev, path, commandName):
+    # Read the content via svnlook cat
     p1 = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=PIPE)
-    p = Popen([commandName], stdin=p1.stdout, stdout=PIPE)
-    (digest, error) = p.communicate()
-    # output may include whitespace and filename after the checksum
-    sum = digest.split()[0]
-    if p.returncode:
-      raise NameError('%s command failed. %s' % (commandName, error.decode('utf8')))
-    return sum.decode('utf8').strip()
+    # Create the hash object
+    h = commandName()
+    # Read the file in 4k blocks
+    while True:
+      line = p1.stdout.read(4096)
+      if line != "":
+        h.update(line)
+      else:
+        break
+    # Return the UTF-8 hex digest
+    return h.hexdigest().decode('utf8')
   
   def solrField(self, d, name, value):
     f = d.createElement("field")
