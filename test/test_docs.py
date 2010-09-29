@@ -361,7 +361,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(doc['title'], u'Tosteberga Ängar')
     self.assertEqual(doc['author'], u'Some Tourist')
     self.assertEqual(doc['description'], u'Bird site in north eastern Skåne, Sweden.\n(new line)')
-    self.assertTrue(re.search(r"bird_watching", doc['keywords']))
+    self.assertTrue(u"bird watching" in doc['keywords'])
     # There is no time zone info in EXIF date. This is at 09:02 in UTC but only CPS timestamp shows that.
     #self.assertEqual(doc['date'], '2010:07:28T11:02:12', 'EXIF date time created (digitized)')
     # geotags
