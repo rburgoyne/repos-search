@@ -144,7 +144,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHa
   changematch = re.compile(r"^([ADU_])([U\s])\s{2}(.+)$")
   errors = 0
   for change in changed.splitlines():
-    m = changematch.match(change);
+    m = changematch.match(change)
     p = "/" + m.group(3)
     try:
       pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'), changeHandlers)
@@ -254,6 +254,7 @@ def handleFileDelete(options, revision, path):
 
 def handleFolderDelete(options, revision, path):
   indexDeleteFolder_httpclient(options, revision, path)
+  # Not migrated to handler concept, but folder delete is not an issue in svnrev schema
 
 def handleFileAdd(options, revision, path):
   indexSubmitFile_curl(options, revision, path)
@@ -395,12 +396,15 @@ def parseSolrExtractionResponse(output):
     return (0, 'Indexing response could not be parsed:\n' + output)
   return (int(m.groups()[0]), m.groups()[1].strip())
 
+def indexGetSchemas(options):
+  return [options.schemahead, 'svnrev']
+
 def indexCommit(options):
   '''
   Issues commit command to Solr to make recent indexing searchable.
   '''
-  indexCommitSchema(options, options.schemahead)
-  indexCommitSchema(options, 'svnrev')
+  for schema in indexGetSchemas(options):
+    indexCommitSchema(options, schema)
   
 def indexCommitSchema(options, schema):
   schemaUrl = options.solr + schema + '/'
@@ -412,10 +416,13 @@ def indexCommitSchema(options, schema):
     options.logger.error("Commit %s failed: %d %b" % (schema, status, body))
 
 def indexOptimize(options):
+  for schema in indexGetSchemas(options):
+    indexOptimizeSchema(options, schema)
+  
+def indexOptimizeSchema(options, schema):  
   '''
   Issues optimize command to Solr. May take serveral minutes.
   '''
-  schema = options.schemahead
   schemaUrl = options.solr + schema + '/'
   url = urlparse(schemaUrl)
   (status, body) = indexPost(url, '<optimize/>')
@@ -425,7 +432,10 @@ def indexOptimize(options):
     options.logger.error("Optimize %s failed: %d %s" % (schema, status, body))  
   
 def indexDrop(options):
-  schema = options.schemahead
+  for schema in indexGetSchemas(options):
+    indexDropSchema(options, schema)
+  
+def indexDropSchema(options, schema):
   url = urlparse(options.solr + schema + '/')
   prefix = indexGetId(options, None, '')
   query = 'id:%s' % prefix.replace(':', '\\:').replace('^', '\\^') + '*'
