@@ -5,6 +5,8 @@ Models the changeset of an svn revision.
 The backend may use "svnlook changed" or "svn log", or an API.
 There are additional methods that require folder actions to be interpreted
 into actions an all the items in the tree below.
+
+TODO implement. Should replace the code around handlePathEntry in svnhook. 
 '''
 
 # http://subversion.apache.org/docs/api/1.6/structsvn__log__changed__path2__t.html

@@ -124,6 +124,14 @@ def optionsPreprocess(options):
 
 ### ----- hook backend to read from repository ----- ###
 
+def svnrun(command):
+  ''' runs subversion command, handles error, returns decoded output '''
+  p = Popen(command, stdout=PIPE, stderr=PIPE)
+  output, error = p.communicate()
+  if p.returncode:
+    raise CalledProcessError(p.returncode, command, output=error)
+  # assuming utf8 system locale
+  return output.decode('utf8')
 
 def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHandlers):
   '''
@@ -134,27 +142,45 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHa
   call to revisionHandler.
   '''
   options.logger.info("Reading %s rev %d" % (options.base, options.rev))
-  changedp = Popen([options.svnlook, "changed", "-r %d" % options.rev, options.repo], stdout=PIPE)
-  changed = changedp.communicate()[0]
-  # assuming utf8 system locale
-  changed = changed.decode('utf8')
+  # get change list including copy-from info
+  changed = svnrun([options.svnlook, "changed", "--copy-info", "-r %d" % options.rev, options.repo])
   # event, revprop support not implemented
   revisionHandler(options, options.rev, dict())
-  # parse change list into path events
-  changematch = re.compile(r"^([ADU_])([U\s])\s{2}(.+)$")
+  # 
+  errors = repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changed.splitlines())
+  for handler in changeHandlers:
+    handler.onRevisionComplete(options, options.rev)
+  return errors
+
+def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList):
+  '''parse change list into path events'''
+  changematch = re.compile(r"^([ADU_])([U\s])([\+\s])\s{1}(.+)$")
   errors = 0
-  for change in changed.splitlines():
+  iscopy = False
+  for change in changeList:
+    if iscopy:
+      if not change.startswith('    ('):
+        raise NameError("Expected copy-from info but got: %s" % change)
+      iscopy = False
+      continue
     m = changematch.match(change)
-    p = "/" + m.group(3)
+    p = "/" + m.group(4)
+    isfolder = p.endswith('/')
+    iscopy = m.group(3) == '+'
     try:
-      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.endswith('/'), changeHandlers)
+      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not isfolder, changeHandlers)
     except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
       options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc())) 
       errors = errors + 1
-  for handler in changeHandlers:
-    handler.onRevisionComplete(options, options.rev)
+    # handle folder copy
+    if isfolder and iscopy:
+      tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
+      copypaths = ['A   ' + m.group(4) + t[len(p):] for t in tree.splitlines()[1:]]
+      options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
+      # recursion
+      errors = errors + repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, copypaths)
   return errors
 
 def repositoryDiff(options, revision, path):

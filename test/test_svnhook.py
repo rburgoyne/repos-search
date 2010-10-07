@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import unittest
+import sys
+sys.path.append('../hook/')
 from svnhook import *
 from optparse import OptionParser
 
@@ -37,14 +39,24 @@ class SvnhookTest(unittest.TestCase):
     opt = OptionParser().parse_args([])[0]
     opt.base = ''
     opt.prefix = ''
-    self.assertEqual(indexGetId(opt, 1, '/file.txt'), '^/file.txt')
+    self.assertEqual(indexGetId(opt, None, '/file.txt'), '^/file.txt')
     opt.base = 'b'
-    self.assertEqual(indexGetId(opt, 1, '/file.txt'), 'b^/file.txt')
+    self.assertEqual(indexGetId(opt, None, '/file.txt'), 'b^/file.txt')
     opt.prefix = '/svn/'
-    self.assertEqual(indexGetId(opt, 1, '/file.txt'), '/svn/b^/file.txt')
+    self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/b^/file.txt')
     opt.base = ''
-    self.assertEqual(indexGetId(opt, 1, '/file.txt'), '/svn/^/file.txt')
+    self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/^/file.txt')
     
+  def testGetTreeAsChangeListLeadingSlash(self):    
+    self.assertEqual(svnlookTreeToList('/f/t.txt'), [''])  
+      
+  def testSvnlookChangedWithCopyInfo(self):
+    svnlook_changed = '''D   test/
+A + test2/
+    (from test/:r82)'''
+    # not tested yet
+    pass
+  
   def testGetProplist(self):
     pass
     

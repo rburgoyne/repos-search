@@ -404,6 +404,19 @@ class ReposSearchTest(unittest.TestCase):
     #print("author matches: " + repr(ids))  
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
     
+  def testCopyFolderAndMoveFolder(self):
+    # use a quite small folder to make the test faster, doesn't matter much which one
+    folderurl = repourl + u'/docs/svnprops'
+    run(['svn', 'cp', folderurl, folderurl + '2', '-m', 'Copy folder'])
+    run(['svn', 'mv', folderurl + '2', folderurl + '3', '-m', 'Move folder'])
+    # search svnhead for a file that occure once inside the folder
+    head = search('textwithsvnprops')
+    #print(repr(head))#self.assertEqual(head['response']['numFound'], 2)
+    # seach for a checksum in svnrev, make sure that folder operations count as revisions
+    rev = search('sha1:c69e3178138a0a4285848e90cd3c2cda484092f1', 'standard', 'svnrev')
+    #print(repr(rev))
+    # TODO what if a file is modified in a copy before commit?
+    
 
 if __name__ == '__main__':
   createRepository()
