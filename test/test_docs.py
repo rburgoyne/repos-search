@@ -410,10 +410,14 @@ class ReposSearchTest(unittest.TestCase):
     os.write(h, 'copytest1\n')
     run(['svn', 'import', "%s" % f, repourl + '/copytest/folder/copytestfile.txt', '-m', 'Add'])
     url = repourl + u'/copytest'
-    #wc = tempfile.mkdtemp()
-    #run(['svn', 'co', folderurl, wc])
-    run(['svn', 'cp', url, url + '2', '-m', 'Copy folder'])
-    run(['svn', 'mv', url + '2', url + '3', '-m', 'Move folder'])
+    wc = tempfile.mkdtemp()
+    run(['svn', 'co', url, wc])
+    run(['svn', 'propset', 'copytestprop', 'copytestvalue', wc + '/folder/copytestfile.txt'])
+    run(['svn', 'ci', '-m', 'Propset'])
+    run(['svn', 'cp', wc + '/folder', wc + '/folder2'])
+    run(['svn', 'ci', '-m', 'Copy folder'])
+    run(['svn', 'mv', wc + '/folder2', wc + '/folder3'])
+    run(['svn', 'ci', '-m', 'Move folder'])
     # search svnhead for a file that occure once inside the folder
     head = search('copytestfile')
     print(repr(head))
