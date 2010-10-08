@@ -181,6 +181,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
       # recursion
       errors = errors + repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, copypaths)
+      # Note that this may mean that files edited inside a copy in the same commit are indexed twice
   return errors
 
 def repositoryDiff(options, revision, path):

@@ -10,6 +10,7 @@ import urllib2
 from urllib import quote
 import json
 import re
+import shutil
 
 # global settings for the test
 # currently assumes a manually started server
@@ -87,13 +88,14 @@ def curl(url):
   r = urllib2.urlopen(url)
   return r.read()
 
-def search(query, queryType='standard', schema='svnhead'):
+def search(query, queryType='standard', schema='svnhead', sort='id asc'):
   '''
   queryType: standard/None, meta, content
   query: solr escaped but not urlencoded query
+  sort: on id for predictable result ordering, set to empty to test ranking
   '''
   # todo encode and stuff
-  r = curl(solr + schema + '/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json')
+  r = curl(solr + schema + '/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json&sort=' + quote(sort))
   #print '\n' + r 
   return json.loads(r)
 
@@ -224,7 +226,7 @@ class ReposSearchTest(unittest.TestCase):
     r = searchMeta('keywordfromsvnprop')
     docs = r['response']['docs']
     self.assertEqual(len(docs), 2, 'should be two files with this keyword')    
-    self.assertEqual(r['response']['docs'][1]['id'], # could probably be index 0, ranking not tested 
+    self.assertEqual(r['response']['docs'][1]['id'], 
                      '%s^/docs/svnprops/textwithsvnprops.txt' % reponame,
                      'meta search should include *:kewords property with likely namespaces except svn:keywords')
 
@@ -405,29 +407,54 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue('/docs/images/testJPEG_commented_acdseemac.jpg' in ids)
     
   def testCopyFolderAndMoveFolder(self):
-    # use a quite small folder to make the test faster, doesn't matter much which one
     (h, f) = tempfile.mkstemp()
     os.write(h, 'copytest1\n')
-    run(['svn', 'import', "%s" % f, repourl + '/copytest/folder/copytestfile.txt', '-m', 'Add'])
+    os.close(h)
     url = repourl + u'/copytest'
-    wc = tempfile.mkdtemp()
-    run(['svn', 'co', url, wc])
-    run(['svn', 'propset', 'copytestprop', 'copytestvalue', wc + '/folder/copytestfile.txt'])
-    run(['svn', 'ci', '-m', 'Propset'])
-    run(['svn', 'cp', wc + '/folder', wc + '/folder2'])
-    run(['svn', 'ci', '-m', 'Copy folder'])
-    run(['svn', 'mv', wc + '/folder2', wc + '/folder3'])
-    run(['svn', 'ci', '-m', 'Move folder'])
+    run(['svn', 'import', "%s" % f, url + '/folder/copytestfile.txt', '-m', 'Add'])
+    os.remove(f)
+    run(['svn', 'cp', url + '/folder', url + '/folder2', '-m', 'Copy folder'])
+    run(['svn', 'mv', url + '/folder2', url + '/folder3', '-m', 'Move folder'])
     # search svnhead for a file that occure once inside the folder
     head = search('copytestfile')
-    print(repr(head))
     self.assertEqual(head['response']['numFound'], 2) # in HEAD
     # seach for a checksum in svnrev, make sure that folder operations count as revisions
     rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'standard', 'svnrev')
-    print(repr(rev))
     self.assertEqual(rev['response']['numFound'], 3) # including moved
-    # TODO what if a file is modified in a copy before commit?
-    
+ 
+  def testMoveFolderWithFileChange(self):
+    # use a quite small folder to make the test faster, doesn't matter much which one
+    (h, f) = tempfile.mkstemp()
+    os.write(h, 'copytestII')
+    os.close(h)
+    url = repourl + u'/copytest2'    
+    run(['svn', 'import', "%s" % f, url + '/folder/copytest2file.txt', '-m', 'Add'])
+    os.remove(f)
+    wc = tempfile.mkdtemp()
+    run(['svn', 'co', url, wc])
+    run(['svn', 'propset', 'copytestprop', 'copytestvalue', wc + '/folder/copytest2file.txt'])
+    run(['svn', 'cp', wc + '/folder', wc + '/folder2'])
+    run(['svn', 'ci', wc, '-m', 'Copy folder'])
+    run(['svn', 'mv', wc + '/folder2', wc + '/folder3'])
+    fd = open(wc + '/folder3/copytest2file.txt', 'a')
+    fd.write('modified\n')
+    fd.close()
+    run(['svn', 'ci', wc, '-m', 'Move folder'])
+    run(['svnlook', 'changed', repo, '/copytest2'])
+    shutil.rmtree(wc)
+    # search for content in HEAD, should be two copies
+    self.assertEqual(s1('content', 'copytestII'), '/copytest2/folder/copytest2file.txt')
+    self.assertEqual(s1('content', 'copytestIImodified'), '/copytest2/folder3/copytest2file.txt')
+    self.assertEqual(search('svnprop_copytestprop:copytestvalue')['response']['numFound'], 2)
+    # svnrev, should be three copies with a modification in the last one
+    revs = search('id:' + reponame + '*/copytest2file.txt@*', 'standard', 'svnrev')['response']['docs']
+    self.assertEqual(len(revs), 3)
+    self.assertTrue(revs[0]['id'].find('/folder/copytest2file.txt@')>0, 'got:' + revs[0]['id'])
+    self.assertEqual(revs[0]['sha1'], '550339a3b71669b5ada7ae06bb3e3c1efb7a5596')
+    self.assertTrue(revs[1]['id'].find('/folder2/copytest2file.txt@')>0, 'got:' + revs[1]['id'])
+    self.assertEqual(revs[1]['sha1'], '550339a3b71669b5ada7ae06bb3e3c1efb7a5596')
+    self.assertTrue(revs[2]['id'].find('/folder3/copytest2file.txt@')>0, 'got:' + revs[2]['id'])
+    self.assertEqual(revs[2]['sha1'], 'b3e21636a85c562337c460cb541fb14a4bc134d3') # file changed inside the move
 
 if __name__ == '__main__':
   createRepository()
