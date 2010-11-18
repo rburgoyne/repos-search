@@ -183,7 +183,8 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       errors = errors + 1
     # handle folder copy
     if isfolder and iscopy:
-      # TODO do this only for is handler.isHandleFolderCopyAsRecursiveAdd() 
+      # TODO do this only for is handler.isHandleFolderCopyAsRecursiveAdd()
+      #      (currently handlers must check pathCopyFrom==Null if they don't want both types of handling 
       tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
       copypaths = ['A   ' + m.group(4) + t[len(p):] for t in tree.splitlines()[1:]]
       options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
@@ -506,6 +507,8 @@ def getLogger(options):
   options.logger = logger
     
 if __name__ == '__main__':
+  # TODO replace reindex script with support for "*" and "N:M" in revision argument
+  # TODO let change handlers define options (preferrably namespaced)
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
