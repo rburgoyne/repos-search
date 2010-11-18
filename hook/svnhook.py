@@ -55,6 +55,7 @@ from optparse import OptionParser
 from subprocess import Popen
 from subprocess import PIPE
 from subprocess import check_call
+from subprocess import CalledProcessError
 import re
 from tempfile import mkstemp
 from urllib import urlencode
@@ -129,7 +130,7 @@ def svnrun(command):
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   output, error = p.communicate()
   if p.returncode:
-    raise CalledProcessError(p.returncode, command, output=error)
+    raise CalledProcessError(p.returncode, command)#, output=error)
   # assuming utf8 system locale
   return output.decode('utf8')
 
@@ -155,12 +156,18 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHa
 def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList):
   '''parse change list into path events'''
   changematch = re.compile(r"^([ADU_])([U\s])([\+\s])\s{1}(.+)$")
+  copyfrommatch = re.compile(r"^\s+\(from (.*):r(\d+)\)$")  
   errors = 0
   iscopy = False
   for change in changeList:
     if iscopy:
-      if not change.startswith('    ('):
+      cfm = copyfrommatch.match(change)
+      if not cfm:
         raise NameError("Expected copy-from info but got: %s" % change)
+      pfrom = '/' + cfm.group(1) # no leading slash in copy-from
+      for handler in changeHandlers:
+        if not handler.isHandleFolderCopyAsRecursiveAdd():
+          handler.onAdd(None, options.rev, p, pfrom) # new handlers must take options in constructor  
       iscopy = False
       continue
     m = changematch.match(change)
@@ -176,6 +183,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       errors = errors + 1
     # handle folder copy
     if isfolder and iscopy:
+      # TODO do this only for is handler.isHandleFolderCopyAsRecursiveAdd() 
       tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
       copypaths = ['A   ' + m.group(4) + t[len(p):] for t in tree.splitlines()[1:]]
       options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
