@@ -245,7 +245,7 @@ def handleRevision(options, revision, revprops):
   '''
   pass
 
-def getChangeHandlers():
+def getChangeHandlers(options):
   return [ReposSearchSvnrevChangeHandler()]
 
 def handlePathEntry(options, revision, path, action, propaction, isfile, handlers):
@@ -512,7 +512,7 @@ if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
-  changeHandlers = getChangeHandlers()
+  changeHandlers = getChangeHandlers(options)
   e = 0 # count errors, TODO add for each operation?
   if options.operation == 'index' or options.operation == 'batch':
     e = repositoryHistoryReader(options, handleRevision, handlePathEntry, changeHandlers)
