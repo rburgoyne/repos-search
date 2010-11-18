@@ -46,9 +46,6 @@ class SvnhookTest(unittest.TestCase):
     self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/b^/file.txt')
     opt.base = ''
     self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/^/file.txt')
-    
-  def testGetTreeAsChangeListLeadingSlash(self):    
-    self.assertEqual(svnlookTreeToList('/f/t.txt'), [''])  
       
   def testSvnlookChangedWithCopyInfo(self):
     svnlook_changed = '''D   test/
