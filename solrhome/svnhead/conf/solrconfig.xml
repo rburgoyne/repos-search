@@ -565,6 +565,7 @@
 
        <!-- Faceting defaults -->
        <str name="facet">on</str>
+       <str name="facet.field">id_repo</str>
        <str name="facet.field">allkeywords</str>
        <str name="facet.field">content_type</str>
        <!-- <str name="facet.query">ipod</str> -->
