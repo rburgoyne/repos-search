@@ -1,4 +1,9 @@
 
+/* Remove headline used to show semantically correct HTML readable without css */
+#resultsheadline {
+	display: none;
+}
+
 /* Query Boost not configured */
 .query-box .inputs .query-boost {
 	display: none;
@@ -8,8 +13,6 @@
 .result-document .mlt {
 	display: none;
 }
-
-
 
 /* appearance */
 ul.result li {
@@ -58,6 +61,9 @@ ul.result {
 	background-color: #E9F4C9;
     color: #666633;
     border: none;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-bottom: .2em;
 }
 
 .navigators ul {
@@ -87,7 +93,7 @@ a {
 	float: right;
 }
 
-#tabs {
+#tabs { /* until the example actually makes tabs */
 	float: right;
 	margin-top: -1.5em;
 }
