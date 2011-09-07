@@ -8,8 +8,12 @@
 </b>
 <span class="mlt">#if($params.getBool('mlt', false) == false)<a href="#lensNoQ&q=id:$docId&mlt=true">More Like This</a>#end</span></div>
 ##do we have a physical store for this product
-#set($location = $doc.getFieldValue('store'))
-#if($location)<div class="map"><img src="http://maps.google.com/maps/api/staticmap?&zoom=12&size=150x80&maptype=roadmap&markers=$doc.getFieldValue('store')&sensor=false" /><div><small><a target="_map" href="http://maps.google.com/?q=$store&amp;source=embed">Larger Map</a></small></div></div>#end
+## Neither Tika nor Solr Cell produces a location field yet, only separate fields
+###set($location = $doc.getFieldValue('store'))
+#if($doc.getFieldValue('geo_lat'))
+ #set($location = $doc.getFieldValue('geo_lat') + "," + $doc.getFieldValue('geo_long'))
+#end
+#if($location)<div class="map"><img src="http://maps.google.com/maps/api/staticmap?&zoom=12&size=150x80&maptype=roadmap&markers=$location&sensor=false" /><div><small><a target="_map" href="http://maps.google.com/?q=$store&amp;source=embed">Larger Map</a></small></div></div>#end
 
 <ul class="result">
 #foreach($fieldname in $doc.fieldNames)
