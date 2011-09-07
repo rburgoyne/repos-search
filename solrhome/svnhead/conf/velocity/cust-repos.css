@@ -129,3 +129,8 @@ a {
 	float: right;
 	text-align: right;
 }
+
+.result.geotagged {
+	min-height: 50px;
+}
+

@@ -13,9 +13,15 @@
 #if($doc.getFieldValue('geo_lat'))
  #set($location = $doc.getFieldValue('geo_lat') + "," + $doc.getFieldValue('geo_long'))
 #end
-#if($location)<div class="map"><img src="http://maps.google.com/maps/api/staticmap?&zoom=12&size=150x80&maptype=roadmap&markers=$location&sensor=false" /><div><small><a target="_map" href="http://maps.google.com/?q=$store&amp;source=embed">Larger Map</a></small></div></div>#end
+#if($location)
+<div class="map">
+<a target="_map" href="http://maps.google.com/?q=$location&amp;source=embed">
+<img src="http://maps.google.com/maps/api/staticmap?&zoom=12&size=150x80&maptype=roadmap&markers=$location&sensor=false" />
+</a>
+</div>
+#end
 
-<ul class="result">
+<ul class="result#if($location) geotagged#end">
 #foreach($fieldname in $doc.fieldNames)
  #foreach($value in $doc.getFieldValues($fieldname))
   <li class="field-$fieldname" title="$fieldname">$value</li>
