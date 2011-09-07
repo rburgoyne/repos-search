@@ -1,4 +1,125 @@
 
+/* Query Boost not configured */
 .query-box .inputs .query-boost {
 	display: none;
+}
+
+/* More Like This feature not configured for our schema yet */
+.result-document .mlt {
+	display: none;
+}
+
+
+
+/* appearance */
+ul.result li {
+	display: none;
+}
+ul.result .field-svnrevision {
+	display: inherit;
+}
+ul.result .field-svnrevision:before {
+	content: "Revision: ";
+}
+ul.result .field-last_modified {
+	display: inherit;
+}
+ul.result .field-last_modified:before {
+	content: "Last Modified: ";
+}
+ul.result .field-author {
+	display: inherit;
+}
+ul.result .field-author:before {
+	content: "Author: ";
+}
+
+ul.result {
+	margin-top: .2em;
+	margin-bottom: .2em;
+}
+
+.result-title b {
+	
+}
+
+.result-document {
+	border-style: solid none none none;
+	border-color: #999;
+	margin-bottom: 0;
+	margin-top: 0;
+}
+
+.navigators {
+	overflow: hidden; /* some faceting values might be long and lack whitespace */
+}
+
+.navigators h2 {
+	background-color: #E9F4C9;
+    color: #666633;
+    border: none;
+}
+
+.navigators ul {
+	margin-top: 0;
+	margin-left: 0;
+	padding-left: 0;
+}
+
+.navigators ul li {
+	padding: 0 0 .1em 0;
+}
+
+a {
+	color: #003399;
+	text-decoration: none;
+}
+
+.results a, #footer a {
+	margin-left: .5em;
+}
+
+#logo {
+	margin: 0;
+}
+
+#admin {
+	float: right;
+}
+
+#tabs {
+	float: right;
+	margin-top: -1.5em;
+}
+
+#tabs hr {
+	display: none;
+}
+
+#content {
+	border-top: 2px solid #666633;
+}
+
+#footer hr {
+	border: none;
+	border-top: 2px solid #666633;
+}
+
+.query-box .constraints {
+	font-size: 16px;
+}
+
+.pagination {
+	background-color: inherit;
+	font-weight: bold;
+	color: #666;
+}
+
+#footer .options {
+	float: left;
+}
+
+#footer .info {
+	float: right;
+	text-align: right;
 }

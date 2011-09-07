@@ -1,16 +1,23 @@
-<div class="result-title"><b>#field('name')</b><span class="mlt">#if($params.getBool('mlt', false) == false)<a href="#lensNoQ&q=id:$docId&mlt=true">More Like This</a>#end</span></div>
+<div class="result-title">
+<b>
+#if($doc.getFieldValue('title'))
+ #field('title')
+#else
+ id: #field('id')
+#end
+</b>
+<span class="mlt">#if($params.getBool('mlt', false) == false)<a href="#lensNoQ&q=id:$docId&mlt=true">More Like This</a>#end</span></div>
 ##do we have a physical store for this product
 #set($location = $doc.getFieldValue('store'))
 #if($location)<div class="map"><img src="http://maps.google.com/maps/api/staticmap?&zoom=12&size=150x80&maptype=roadmap&markers=$doc.getFieldValue('store')&sensor=false" /><div><small><a target="_map" href="http://maps.google.com/?q=$store&amp;source=embed">Larger Map</a></small></div></div>#end
 
-<dl class="resultfields">
+<ul class="result">
 #foreach($fieldname in $doc.fieldNames)
- <dt class="label field-$fieldname">$fieldname</dt>
  #foreach($value in $doc.getFieldValues($fieldname))
-  <dd class="field-$fieldname">$value</dd>
+  <li class="field-$fieldname" title="$fieldname">$value</li>
  #end
 #end
-</dl>
+</ul>
 
 <div class="mlt">
   #set($mlt = $mltResults.get($docId))
