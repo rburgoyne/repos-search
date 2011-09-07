@@ -92,6 +92,12 @@ parser.add_option("", "--solr", dest="solr", default="http://localhost:8080/solr
 parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
   help="The fulltext schema name in solr root or multicore root. Default: %default")
 
+# Options that affect one or more handlers' behavior
+parser.add_option("", "--foldercopy", dest="foldercopy", default="nobranch",
+  help="Enable indexing of all files in folder copies. 'yes', 'no' or 'nobranch'. Default: %default." +
+    " With 'no' files will only be indexed if changed. With 'nobranch' this behavior applies only to" +
+    " copies of a 'trunk' or 'branches/*' folder.")
+
 def getOptions():
   """ Created the option parser according to spec above.
     Also allows standard svn hook arguments """

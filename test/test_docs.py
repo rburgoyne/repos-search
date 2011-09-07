@@ -71,6 +71,11 @@ def createInitialStructure():
   run(['svn', 'add', xml])
   run(['svn', 'propset', 'some:prop', 'OnInvalidXml', xml])
   run(['svn', 'commit', '-m', 'Properties added', propwc])
+  # making a folder copy of a trunk folder to test handling
+  codewc = tempfile.mkdtemp()
+  run(['svn', 'co', repourl + '/docs/codeproject/', codewc])
+  run(['svn', 'cp', codewc + '/trunk', codewc + '/branches/1.0.x'])
+  run(['svn', 'commit', '-m', 'Branched a codeproject', codewc])
   print '# ---- common test data ----'
   run(['svnlook', 'tree', repo])
   print '# ------- hook log ---------'
