@@ -111,6 +111,16 @@ parser.add_option("", "--foldercopy", dest="foldercopy", default="nobranch",
 for h in changeHandlers:
   h.addCustomArguments(parser)
 
+class ChangePath(unicode):
+  '''Wrapper class for changelist path, can still be used as string'''
+
+  def getPath(self):
+    return "%s" % self
+
+  def isFolder(self):
+    return self.endswith('/')
+
+# startup helper
 def getOptions():
   """ Created the option parser according to spec above.
     Also allows standard svn hook arguments """
@@ -190,19 +200,18 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       cfm = copyfrommatch.match(change)
       if not cfm:
         raise NameError("Expected copy-from info but got: %s" % change)
-      pfrom = '/' + cfm.group(1) # no leading slash in copy-from
+      pfrom = ChangePath('/' + cfm.group(1)) # no leading slash in copy-from
       for handler in changeHandlers:
         handler.onAdd(options.rev, p, pfrom) # new handlers must take options in constructor
-      if isfolder:
+      if p.isFolder():
         errors = errors + repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom)
       iscopy = False
       continue
     m = changematch.match(change)
-    p = "/" + m.group(4)
-    isfolder = p.endswith('/')
+    p = ChangePath("/" + m.group(4))
     iscopy = m.group(3) == '+'
     try:
-      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not isfolder, changeHandlers)
+      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.isFolder(), changeHandlers)
     except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
