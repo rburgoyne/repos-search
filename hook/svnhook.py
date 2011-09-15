@@ -66,13 +66,14 @@ from xml.sax.saxutils import escape
 
 # Plugin system like http://stackoverflow.com/questions/3048337/python-subclasses-not-listing-subclasses
 # Load all SvnChangeHandler subclasses in python files named handler_*
-handlersdir = './'
+handlersdir = os.path.dirname(__file__)
 handlerspattern = r"^handler_.*\.py$"
 handlerfiles = [h for h in os.listdir(handlersdir) if re.match(handlerspattern, h)]
 from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
 for handlerfile in handlerfiles:
   __import__(re.sub(r".py$", r"", handlerfile))
 changehandlerclasses = SvnChangeHandler.__subclasses__()
+changeHandlers = [c() for c in changehandlerclasses]
 
 """ hook options """
 parser = OptionParser()
@@ -105,6 +106,10 @@ parser.add_option("", "--foldercopy", dest="foldercopy", default="nobranch",
     " With 'no' files will only be indexed if changed. With 'nobranch' this behavior applies only to" +
     " copies of a 'trunk' or 'branches/*' folder." +
     " With 'yes' behavior is customisable per path in change handlers' isHandleFolderCopyAsRecursiveAdd.")
+
+# Custom handler options
+for h in changeHandlers:
+  h.addCustomArguments(parser)
 
 def getOptions():
   """ Created the option parser according to spec above.
@@ -171,7 +176,7 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHa
   # 
   errors = repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changed.splitlines())
   for handler in changeHandlers:
-    handler.onRevisionComplete(options, options.rev)
+    handler.onRevisionComplete(options.rev)
   return errors
 
 def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList):
@@ -187,7 +192,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
         raise NameError("Expected copy-from info but got: %s" % change)
       pfrom = '/' + cfm.group(1) # no leading slash in copy-from
       for handler in changeHandlers:
-        handler.onAdd(options, options.rev, p, pfrom) # new handlers must take options in constructor
+        handler.onAdd(options.rev, p, pfrom) # new handlers must take options in constructor
       if isfolder:
         errors = errors + repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom)
       iscopy = False
@@ -276,9 +281,6 @@ def handleRevision(options, revision, revprops):
   '''
   pass
 
-def getChangeHandlers(options):
-  return [c(options) for c in changehandlerclasses]
-
 def handlePathEntry(options, revision, path, action, propaction, isfile, handlers):
   '''
   Event handler for changed path in revision.
@@ -291,13 +293,14 @@ def handlePathEntry(options, revision, path, action, propaction, isfile, handler
   Diff for the path at this revision should be indexed in svnrev
   
   Handlers is a new concept for pluggable change handlers.
+  Global methods named handle* is the deprecated concept.
   '''
   #assert isinstance(path, unicode)
   if not isfile:
     if action == 'D':
       handleFolderDelete(options, options.rev, path)
     else:
-      options.logger.debug('Ignoring %s folder %s' % (action, path))
+      options.logger.info('Folder actions %s are ignored; %s' % (action, path))
     return
   options.logger.debug("%s%s  %s" % (action, propaction, path))
   if action == 'D':
@@ -305,11 +308,11 @@ def handlePathEntry(options, revision, path, action, propaction, isfile, handler
   elif action == 'A':
     handleFileAdd(options, options.rev, path)
     for handler in handlers:
-      handler.onChange(options, options.rev, path)
+      handler.onChange(options.rev, path)
   elif action == 'U':
     handleFileChange(options, options.rev, path)
     for handler in handlers:
-      handler.onChange(options, options.rev, path)
+      handler.onChange(options.rev, path)
   elif propaction == 'U':
     handleFileChange(options, options.rev, path)
     
@@ -539,11 +542,14 @@ def getLogger(options):
     
 if __name__ == '__main__':
   # TODO replace reindex script with support for "*" and "N:M" in revision argument
-  # TODO let change handlers define options (preferrably namespaced)
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
-  changeHandlers = getChangeHandlers(options)
+  for h in changeHandlers:
+    h.configure(options)
+  if len(changeHandlers) < 1:
+    options.logger.warn('No change handlers registered')
+  options.logger.debug('Change handlers: ' + repr(changeHandlers))
   e = 0 # count errors, TODO add for each operation?
   if options.operation == 'index' or options.operation == 'batch':
     e = repositoryHistoryReader(options, handleRevision, handlePathEntry, changeHandlers)
@@ -556,3 +562,4 @@ if __name__ == '__main__':
   if e > 0:
     options.logger.error('%d svnhead indexing operations failed' % e)
     sys.exit(1)
+

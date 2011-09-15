@@ -39,8 +39,18 @@ class SvnChangeHandler(object):
   '''Base class to handle svnlook changed "events".
   
   Just the parsing of svnlook changed, not the contents.
-  
+  rev, path, pathCopyFrom = None)
   These handlers must be overridden to do something.'''
+
+  def addCustomArguments(self, optionsParser):
+    '''Allows handlers to add custom command line optnons to the OptionParser
+    (see optparse module). Please prefix your options with handler name.'''
+    pass
+
+  def configure(self, options):
+    '''Called after hook has been initialized with command line options'''
+    self.options = options
+    self.logger = self.options.logger
   
   def isHandleFolderCopyAsRecursiveAdd(self, path, copyFromPath):
     '''Return true if folders added with copy-from should be handled as
@@ -49,16 +59,13 @@ class SvnChangeHandler(object):
     Paths start with slash.'''
     return True
   
-  def onRevisionBegin(self, options, rev, revprops):
-    # TODO options param is deprecated, use constructor arg instead
+  def onRevisionBegin(self, rev, revprops):
     pass
   
-  def onRevisionComplete(self, options, rev):
-    # TODO options param is deprecated, use constructor arg instead    
+  def onRevisionComplete(self, rev):
     pass
   
-  def onAdd(self, options, rev, path, pathCopyFrom = None):
-    # TODO options param is deprecated, use constructor arg instead    
+  def onAdd(self, rev, path, pathCopyFrom = None):  
     '''
     Repo is the local absolute path to repository, no protocol.
     
@@ -71,13 +78,13 @@ class SvnChangeHandler(object):
     '''
     pass
   
-  def onChange(self, options, rev, path):
-    # TODO options param is deprecated, use constructor arg instead    
+  def onChange(self, rev, path):
     '''
     Currently invoked for 'A', 'U' and 'UU' but this might change in the future
     '''
     pass
   
-  def onDelete(self, options, rev, path):
-    # TODO options param is deprecated, use constructor arg instead    
+  def onDelete(self, rev, path):   
     pass
+
+
