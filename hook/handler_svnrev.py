@@ -13,7 +13,7 @@ from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
 
 class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
   
-  def __init__(self):
+  def __init__(self, options):
     self.doc = Document()
     self.docs = self.doc.createElement("add")
     self.doc.appendChild(self.docs)

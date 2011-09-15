@@ -64,8 +64,15 @@ import httplib
 from urlparse import urlparse
 from xml.sax.saxutils import escape
 
-from changehandlerbase import indexGetId, indexPost
-from handler_svnrev import ReposSearchSvnrevChangeHandler
+# Plugin system like http://stackoverflow.com/questions/3048337/python-subclasses-not-listing-subclasses
+# Load all SvnChangeHandler subclasses in python files named handler_*
+handlersdir = './'
+handlerspattern = r"^handler_.*\.py$"
+handlerfiles = [h for h in os.listdir(handlersdir) if re.match(handlerspattern, h)]
+from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
+for handlerfile in handlerfiles:
+  __import__(re.sub(r".py$", r"", handlerfile))
+changehandlerclasses = SvnChangeHandler.__subclasses__()
 
 """ hook options """
 parser = OptionParser()
@@ -180,7 +187,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
         raise NameError("Expected copy-from info but got: %s" % change)
       pfrom = '/' + cfm.group(1) # no leading slash in copy-from
       for handler in changeHandlers:
-        handler.onAdd(None, options.rev, p, pfrom) # new handlers must take options in constructor
+        handler.onAdd(options, options.rev, p, pfrom) # new handlers must take options in constructor
       if isfolder:
         errors = errors + repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom)
       iscopy = False
@@ -270,7 +277,7 @@ def handleRevision(options, revision, revprops):
   pass
 
 def getChangeHandlers(options):
-  return [ReposSearchSvnrevChangeHandler()]
+  return [c(options) for c in changehandlerclasses]
 
 def handlePathEntry(options, revision, path, action, propaction, isfile, handlers):
   '''
