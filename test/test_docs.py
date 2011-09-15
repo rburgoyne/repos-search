@@ -11,6 +11,7 @@ from urllib import quote
 import json
 import re
 import shutil
+import time
 
 # global settings for the test
 # currently assumes a manually started server
@@ -19,7 +20,8 @@ repo = tempfile.mkdtemp()
 reponame = os.path.basename(repo)
 repourl = 'file://' + repo
 hook = repo + '/hooks/post-commit'
-hooklog = hook + '.log'
+hooklog = "%s/logs/hook_log_%s_%s.txt" % (os.getcwd(), time.strftime("%y%m%d_%H%M%S", time.localtime()), reponame)
+print "Hook output sent to %s" % hooklog
 
 def run(cmd):
   #not properly quoted:#print '# ' + ' '.join(cmd)
@@ -32,7 +34,7 @@ def createRepository():
   f = open(hook, 'w')
   f.write('#!/bin/sh\n')
   f.write('export LC_ALL="en_US.UTF-8"\n')
-  f.write('%s $1 $2' % os.path.abspath('../hook/svnhook.py'))
+  f.write('%s -p $1 -r $2' % os.path.abspath('../hook/svnhook.py'))
   f.write(' >> %s 2>&1\n' % hooklog)
   f.close()
   os.chmod(hook, 0777)
