@@ -42,10 +42,11 @@ class SvnChangeHandler(object):
   
   These handlers must be overridden to do something.'''
   
-  def isHandleFolderCopyAsRecursiveAdd(self):
-    '''Return true if added folder with copy-from should lead to invocation
-    of onAdd for all sub-items and the folder.
-    False i not yet supported in svnhook.'''
+  def isHandleFolderCopyAsRecursiveAdd(self, path, copyFromPath):
+    '''Return true if folders added with copy-from should be handled as
+    invocation of onAdd for all sub-items and the folder.
+    Note: may not be called if option foldercopy is 'nobranch' or 'no'.
+    Paths start with slash.'''
     return True
   
   def onRevisionBegin(self, options, rev, revprops):

@@ -96,7 +96,8 @@ parser.add_option("", "--schemahead", dest="schemahead", default="svnhead",
 parser.add_option("", "--foldercopy", dest="foldercopy", default="nobranch",
   help="Enable indexing of all files in folder copies. 'yes', 'no' or 'nobranch'. Default: %default." +
     " With 'no' files will only be indexed if changed. With 'nobranch' this behavior applies only to" +
-    " copies of a 'trunk' or 'branches/*' folder.")
+    " copies of a 'trunk' or 'branches/*' folder." +
+    " With 'yes' behavior is customisable per path in change handlers' isHandleFolderCopyAsRecursiveAdd.")
 
 def getOptions():
   """ Created the option parser according to spec above.
@@ -128,6 +129,13 @@ def optionsPreprocess(options):
   # only numeric revisions supported
   if options.rev:
     options.rev = long(options.rev)
+
+def isBranch(path, copyFromPath):
+  ''' Used to skip folder copy for foldercopy==nobranch option.
+  Simple detection checking only the source name for trunk or branch.
+  '''
+  istrunk = re.match(r".*/trunk/$", copyFromPath) != None
+  return istrunk or re.match(r".*/branches/[^/]+/$", copyFromPath) != None
 
 ### ----- hook backend to read from repository ----- ###
 
@@ -164,7 +172,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
   changematch = re.compile(r"^([ADU_])([U\s])([\+\s])\s{1}(.+)$")
   copyfrommatch = re.compile(r"^\s+\(from (.*):r(\d+)\)$")  
   errors = 0
-  iscopy = False
+  iscopy = False # flag that next line has copy-from info
   for change in changeList:
     if iscopy:
       cfm = copyfrommatch.match(change)
@@ -172,8 +180,9 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
         raise NameError("Expected copy-from info but got: %s" % change)
       pfrom = '/' + cfm.group(1) # no leading slash in copy-from
       for handler in changeHandlers:
-        if not handler.isHandleFolderCopyAsRecursiveAdd():
-          handler.onAdd(None, options.rev, p, pfrom) # new handlers must take options in constructor  
+        handler.onAdd(None, options.rev, p, pfrom) # new handlers must take options in constructor
+      if isfolder:
+        errors = errors + repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom)
       iscopy = False
       continue
     m = changematch.match(change)
@@ -187,17 +196,26 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
       options.logger.error("Failed to index %s. %s" % (p, traceback.format_exc())) 
       errors = errors + 1
-    # handle folder copy
-    if isfolder and iscopy:
-      # TODO do this only for is handler.isHandleFolderCopyAsRecursiveAdd()
-      #      (currently handlers must check pathCopyFrom==Null if they don't want both types of handling 
-      tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
-      copypaths = ['A   ' + m.group(4) + t[len(p):] for t in tree.splitlines()[1:]]
-      options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
-      # recursion
-      errors = errors + repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, copypaths)
-      # Note that this may mean that files edited inside a copy in the same commit are indexed twice
   return errors
+
+def repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom):
+  if options.foldercopy == 'no':
+    return 0
+  elif options.foldercopy == 'nobranch':
+    if isBranch(p, pfrom):
+      options.logger.info("Skipping contents of branch %s->%s" % (pfrom, p)) 
+      return 0
+  elif options.foldercopy != 'yes':
+    raise NameError("Unexpected foldercopy option value: %s" % options.foldercopy)
+  # use folder tree as change list
+  tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
+  copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.splitlines()[1:]]
+  options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
+  # call only the change handlers that wish to treat this as add
+  changeHandlersForCopy = [h for h in changeHandlers if h.isHandleFolderCopyAsRecursiveAdd(p, pfrom)]
+  # recursion
+  return repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlersForCopy, copypaths)
+  # Note that this may mean that files edited inside a copy in the same commit are indexed twice
 
 def repositoryDiff(options, revision, path):
   '''

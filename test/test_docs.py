@@ -419,13 +419,18 @@ class ReposSearchTest(unittest.TestCase):
     run(['svn', 'import', "%s" % f, url + '/folder/copytestfile.txt', '-m', 'Add'])
     os.remove(f)
     run(['svn', 'cp', url + '/folder', url + '/folder2', '-m', 'Copy folder'])
-    run(['svn', 'mv', url + '/folder2', url + '/folder3', '-m', 'Move folder'])
-    # search svnhead for a file that occure once inside the folder
+    run(['svn', 'mv', url + '/folder2', url + '/trunk', '-m', 'Move folder'])
     head = search('copytestfile')
-    self.assertEqual(head['response']['numFound'], 2) # in HEAD
-    # seach for a checksum in svnrev, make sure that folder operations count as revisions
+    self.assertEqual(head['response']['numFound'], 2) # HEAD should have one original and one copy-of-copy    
     rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'standard', 'svnrev')
-    self.assertEqual(rev['response']['numFound'], 3) # including moved
+    self.assertEqual(rev['response']['numFound'], 3) # rev should have original, a copy that has later been moved and a copy-of-copy
+    run(['svn', 'mkdir', url + '/branches', '-m', 'Create branches folder according to naming convention'])
+    # testing with move instead of copy, the hook does not detect that so with default options it should result in -1 hit on contents
+    run(['svn', 'mv', url + '/trunk', url + '/branches/1.0', '-m', 'Make a typical branch operation'])
+    head = search('copytestfile')
+    self.assertEqual(head['response']['numFound'], 1) # branch contents should be ignored when running hook with default options
+    rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'standard', 'svnrev')
+    self.assertEqual(rev['response']['numFound'], 3) # branch contents should be ignored when running hook with default options
  
   def testMoveFolderWithFileChange(self):
     # use a quite small folder to make the test faster, doesn't matter much which one
