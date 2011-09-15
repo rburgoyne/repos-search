@@ -9,9 +9,9 @@ from subprocess import PIPE
 
 import hashlib
 
-from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
+from changehandlerbase import ReposSearchChangeHandlerBase, indexGetId, indexPost
 
-class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
+class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
   
   def __init__(self):
     self.doc = Document()
@@ -19,9 +19,17 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     self.doc.appendChild(self.docs)
     self.count = 0
   
-  def getId(self, rev, path):
-    return indexGetId(self.options, rev, path)
-  
+  def onAdd(self, path, copyFromPath):
+    if not path.isFolder():
+      self.indexFile(path)
+
+  def onChange(self, path):
+    if not path.isFolder():
+      self.indexFile(path)
+
+  def getId(self, path):
+    return indexGetId(self.options, self.rev, path)
+
   def getMd5(self, rev, path):
     return self.getDigest(rev, path, hashlib.md5)
 
@@ -49,20 +57,20 @@ class ReposSearchSvnrevChangeHandler(SvnChangeHandler):
     v = d.createTextNode(value.encode('utf8'))
     f.appendChild(v)
     return f
-  
-  def onChange(self, rev, path):
+
+  def indexFile(self, path):
     '''
     Creating xml directly, this design does not support properties 
     '''
     if path.endswith('/'):
       return
-    id = self.getId(rev, path)
+    id = self.getId(path)
     d = self.doc.createElement('doc')
     d.appendChild(self.solrField(self.doc, 'id', id))
-    d.appendChild(self.solrField(self.doc, 'rev', "%s" % rev))
-    md5 = self.getMd5(rev, path)
+    d.appendChild(self.solrField(self.doc, 'rev', "%s" % self.rev))
+    md5 = self.getMd5(self.rev, path)
     d.appendChild(self.solrField(self.doc, 'md5', md5))
-    sha1 = self.getSha1(rev, path)
+    sha1 = self.getSha1(self.rev, path)
     d.appendChild(self.solrField(self.doc, 'sha1', sha1))
     self.docs.appendChild(d)
     self.count = self.count + 1

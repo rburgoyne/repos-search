@@ -68,12 +68,14 @@ from xml.sax.saxutils import escape
 # Load all SvnChangeHandler subclasses in python files named handler_*
 handlersdir = os.path.dirname(__file__)
 handlerspattern = r"^handler_.*\.py$"
-handlerfiles = [h for h in os.listdir(handlersdir) if re.match(handlerspattern, h)]
-from changehandlerbase import SvnChangeHandler, indexGetId, indexPost
+handlerfiles = sorted([h for h in os.listdir(handlersdir) if re.match(handlerspattern, h)])
+from changehandlerbase import ReposSearchChangeHandlerBase
 for handlerfile in handlerfiles:
   __import__(re.sub(r".py$", r"", handlerfile))
-changehandlerclasses = SvnChangeHandler.__subclasses__()
+changehandlerclasses = ReposSearchChangeHandlerBase.__subclasses__()
 changeHandlers = [c() for c in changehandlerclasses]
+
+from changehandlerbase import indexGetId, indexPost
 
 """ hook options """
 parser = OptionParser()
@@ -105,14 +107,14 @@ parser.add_option("", "--foldercopy", dest="foldercopy", default="nobranch",
   help="Enable indexing of all files in folder copies. 'yes', 'no' or 'nobranch'. Default: %default." +
     " With 'no' files will only be indexed if changed. With 'nobranch' this behavior applies only to" +
     " copies of a 'trunk' or 'branches/*' folder." +
-    " With 'yes' behavior is customisable per path in change handlers' isHandleFolderCopyAsRecursiveAdd.")
+    " With 'yes' behavior is customisable per path in change handlers' onFolderCopyBegin.")
 
 # Custom handler options
 for h in changeHandlers:
   h.addCustomArguments(parser)
 
 class ChangePath(unicode):
-  '''Wrapper class for changelist path, can still be used as string'''
+  '''Wrapper class for changelist path, can still be used as string.'''
 
   def getPath(self):
     return "%s" % self
@@ -170,7 +172,7 @@ def svnrun(command):
   # assuming utf8 system locale
   return output.decode('utf8')
 
-def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHandlers):
+def repositoryHistoryReader(options, changeHandlers):
   '''
   Iterates through repository revision and calls the given handlers
   for parse events: new revision and changed path in revision.
@@ -181,37 +183,36 @@ def repositoryHistoryReader(options, revisionHandler, pathEntryHandler, changeHa
   options.logger.info("Reading %s rev %d" % (options.base, options.rev))
   # get change list including copy-from info
   changed = svnrun([options.svnlook, "changed", "--copy-info", "-r %d" % options.rev, options.repo])
-  # event, revprop support not implemented
-  revisionHandler(options, options.rev, dict())
-  # 
-  errors = repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changed.splitlines())
+  for handler in changeHandlers:
+    handler.onRevisionBegin(options.rev)
+  errors = repositoryChangelistHandler(options, changeHandlers, changed.splitlines())
   for handler in changeHandlers:
     handler.onRevisionComplete(options.rev)
   return errors
 
-def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList):
+def repositoryChangelistHandler(options, changeHandlers, changeList):
   '''parse change list into path events'''
   changematch = re.compile(r"^([ADU_])([U\s])([\+\s])\s{1}(.+)$")
   copyfrommatch = re.compile(r"^\s+\(from (.*):r(\d+)\)$")  
   errors = 0
   iscopy = False # flag that next line has copy-from info
   for change in changeList:
-    if iscopy:
-      cfm = copyfrommatch.match(change)
-      if not cfm:
-        raise NameError("Expected copy-from info but got: %s" % change)
-      pfrom = ChangePath('/' + cfm.group(1)) # no leading slash in copy-from
-      for handler in changeHandlers:
-        handler.onAdd(options.rev, p, pfrom) # new handlers must take options in constructor
-      if p.isFolder():
-        errors = errors + repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom)
-      iscopy = False
-      continue
-    m = changematch.match(change)
-    p = ChangePath("/" + m.group(4))
-    iscopy = m.group(3) == '+'
     try:
-      pathEntryHandler(options, options.rev, p, m.group(1), m.group(2), not p.isFolder(), changeHandlers)
+      if iscopy:
+        cfm = copyfrommatch.match(change)
+        if not cfm:
+          raise NameError("Expected copy-from info but got: %s" % change)
+        pfrom = ChangePath('/' + cfm.group(1)) # no leading slash in copy-from
+        handlePathEntry(options, options.rev, changeHandlers, p, m.group(1), m.group(2), pfrom)
+        if p.isFolder():
+          errors = errors + repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p, pfrom)
+        iscopy = False
+        continue
+      m = changematch.match(change)
+      p = ChangePath("/" + m.group(4))
+      iscopy = m.group(3) == '+'
+      if not iscopy:
+        handlePathEntry(options, options.rev, changeHandlers, p, m.group(1), m.group(2))
     except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
@@ -219,7 +220,7 @@ def repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, chan
       errors = errors + 1
   return errors
 
-def repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, changeHandlers, changeList, p, pfrom):
+def repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p, pfrom):
   if options.foldercopy == 'no':
     return 0
   elif options.foldercopy == 'nobranch':
@@ -233,16 +234,12 @@ def repositoryFolderCopyHandler(options, revisionHandler, pathEntryHandler, chan
   copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.splitlines()[1:]]
   options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
   # call only the change handlers that wish to treat this as add
-  changeHandlersForCopy = [h for h in changeHandlers if h.isHandleFolderCopyAsRecursiveAdd(p, pfrom)]
+  changeHandlersForCopy = [h for h in changeHandlers if h.onFolderCopyBegin(p, pfrom)]
   # recursion
-  return repositoryChangelistHandler(options, revisionHandler, pathEntryHandler, changeHandlersForCopy, copypaths)
+  errors = repositoryChangelistHandler(options, changeHandlersForCopy, copypaths)
+  [h for h in changeHandlers if h.onFolderCopyComplete(p, pfrom)]
+  return errors
   # Note that this may mean that files edited inside a copy in the same commit are indexed twice
-
-def repositoryDiff(options, revision, path):
-  '''
-  Returns diff for revision-1:revision as plaintext for the given path
-  '''
-  pass
 
 def repositoryGetFile(options, revision, path):
   '''
@@ -253,7 +250,7 @@ def repositoryGetFile(options, revision, path):
   catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=f)
   catp.communicate()
   if not catp.returncode is 0:
-    options.logger.debug("Cat failed for %s. It must be a folder." % (path))
+    options.logger.debug("Cat failed for %s. It might be a folder." % (path))
     return
   os.close(f)
   return fpath
@@ -280,50 +277,39 @@ def proplistToDict(xmlsource):
 
 ### ----- event handlers for results from backend ----- ###
 
-def handleRevision(options, revision, revprops):
-  '''
-  Event handler for new historical revision in repository,
-  called in ascending revision number order.
-  
-  Revision properties should be indexed in svnrev schema at id
-  [prefix][base]/[revision number]
-  '''
-  pass
-
-def handlePathEntry(options, revision, path, action, propaction, isfile, handlers):
+def handlePathEntry(options, revision, handlers, path, action, propaction, copyFrom = None):
   '''
   Event handler for changed path in revision.
   Path is unicode with leading slash, trailing slash for folders.
   Action is one of the subversion characters [ADU] or whitespace.
   
-  Contents and current property values should be indexed in svnhead
-  schema at [prefix][base][path]
-  
-  Diff for the path at this revision should be indexed in svnrev
-  
   Handlers is a new concept for pluggable change handlers.
   Global methods named handle* is the deprecated concept.
   '''
-  #assert isinstance(path, unicode)
-  if not isfile:
-    if action == 'D':
-      handleFolderDelete(options, options.rev, path)
-    else:
-      options.logger.info('Folder actions %s are ignored; %s' % (action, path))
-    return
   options.logger.debug("%s%s  %s" % (action, propaction, path))
   if action == 'D':
-    handleFileDelete(options, options.rev, path)
+    [h.onDelete(path) for h in handlers]
+    if path.isFolder():
+      handleFolderDelete(options, options.rev, path) # TODO convert svnhead to changehandler
+      [h.onFolderDeleteBegin(path) for h in handlers]
+      # TODO recursive delete
+      [h.onFolderDeleteComplete(path) for h in handlers]
+    else:
+      handleFileDelete(options, options.rev, path) # TODO convert svnhead to changehandler
   elif action == 'A':
-    handleFileAdd(options, options.rev, path)
-    for handler in handlers:
-      handler.onChange(options.rev, path)
+    if not path.isFolder():
+      handleFileAdd(options, options.rev, path) # TODO convert svnhead to changehandler
+    [h.onAdd(path, copyFrom) for h in handlers]
   elif action == 'U':
-    handleFileChange(options, options.rev, path)
-    for handler in handlers:
-      handler.onChange(options.rev, path)
-  elif propaction == 'U':
-    handleFileChange(options, options.rev, path)
+    if not path.isFolder():
+      handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
+    [h.onChange(path) for h in handlers]
+  else:
+    options.logger.warn("Unrecognized action %s" % action) 
+  if propaction == 'U':
+    if not path.isFolder():
+      handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
+    [h.onChangeProps(path) for h in handlers]
     
 def handleFileDelete(options, revision, path):
   '''
@@ -333,9 +319,10 @@ def handleFileDelete(options, revision, path):
 
 def handleFolderDelete(options, revision, path):
   indexDeleteFolder_httpclient(options, revision, path)
-  # Not migrated to handler concept, but folder delete is not an issue in svnrev schema
 
 def handleFileAdd(options, revision, path):
+  '''Contents and current property values should be indexed in svnhead
+  schema at [prefix][base][path]'''
   indexSubmitFile_curl(options, revision, path)
 
 def handleFileChange(optins, revision, path):
@@ -561,7 +548,8 @@ if __name__ == '__main__':
   options.logger.debug('Change handlers: ' + repr(changeHandlers))
   e = 0 # count errors, TODO add for each operation?
   if options.operation == 'index' or options.operation == 'batch':
-    e = repositoryHistoryReader(options, handleRevision, handlePathEntry, changeHandlers)
+    e = repositoryHistoryReader(options, changeHandlers)
+    [h.onBatchComplete() for h in changeHandlers]
   if options.operation == 'drop':
     indexDrop(options)    
   if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
