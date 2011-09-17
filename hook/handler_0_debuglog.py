@@ -38,6 +38,12 @@ class ReposSearchDebugLogHandler(ReposSearchChangeHandlerBase):
   def onBatchComplete(self):
     self.log("batch complete after %d revisions" % self.revCount)
 
+  def onStartOver(self):
+    self.log("onStartOver")
+
+  def onOptimize(self):
+    self.log("onOptimize")
+
   def onFolderCopyBegin(self, copyFromPath, path):
     self.log("onFolderCopyBegin %s->%s" % (copyFromPath, path))
     return True
@@ -56,7 +62,7 @@ class ReposSearchDebugLogHandler(ReposSearchChangeHandlerBase):
     if copyFromPath:
      self.log("      copied from %s" % copyFromPath)
   
-  def onChange(self, path):
+  def onChange(self, path, hasPropChanges):
     self.log("onChange %s" % path)
 
   def onChangeProps(self, path):

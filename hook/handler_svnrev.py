@@ -24,7 +24,7 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
     if not path.isFolder():
       self.indexFile(path)
 
-  def onChange(self, path):
+  def onChange(self, path, hasPropChanges):
     if not path.isFolder():
       self.indexFile(path)
 

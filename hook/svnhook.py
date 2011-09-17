@@ -291,6 +291,7 @@ def handlePathEntry(options, revision, handlers, path, action, propaction, copyF
   Global methods named handle* is the deprecated concept.
   '''
   options.logger.debug("%s%s  %s" % (action, propaction, path))
+  propchanges = propaction == 'U'
   if action == 'D':
     [h.onDelete(path) for h in handlers]
     if path.isFolder():
@@ -307,10 +308,10 @@ def handlePathEntry(options, revision, handlers, path, action, propaction, copyF
   elif action == 'U':
     if not path.isFolder():
       handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
-    [h.onChange(path) for h in handlers]
-  else:
+    [h.onChange(path, propchanges) for h in handlers]
+  elif action != '_':
     options.logger.warn("Unrecognized action %s" % action) 
-  if propaction == 'U':
+  if propchanges:
     if not path.isFolder():
       handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
     [h.onChangeProps(path) for h in handlers]

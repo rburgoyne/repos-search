@@ -106,9 +106,10 @@ class ReposSearchChangeHandlerBase(object):
     '''
     pass
   
-  def onChange(self, path):
+  def onChange(self, path, hasPropChanges):
     '''
-    Invoked for 'U'.
+    Invoked for 'U'. If hasPropChanges is True this call will be
+    followed by onChangeProps for the same item.
     '''
     pass
 
