@@ -67,10 +67,12 @@ print '# Latest revision is %d' % youngest
 # TODO performance would be better if commit is done for example every 100 submit
 # and optimize is done at the end
 
-run('python %s -o drop %s' % (options.indexer, " ".join(keepargs)))
+#runner = 'python ' # doesn't work with the current handler registration in svnhook.py
+runner = './'
+run(runner + '%s -o drop %s' % (options.indexer, " ".join(keepargs)))
 
 for r in range(1, youngest + 1):
-  cmd = 'python %s -o batch -r %d %s' % (options.indexer, r, " ".join(keepargs))
+  cmd = runner + '%s -o batch -r %d %s' % (options.indexer, r, " ".join(keepargs))
   result = run(cmd)
   if result > 0:
     raise NameError('Got exit code %d for command: %s' % (result, cmd))
@@ -79,7 +81,7 @@ for r in range(1, youngest + 1):
   # Commit interval. Could also use autoCommit in solrconfig.xml or commitWithin at add.
   # Not very clever because we don't know how many adds there are in a revision
   if r % 100 == 0:
-    run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
+    run(runner + '%s -o commit %s' % (options.indexer, " ".join(keepargs)))
     
-run('python %s -o commit %s' % (options.indexer, " ".join(keepargs)))
-run('python %s -o optimize %s' % (options.indexer, " ".join(keepargs)))
+run(runner + '%s -o commit %s' % (options.indexer, " ".join(keepargs)))
+run(runner + '%s -o optimize %s' % (options.indexer, " ".join(keepargs)))
