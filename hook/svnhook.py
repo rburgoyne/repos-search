@@ -61,13 +61,23 @@ from tempfile import mkstemp
 from urllib import urlencode
 import xml.dom.minidom
 import httplib
+
+# We should maybe make a real python module, but for now we have a bunch of source files
+mainscript = __file__
+if not mainscript:
+  mainscript = sys.argv[0]
+scriptdir = os.path.dirname(mainscript)
+if not scriptdir:
+  scriptdir = '.'
+
+sys.path.append(scriptdir)
+
 from repossolr import ReposSolr
 
 # Plugin system like http://stackoverflow.com/questions/3048337/python-subclasses-not-listing-subclasses
 # Load all SvnChangeHandler subclasses in python files named handler_*
-handlersdir = os.path.dirname(__file__)
 handlerspattern = r"^handler_.*\.py$"
-handlerfiles = sorted([h for h in os.listdir(handlersdir) if re.match(handlerspattern, h)])
+handlerfiles = sorted([h for h in os.listdir(scriptdir) if re.match(handlerspattern, h)])
 from changehandlerbase import ReposSearchChangeHandlerBase
 for handlerfile in handlerfiles:
   __import__(re.sub(r".py$", r"", handlerfile))
