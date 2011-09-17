@@ -61,8 +61,7 @@ from tempfile import mkstemp
 from urllib import urlencode
 import xml.dom.minidom
 import httplib
-from urlparse import urlparse
-from xml.sax.saxutils import escape
+from repossolr import ReposSolr
 
 # Plugin system like http://stackoverflow.com/questions/3048337/python-subclasses-not-listing-subclasses
 # Load all SvnChangeHandler subclasses in python files named handler_*
@@ -75,8 +74,6 @@ for handlerfile in handlerfiles:
 changehandlerclasses = ReposSearchChangeHandlerBase.__subclasses__()
 changeHandlers = [c() for c in changehandlerclasses]
 
-from changehandlerbase import indexGetId, indexPost
-
 """ hook options """
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
@@ -84,7 +81,9 @@ parser.add_option("-o", "--operation", dest="operation", default="index",
 parser.add_option("-p", "--repository", dest="repo",
   help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
-  help="Committed revision")
+  help="Revision to index. May be a single integer " +
+    ", a range N:M when N is integer and M integer or HEAD (both ends inclusive)" +
+    ", or * to drop and reindex 0:HEAD. TODO ranges not implemented yet")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
@@ -118,6 +117,9 @@ class ChangePath(unicode):
 
   def getPath(self):
     return "%s" % self
+
+  def getName(self):
+    return self.rpartition('/')[2]
 
   def isFolder(self):
     return self.endswith('/')
@@ -253,6 +255,8 @@ def repositoryGetFile(options, revision, path):
     options.logger.debug("Cat failed for %s. It might be a folder." % (path))
     return
   os.close(f)
+  if not os.path.exists(fpath):
+    raise NameError("Svn cat to temp file failed for %s@%s" % (path, str(options.rev)))
   return fpath
 
 def repositoryGetProplist(options, revision, path):
@@ -310,15 +314,26 @@ def handlePathEntry(options, revision, handlers, path, action, propaction, copyF
     if not path.isFolder():
       handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
     [h.onChangeProps(path) for h in handlers]
-    
+
+### ----- svnhead ----
+
+reposSolr = None # initialized in __main__, TODO convert svnhead to changehandler
+
 def handleFileDelete(options, revision, path):
   '''
   Handles indexing of file deletion.
   '''
-  indexDelete_httpclient(options, revision, path)
+  id = reposSolr.getDocId(path, None)
+  reposSolr.delete('svnhead', id)
 
 def handleFolderDelete(options, revision, path):
-  indexDeleteFolder_httpclient(options, revision, path)
+  '''
+  Deletes folder and all sub-items in svnhead, recursive delete operations are not needed.
+  '''
+  folderId = reposSolr.getDocId(path, None)
+  query = 'id:%s' % reposSolr.value(folderId) + '*'
+  options.logger.debug("%s folder delete %s" % ('svnhead', query))
+  reposSolr.deleteByQuery('svnhead', query)
 
 def handleFileAdd(options, revision, path):
   '''Contents and current property values should be indexed in svnhead
@@ -327,73 +342,22 @@ def handleFileAdd(options, revision, path):
 
 def handleFileChange(optins, revision, path):
   indexSubmitFile_curl(options, revision, path)
-
-### ----- cummunication with indexing server ----- ###
-
-def indexGetName(path):
-  '''
-  Gets the file or folder name of an entry
   
-  >>> indexGetName('/my/sample file.txt')
-  'sample file.txt'
-  '''
-  return path.rpartition('/')[2]
-
-def indexEscapePropname(svnProperty):
-  '''
-  Escapes subversion property name to valid solr field name
-  
-  Colon is replaced with underscore.
-  Dash is also replaced with underscore because Solr does
-  the same implicitly when creating dynamic field.
-  
-  >>> indexEscapePropname('svn:mime-type')
-  'svn_mime_type'
-  
-  This results in a slight risk of conflict, for example if
-  properties wouls be svn:mime-type and svn_mime:type.
-  '''
-  return re.sub(r'[.:-]', '_', svnProperty)
-
-def indexDelete_httpclient(options, revision, path):
-  schema = options.schemahead
-  url = urlparse(options.solr + schema + '/')
-  id = indexGetId(options, None, path)
-  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><id>%s</id></delete>' % escape(id.encode('utf8'))
-  (status, body) = indexPost(url, doc)
-  if status is 200:
-    options.logger.info("%s deleted %s" % (schema, id))
-  else:
-    options.logger.error("%s delete failed for %s: %d %s" % (schema, id, status, body))
-
-def indexDeleteFolder_httpclient(options, revision, path):
-  schema = options.schemahead
-  url = urlparse(options.solr + schema + '/')
-  folderId = indexGetId(options, None, path)
-  query = 'id:%s' % folderId.replace(':', '\\:').replace('^', '\\^').encode('utf8') + '*'
-  options.logger.debug("%s folder delete %s" % (schema, query))
-  doc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
-  (status, body) = indexPost(url, doc)  
-  if status is 200:
-    options.logger.info("%s deleted folder %s" % (schema, folderId))
-  else:
-    options.logger.error("%s folder delete failed for %s: %d %s" % (schema, query, status, body))
-    
 def indexSubmitFile_curl(optons, revision, path):
   ''' Python's httplib is not capable of POSTing files
   (multipart upload) so we use command line curl instead '''
   schema = options.schemahead
   schemaUrl = options.solr + schema + '/'
-  id = indexGetId(options, None, path)
+  id = reposSolr.getDocId(path, None)
   params = {"literal.id": id.encode('utf8'), 
             "literal.svnrevision": revision,
             "commit": "false"}
 
   props = repositoryGetProplist(options, revision, path)
   for p in props.keys():
-    params['literal.svnprop_' + indexEscapePropname(p)] = props[p].encode('utf8')
+    params['literal.svnprop_' + reposSolr.escapePropname(p)] = props[p].encode('utf8')
 
-  name = indexGetName(path)
+  name = path.getName()
   params['literal.name'] = name.encode('utf8')
 
   tempfile = repositoryGetFile(options, revision, path)
@@ -462,56 +426,6 @@ def parseSolrExtractionResponse(output):
     return (0, 'Indexing response could not be parsed:\n' + output)
   return (int(m.groups()[0]), m.groups()[1].strip())
 
-def indexGetSchemas(options):
-  return [options.schemahead, 'svnrev']
-
-def indexCommit(options):
-  '''
-  Issues commit command to Solr to make recent indexing searchable.
-  '''
-  for schema in indexGetSchemas(options):
-    indexCommitSchema(options, schema)
-  
-def indexCommitSchema(options, schema):
-  schemaUrl = options.solr + schema + '/'
-  url = urlparse(schemaUrl)
-  (status, body) = indexPost(url, '<commit/>')
-  if status is 200:
-    options.logger.info("%s committed" % schema)
-  else:
-    options.logger.error("Commit %s failed: %d %b" % (schema, status, body))
-
-def indexOptimize(options):
-  for schema in indexGetSchemas(options):
-    indexOptimizeSchema(options, schema)
-  
-def indexOptimizeSchema(options, schema):  
-  '''
-  Issues optimize command to Solr. May take serveral minutes.
-  '''
-  schemaUrl = options.solr + schema + '/'
-  url = urlparse(schemaUrl)
-  (status, body) = indexPost(url, '<optimize/>')
-  if status is 200:
-    options.logger.info("%s optimized" % schema)
-  else:
-    options.logger.error("Optimize %s failed: %d %s" % (schema, status, body))  
-  
-def indexDrop(options):
-  for schema in indexGetSchemas(options):
-    indexDropSchema(options, schema)
-  
-def indexDropSchema(options, schema):
-  url = urlparse(options.solr + schema + '/')
-  prefix = indexGetId(options, None, '')
-  query = 'id:%s' % prefix.replace(':', '\\:').replace('^', '\\^') + '*'
-  deleteDoc = '<?xml version="1.0" encoding="UTF-8"?><delete><query>%s</query></delete>' % query
-  (status, body) = indexPost(url, deleteDoc)
-  if status is 200:
-    options.logger.info("%s dropped %s" % (schema, query))
-  else:
-    options.logger.error("Drop %s failed: %d %s" % (schema, status, body))
-
 ### ----- hook start from post-commit arguments ----- ###
 
 def getLogger(options):    
@@ -541,21 +455,24 @@ if __name__ == '__main__':
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
+  reposSolr = ReposSolr(options) # for svnhead functions
   for h in changeHandlers:
     h.configure(options)
   if len(changeHandlers) < 1:
     options.logger.warn('No change handlers registered')
   options.logger.debug('Change handlers: ' + repr(changeHandlers))
   e = 0 # count errors, TODO add for each operation?
+  if options.operation == 'drop':
+    handleFolderDelete(options, options.rev, '/')
+    [h.onStartOver() for h in changeHandlers]
   if options.operation == 'index' or options.operation == 'batch':
     e = repositoryHistoryReader(options, changeHandlers)
-    [h.onBatchComplete() for h in changeHandlers]
-  if options.operation == 'drop':
-    indexDrop(options)    
   if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
-    indexCommit(options)
+    reposSolr.commit('svnhead')
+    [h.onBatchComplete() for h in changeHandlers]
   if options.operation == 'optimize':
-    indexOptimize(options)
+    reposSolr.optimize('svnhead')
+    [h.onOptimize() for h in changeHandlers]
   if e > 0:
     options.logger.error('%d svnhead indexing operations failed' % e)
     sys.exit(1)

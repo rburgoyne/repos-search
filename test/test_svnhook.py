@@ -35,18 +35,6 @@ class SvnhookTest(unittest.TestCase):
     self.assertEqual(opt.base, '', 'should get base from last folder name in repo path')
     pass
       
-  def testIndexGetId(self):
-    opt = OptionParser().parse_args([])[0]
-    opt.base = ''
-    opt.prefix = ''
-    self.assertEqual(indexGetId(opt, None, '/file.txt'), '^/file.txt')
-    opt.base = 'b'
-    self.assertEqual(indexGetId(opt, None, '/file.txt'), 'b^/file.txt')
-    opt.prefix = '/svn/'
-    self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/b^/file.txt')
-    opt.base = ''
-    self.assertEqual(indexGetId(opt, None, '/file.txt'), '/svn/^/file.txt')
-      
   def testSvnlookChangedWithCopyInfo(self):
     svnlook_changed = '''D   test/
 A + test2/

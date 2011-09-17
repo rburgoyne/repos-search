@@ -9,16 +9,17 @@ from subprocess import PIPE
 
 import hashlib
 
-from changehandlerbase import ReposSearchChangeHandlerBase, indexGetId, indexPost
+from changehandlerbase import ReposSearchChangeHandlerBase
 
 class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
   
   def __init__(self):
+    self.coreName = 'svnrev' # activate automatic commit in base class
     self.doc = Document()
     self.docs = self.doc.createElement("add")
     self.doc.appendChild(self.docs)
     self.count = 0
-  
+
   def onAdd(self, path, copyFromPath):
     if not path.isFolder():
       self.indexFile(path)
@@ -28,7 +29,7 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
       self.indexFile(path)
 
   def getId(self, path):
-    return indexGetId(self.options, self.rev, path)
+    return self.reposSolr.getDocId(path, self.rev)
 
   def getMd5(self, rev, path):
     return self.getDigest(rev, path, hashlib.md5)
@@ -83,8 +84,7 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
     if self.count is 0:
       return
     schema = 'svnrev'
-    url = urlparse(self.options.solr + schema + '/')
-    (status, body) = indexPost(url, self.getSolrXml())
+    (status, body) = self.reposSolr.submit(schema, self.getSolrXml())
     if status is 200:
       self.logger.info("%s indexed %d files in rev %d" % (schema, self.count, rev))
     else:

@@ -1,39 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# TODO move to an indexing helper module
-import httplib
-
-# TODO move to an indexing helper module
-def indexGetId(options, revision, path):
-  '''
-  Builds the string used as id in index.
-  Concatenates prefix, base, root marker and path.
-  '''
-  id = '^' + path
-  if options.base:
-    id = options.base + id
-  if options.prefix:
-    id = options.prefix + id
-  if revision:
-    id = id + '@%d' % revision
-  return id
-
-# TODO move to an indexing helper module
-def indexPost(url, doc):
-  '''
-  http client implementation of post to index
-  '''
-  h = httplib.HTTPConnection(url.netloc)
-  h.putrequest('POST', url.path +'update')
-  h.putheader('content-type', 'text/xml; charset=UTF-8')
-  h.putheader('content-length', len(doc))
-  h.endheaders()
-  h.send(doc)
-  r = h.getresponse()
-  body = r.read()
-  h.close()
-  return (r.status, body)
+from repossolr import ReposSolr
 
 class ReposSearchChangeHandlerBase(object):
   '''
@@ -55,6 +23,7 @@ class ReposSearchChangeHandlerBase(object):
     '''
     self.options = options
     self.logger = self.options.logger
+    self.reposSolr = ReposSolr(self.options)
     self.revCount = 0
 
   def onRevisionBegin(self, rev):
@@ -63,14 +32,37 @@ class ReposSearchChangeHandlerBase(object):
   
   def onRevisionComplete(self, rev):
     self.rev = None
+    # commit automatically for very big batches
+    if hasattr(self, 'coreName') and self.revCount % 1000 == 0:
+      self.reposSolr.commit(self.coreName)
 
   def onBatchComplete(self):
     '''
     Called when the current indexing batch operation has completed.
     Can be after a single revision or a range. Useful for commit/optimize etc.
     Handlers may also use the revision counter to detect need for commit.
+    
+    Commit, drop and optimize can be implemented independently or using ReposSolr.
     '''
-    pass
+    if hasattr(self, 'coreName'):
+      self.reposSolr.commit(self.coreName)
+
+  def onStartOver(self):
+    '''
+    Called to order drop all indexed documents for the current repo.
+    Make sure it is only the current repo.
+    Dropping of an entire core's data is a manual admin operation.
+    '''
+    if hasattr(self, 'coreName'):
+      self.reposSolr.deleteByQuery(self.coreName, 'id:' + 
+            self.reposSolr.value(self.reposSolr.getDocId('/', None)) + '*')
+
+  def onOptimize(self):
+    '''
+    Called to recommend optimize on a core.
+    '''
+    if hasattr(self, 'coreName'):
+      self.reposSolr.optimize(self.coreName)
   
   def onFolderCopyBegin(self, copyFromPath, path):
     '''
@@ -84,14 +76,18 @@ class ReposSearchChangeHandlerBase(object):
     pass
 
   def onFolderDeleteBegin(self, path):
-    '''Can be used to flag to onDelete that we're emulating item delete based on tree.
-    Called after the onDelete for the actual folder that svn operated on.'''
-    pass
+    '''
+    Called after the onDelete for the actual folder that svn operated on.
+    Return True to receive separate onDelete for every item in folder.
+    Return False to get only onDelete for the actual folder. I most schemas
+    recursive delete can be accomplished using a wildcard query when path.isFolder().
+    '''
+    return False
 
   def onFolderDeleteComplete(self, path):
     pass
 
-  # --- low level change event, mapping directly to svn status letters
+  # --- below are the actual item change events
 
   def onAdd(self, path, copyFromPath):
     '''
@@ -127,4 +123,5 @@ class ReposSearchChangeHandlerBase(object):
     Invoked for 'D' and each item in deleted folder. 
     '''   
     pass
+
 
