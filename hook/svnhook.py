@@ -236,7 +236,7 @@ def repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p
   copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.splitlines()[1:]]
   options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
   # call only the change handlers that wish to treat this as add
-  changeHandlersForCopy = [h for h in changeHandlers if h.onFolderCopyBegin(p, pfrom)]
+  changeHandlersForCopy = [h for h in changeHandlers if h.onFolderCopyBegin(p, pfrom) is not False]
   # recursion
   errors = repositoryChangelistHandler(options, changeHandlersForCopy, copypaths)
   [h for h in changeHandlers if h.onFolderCopyComplete(p, pfrom)]
