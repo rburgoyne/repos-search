@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 '''
+An idea of how to abstract out the change log reading.
+It might however be better to abstract the individual item changes,
+such as item added, updated, deleted, properties updated...
+In combination with methods to read content and metadata
+this would allow indexing of arbitrary backends using the same
+handlers, for example indexing webdav contents in an svnhead type of schema.
+
+...
+
 Models the changeset of an svn revision.
 The backend may use "svnlook changed" or "svn log", or an API.
 There are additional methods that require folder actions to be interpreted
