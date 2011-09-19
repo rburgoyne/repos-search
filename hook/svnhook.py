@@ -88,14 +88,16 @@ changeHandlers = [c() for c in changehandlerclasses]
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
   help="Special operations: 'batch' to index but not commit, 'drop' to empty cores" +
-    ", 'commit' to commit only, 'optimize' to optimize (not done after indexing)" +
+    ", 'commit' to commit only, 'optimize' to optimize only" +
     ". This option is deprecated in favor the revision option supporting range syntax.")
 parser.add_option("-p", "--repository", dest="repo",
   help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
-  help="Revision to index. May be a single integer " +
-    ", a range N:M when N is integer and M integer or HEAD (both ends inclusive)" +
-    ", or \"*\" to drop and reindex 0:HEAD. Ranges to HEAD will cause optimize after revisions.")
+  help="Revision to index. May be a single integer," +
+    " a range N:M when N is integer or * and M integer or HEAD (both ends inclusive)," +
+    " or \"*\" to drop and reindex 1:HEAD followed by commit and optimize." +
+    " The difference between *:3 and 1:3 is that the former is preceded by a drop." + 
+    " Ranges to HEAD will cause optimize after revisions.")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
@@ -247,7 +249,7 @@ def repositoryChangelistHandlerFolderCopy(options, revision, changeHandlers, cha
   # call only the change handlers that wish to treat this as add
   changeHandlersForCopy = [h for h in changeHandlers if h.onFolderCopyBegin(p, pfrom) is not False]
   # recursion
-  errors = repositoryChangelistHandler(options, changeHandlersForCopy, copypaths)
+  errors = repositoryChangelistHandler(options, revision, changeHandlersForCopy, copypaths)
   [h for h in changeHandlers if h.onFolderCopyComplete(p, pfrom)]
   return errors
   # Note that this may mean that files edited inside a copy in the same commit are indexed twice
@@ -501,6 +503,9 @@ if __name__ == '__main__':
     options.logger.warn('No change handlers registered')
   options.logger.debug('Change handlers: ' + repr(changeHandlers))
   revs = getRevisionsToIndex(options, options.rev)
+  if len(revs) > 0 and revs[0] == 0:
+    print 'Revision number 0 can not be indexed'
+    sys.exit(1)
   if options.operation == 'drop' or options.rev.startswith('*'):
     handleFolderDelete(options, 0, '/')
     [h.onStartOver() for h in changeHandlers]
@@ -520,7 +525,7 @@ if __name__ == '__main__':
   if options.operation != 'batch':
     reposSolr.commit('svnhead')
     [h.onBatchComplete() for h in changeHandlers]
-  if options.operation == 'optimize' or options.rev.endswith('HEAD') and options.operation != 'batch':
+  if options.operation == 'optimize' or options.rev == '*' or options.rev.endswith('HEAD') and options.operation != 'batch':
     reposSolr.optimize('svnhead')
     [h.onOptimize() for h in changeHandlers]
 

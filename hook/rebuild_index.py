@@ -24,7 +24,10 @@ import os
 import sys
 from subprocess import Popen, PIPE
 
-usage = """Usage: python rebuild_index.py --indexer=svnhook.py -p REPO_PATH"""
+usage = """
+Usage: python rebuild_index.py --indexer=svnhook.py -p REPO_PATH
+Note: This scipt is deprecated in favor of revision ranges in svnhook.py
+"""
 
 parser = OptionParser(usage)
 # all arguments will be forwarded to the indexer, except -i
