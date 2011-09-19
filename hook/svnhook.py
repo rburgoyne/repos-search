@@ -87,13 +87,14 @@ changeHandlers = [c() for c in changehandlerclasses]
 """ hook options """
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
-  help="Type of operation: 'index', 'batch', 'drop', 'commit', 'optimize'. Default: %default")
+  help="Special operations: 'batch' to index but not commit, 'drop' to empty cores" +
+    ", 'commit' to commit only, 'optimize' to optimize (not done after indexing)")
 parser.add_option("-p", "--repository", dest="repo",
   help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
   help="Revision to index. May be a single integer " +
     ", a range N:M when N is integer and M integer or HEAD (both ends inclusive)" +
-    ", or * to drop and reindex 0:HEAD. TODO ranges not implemented yet")
+    ", or * to drop and reindex 0:HEAD.")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
@@ -162,9 +163,6 @@ def optionsPreprocess(options):
     options.base = ''
   else:
     options.base = os.path.basename(options.repo)
-  # only numeric revisions supported
-  if options.rev:
-    options.rev = long(options.rev)
 
 def isBranch(path, copyFromPath):
   ''' Used to skip folder copy for foldercopy==nobranch option.
@@ -184,7 +182,7 @@ def svnrun(command):
   # assuming utf8 system locale
   return output.decode('utf8')
 
-def repositoryHistoryReader(options, changeHandlers):
+def repositoryHistoryReader(options, revision, changeHandlers):
   '''
   Iterates through repository revision and calls the given handlers
   for parse events: new revision and changed path in revision.
@@ -192,17 +190,17 @@ def repositoryHistoryReader(options, changeHandlers):
   This script is called for a single revision so there will only be one
   call to revisionHandler.
   '''
-  options.logger.info("Reading %s rev %d" % (options.base, options.rev))
+  options.logger.info("Reading %s rev %d" % (options.base, revision))
   # get change list including copy-from info
-  changed = svnrun([options.svnlook, "changed", "--copy-info", "-r %d" % options.rev, options.repo])
+  changed = svnrun([options.svnlook, "changed", "--copy-info", "-r %d" % revision, options.repo])
   for handler in changeHandlers:
-    handler.onRevisionBegin(options.rev)
-  errors = repositoryChangelistHandler(options, changeHandlers, changed.splitlines())
+    handler.onRevisionBegin(revision)
+  errors = repositoryChangelistHandler(options, revision, changeHandlers, changed.splitlines())
   for handler in changeHandlers:
-    handler.onRevisionComplete(options.rev)
+    handler.onRevisionComplete(revision)
   return errors
 
-def repositoryChangelistHandler(options, changeHandlers, changeList):
+def repositoryChangelistHandler(options, revision, changeHandlers, changeList):
   '''parse change list into path events'''
   changematch = re.compile(r"^([ADU_])([U\s])([\+\s])\s{1}(.+)$")
   copyfrommatch = re.compile(r"^\s+\(from (.*):r(\d+)\)$")  
@@ -215,16 +213,16 @@ def repositoryChangelistHandler(options, changeHandlers, changeList):
         if not cfm:
           raise NameError("Expected copy-from info but got: %s" % change)
         pfrom = ChangePath('/' + cfm.group(1)) # no leading slash in copy-from
-        handlePathEntry(options, options.rev, changeHandlers, p, m.group(1), m.group(2), pfrom)
+        handlePathEntry(options, revision, changeHandlers, p, m.group(1), m.group(2), pfrom)
         if p.isFolder():
-          errors = errors + repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p, pfrom)
+          errors = errors + repositoryChangelistHandlerFolderCopy(options, revision, changeHandlers, changeList, p, pfrom)
         iscopy = False
         continue
       m = changematch.match(change)
       p = ChangePath("/" + m.group(4))
       iscopy = m.group(3) == '+'
       if not iscopy:
-        handlePathEntry(options, options.rev, changeHandlers, p, m.group(1), m.group(2))
+        handlePathEntry(options, revision, changeHandlers, p, m.group(1), m.group(2))
     except NameError, e:
       ''' Catch known indexing errors, log and continue with next path entry '''
       # for name errors it would probably be sufficient to write the error message, traceback is for development 
@@ -232,7 +230,7 @@ def repositoryChangelistHandler(options, changeHandlers, changeList):
       errors = errors + 1
   return errors
 
-def repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p, pfrom):
+def repositoryChangelistHandlerFolderCopy(options, revision, changeHandlers, changeList, p, pfrom):
   if options.foldercopy == 'no':
     return 0
   elif options.foldercopy == 'nobranch':
@@ -242,7 +240,7 @@ def repositoryChangelistHandlerFolderCopy(options, changeHandlers, changeList, p
   elif options.foldercopy != 'yes':
     raise NameError("Unexpected foldercopy option value: %s" % options.foldercopy)
   # use folder tree as change list
-  tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % options.rev, options.repo, p])
+  tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % revision, options.repo, p])
   copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.splitlines()[1:]]
   options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
   # call only the change handlers that wish to treat this as add
@@ -259,14 +257,14 @@ def repositoryGetFile(options, revision, path):
   '''
   (f, fpath) = mkstemp()
   options.logger.debug("Writing %s to temp %s" % (path, fpath))    
-  catp = Popen([options.svnlook, "cat", "-r %d" % options.rev, options.repo, path], stdout=f)
+  catp = Popen([options.svnlook, "cat", "-r %d" % revision, options.repo, path], stdout=f)
   catp.communicate()
   if not catp.returncode is 0:
     options.logger.debug("Cat failed for %s. It might be a folder." % (path))
     return
   os.close(f)
   if not os.path.exists(fpath):
-    raise NameError("Svn cat to temp file failed for %s@%s" % (path, str(options.rev)))
+    raise NameError("Svn cat to temp file failed for %s@%s" % (path, str(revision)))
   return fpath
 
 def repositoryGetProplist(options, revision, path):
@@ -305,25 +303,25 @@ def handlePathEntry(options, revision, handlers, path, action, propaction, copyF
   if action == 'D':
     [h.onDelete(path) for h in handlers]
     if path.isFolder():
-      handleFolderDelete(options, options.rev, path) # TODO convert svnhead to changehandler
+      handleFolderDelete(options, revision, path) # TODO convert svnhead to changehandler
       [h.onFolderDeleteBegin(path) for h in handlers]
       # TODO recursive delete
       [h.onFolderDeleteComplete(path) for h in handlers]
     else:
-      handleFileDelete(options, options.rev, path) # TODO convert svnhead to changehandler
+      handleFileDelete(options, revision, path) # TODO convert svnhead to changehandler
   elif action == 'A':
     if not path.isFolder():
-      handleFileAdd(options, options.rev, path) # TODO convert svnhead to changehandler
+      handleFileAdd(options, revision, path) # TODO convert svnhead to changehandler
     [h.onAdd(path, copyFrom) for h in handlers]
   elif action == 'U':
     if not path.isFolder():
-      handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
+      handleFileChange(options, revision, path) # TODO convert svnhead to changehandler
     [h.onChange(path, propchanges) for h in handlers]
   elif action != '_':
     options.logger.warn("Unrecognized action %s" % action) 
   if propchanges:
     if not path.isFolder():
-      handleFileChange(options, options.rev, path) # TODO convert svnhead to changehandler
+      handleFileChange(options, revision, path) # TODO convert svnhead to changehandler
     [h.onChangeProps(path) for h in handlers]
 
 ### ----- svnhead ----
@@ -460,9 +458,38 @@ def getLogger(options):
   ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
   logger.addHandler(ch)
   options.logger = logger
-    
+
+def getCurrentHead(options):
+  look = svnrun([options.svnlook, 'youngest', options.repo])
+  youngest = int(look)
+  if not youngest:
+    raise NameError('invalid repository %s, svnlook youngest retunred %d' % (options.repo, youngest))
+  return youngest
+
+def getRevisionsToIndex(options, rangeValue):
+  if rangeValue == '*':
+    head = getCurrentHead(options)
+    return range(0, head + 1)
+  (fr, sep, to) = rangeValue.partition(':')
+  if fr and sep and to:
+    if fr == '*':
+      fr = 0
+    if to == 'HEAD':
+      to = getCurrentHead(options)
+    return range(int(fr), int(to) + 1)
+  elif fr:
+    return [int(fr)]
+  else:
+    raise NameError("Invalid revision range %s" % rangeValue)
+
+def runRevision(options, changeHandlers, revision):
+  '''
+  Index a single revision.
+  Throws exception if indexing fails.
+  '''
+
+
 if __name__ == '__main__':
-  # TODO replace reindex script with support for "*" and "N:M" in revision argument
   options = getOptions()
   getLogger(options)
   optionsPreprocess(options)
@@ -472,19 +499,27 @@ if __name__ == '__main__':
   if len(changeHandlers) < 1:
     options.logger.warn('No change handlers registered')
   options.logger.debug('Change handlers: ' + repr(changeHandlers))
-  e = 0 # count errors, TODO add for each operation?
-  if options.operation == 'drop':
-    handleFolderDelete(options, options.rev, '/')
+  revs = getRevisionsToIndex(options, options.rev)
+  if options.operation == 'drop' or options.rev.startswith('*'):
+    handleFolderDelete(options, 0, '/')
     [h.onStartOver() for h in changeHandlers]
-  if options.operation == 'index' or options.operation == 'batch':
-    e = repositoryHistoryReader(options, changeHandlers)
-  if options.operation == 'index' or options.operation == 'drop' or options.operation == 'commit':
+  if options.operation != 'drop' and options.operation != 'commit' and options.operation != 'optimize':
+    if len(revs) > 1:
+      options.logger.info('Indexing revisions %d..%d' % (revs[0], revs[len(revs) - 1]))
+    for r in revs:
+      try:
+        e = repositoryHistoryReader(options, r, changeHandlers)
+      except Exception, e:
+        print "Aborting indexing at revision %d due to error"
+        print traceback.format_exc()
+        sys.exit(1)
+      if e > 0:
+        options.logger.error('%d svnhead indexing operations failed' % e)
+        raise NameError("%d indexing errors for revision %d" % (e, revision))    
+  if options.operation != 'batch':
     reposSolr.commit('svnhead')
     [h.onBatchComplete() for h in changeHandlers]
   if options.operation == 'optimize':
     reposSolr.optimize('svnhead')
     [h.onOptimize() for h in changeHandlers]
-  if e > 0:
-    options.logger.error('%d svnhead indexing operations failed' % e)
-    sys.exit(1)
 

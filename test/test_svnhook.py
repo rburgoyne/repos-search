@@ -34,7 +34,21 @@ class SvnhookTest(unittest.TestCase):
     optionsPreprocess(opt)
     self.assertEqual(opt.base, '', 'should get base from last folder name in repo path')
     pass
-      
+
+  def testGetRevisionsToIndex(self):
+    opt = OptionParser().parse_args([])[0]
+    self.assertEquals(getRevisionsToIndex(opt, '1:3'), range(1, 4))
+    self.assertEquals(getRevisionsToIndex(opt, '1234567'), [1234567])
+    self.assertRaises(ValueError, getRevisionsToIndex, opt, '1a:3')
+    self.assertRaises(ValueError, getRevisionsToIndex, opt, 'b1:3')
+    self.assertRaises(ValueError, getRevisionsToIndex, opt, '1:3x')
+    self.assertRaises(ValueError, getRevisionsToIndex, opt, '1.1')
+    self.assertRaises(ValueError, getRevisionsToIndex, opt, '1a')
+    # TODO mock getCurrentHead and test
+    # getRevisionsToIndex(opt, '*')
+    # getRevisionsToIndex(opt, '3:HEAD')
+    # getRevisionsToIndex(opt, '*:HEAD')
+  
   def testSvnlookChangedWithCopyInfo(self):
     svnlook_changed = '''D   test/
 A + test2/
