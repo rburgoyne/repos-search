@@ -27,7 +27,7 @@ class ReposSearchChangeHandlerBase(ReposSearchChangeHandler):
     Concatenates prefix, base, root marker and path.
     May also be used before wildcard to do recursive delete etc.
     '''
-    return self.reposSolr.getDocId(self, path, revision)
+    return self.reposSolr.getDocId(path, revision)
 
   def onRevisionBegin(self, rev):
     self.rev = rev
