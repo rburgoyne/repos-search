@@ -88,13 +88,14 @@ changeHandlers = [c() for c in changehandlerclasses]
 parser = OptionParser()
 parser.add_option("-o", "--operation", dest="operation", default="index",
   help="Special operations: 'batch' to index but not commit, 'drop' to empty cores" +
-    ", 'commit' to commit only, 'optimize' to optimize (not done after indexing)")
+    ", 'commit' to commit only, 'optimize' to optimize (not done after indexing)" +
+    ". This option is deprecated in favor the revision option supporting range syntax.")
 parser.add_option("-p", "--repository", dest="repo",
   help="A local repository path")
 parser.add_option("-r", "--revision", dest="rev",
   help="Revision to index. May be a single integer " +
     ", a range N:M when N is integer and M integer or HEAD (both ends inclusive)" +
-    ", or * to drop and reindex 0:HEAD.")
+    ", or \"*\" to drop and reindex 0:HEAD. Ranges to HEAD will cause optimize after revisions.")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
@@ -469,11 +470,11 @@ def getCurrentHead(options):
 def getRevisionsToIndex(options, rangeValue):
   if rangeValue == '*':
     head = getCurrentHead(options)
-    return range(0, head + 1)
+    return range(1, head + 1)
   (fr, sep, to) = rangeValue.partition(':')
   if fr and sep and to:
     if fr == '*':
-      fr = 0
+      fr = 1
     if to == 'HEAD':
       to = getCurrentHead(options)
     return range(int(fr), int(to) + 1)
@@ -519,7 +520,7 @@ if __name__ == '__main__':
   if options.operation != 'batch':
     reposSolr.commit('svnhead')
     [h.onBatchComplete() for h in changeHandlers]
-  if options.operation == 'optimize':
+  if options.operation == 'optimize' or options.rev.endswith('HEAD') and options.operation != 'batch':
     reposSolr.optimize('svnhead')
     [h.onOptimize() for h in changeHandlers]
 
