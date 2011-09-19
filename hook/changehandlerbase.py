@@ -21,6 +21,14 @@ class ReposSearchChangeHandlerBase(ReposSearchChangeHandler):
     self.reposSolr = ReposSolr(self.options)
     self.revCount = 0
 
+  def getDocId(self, path, revision = None):
+    '''
+    Builds recommended string to use as id in index.
+    Concatenates prefix, base, root marker and path.
+    May also be used before wildcard to do recursive delete etc.
+    '''
+    return self.reposSolr.getDocId(self, path, revision)
+
   def onRevisionBegin(self, rev):
     self.rev = rev
     self.revCount = self.revCount + 1 
@@ -38,7 +46,7 @@ class ReposSearchChangeHandlerBase(ReposSearchChangeHandler):
   def onStartOver(self):
     if hasattr(self, 'coreName'):
       self.reposSolr.deleteByQuery(self.coreName, 'id:' + 
-            self.reposSolr.value(self.reposSolr.getDocId('/', None)) + '*')
+            self.reposSolr.value(self.getDocId('/', None)) + '*')
 
   def onOptimize(self):
     if hasattr(self, 'coreName'):

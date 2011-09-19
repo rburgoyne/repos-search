@@ -42,6 +42,11 @@ class ReposSolr(object):
     Builds standard string used as id in index.
     Concatenates prefix, base, root marker and path.
     Other id's are allowed too, this is just a helper.
+    TODO move this to ChangeHandlerBase after svnhead has been converted.
+    Make sure dropCurrentRepo supports custom IDs.
+    Reconsider use of root marker. It is good for drop etc,
+    but it makes it impossible to make ids that are valid URLs.
+    On the other hand valid URLs would require encoding.
     '''
     id = '^' + path
     if self.options.base:

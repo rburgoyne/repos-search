@@ -29,7 +29,7 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
       self.indexFile(path)
 
   def getId(self, path):
-    return self.reposSolr.getDocId(path, self.rev)
+    return self.getDocId(path, self.rev)
 
   def getMd5(self, rev, path):
     return self.getDigest(rev, path, hashlib.md5)
