@@ -470,6 +470,9 @@ def getCurrentHead(options):
   return youngest
 
 def getRevisionsToIndex(options, rangeValue):
+  if not rangeValue:
+    options.rev = "" # compatibility with old reindex script
+    return []
   if rangeValue == '*':
     head = getCurrentHead(options)
     return range(1, head + 1)
@@ -484,13 +487,6 @@ def getRevisionsToIndex(options, rangeValue):
     return [int(fr)]
   else:
     raise NameError("Invalid revision range %s" % rangeValue)
-
-def runRevision(options, changeHandlers, revision):
-  '''
-  Index a single revision.
-  Throws exception if indexing fails.
-  '''
-
 
 if __name__ == '__main__':
   options = getOptions()
