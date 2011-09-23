@@ -89,4 +89,6 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
       self.logger.info("%s indexed %d files in rev %d" % (schema, self.count, rev))
     else:
       self.logger.error("%s add failed: %d %s" % (schema, status, body))
+    self.count = 0
+
   
