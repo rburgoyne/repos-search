@@ -147,7 +147,7 @@ ReposSearch.cssDefault = {
 		verticalAlign: 'middle'
 	},
 	close: {
-		float: 'right',
+		'float': 'right',
 		fontSize: '82.5%',
 		cursor: 'pointer',
 		color: '#666',
@@ -156,7 +156,7 @@ ReposSearch.cssDefault = {
 	queryDiv: {
 		width: '48.5%',
 		minWidth: '500px',
-		float: 'left',
+		'float': 'left',
 		paddingLeft: '1em'
 	},
 	list: {
