@@ -505,7 +505,7 @@ if __name__ == '__main__':
   options.logger.debug('Change handlers: ' + repr(changeHandlers))
   revs = getRevisionsToIndex(options, options.rev)
   if len(revs) > 0 and revs[0] == 0:
-    print 'Revision number 0 can not be indexed'
+    options.logger.error('Revision number 0 can not be indexed')
     sys.exit(1)
   if options.operation == 'drop' or options.rev.startswith('*'):
     handleFolderDelete(options, 0, '/')
@@ -517,8 +517,7 @@ if __name__ == '__main__':
       try:
         e = repositoryHistoryReader(options, r, changeHandlers)
       except Exception, e:
-        print "Aborting indexing at revision %d due to error"
-        print traceback.format_exc()
+        options.logger.exception("Aborting indexing at revision %d due to error" % r)
         sys.exit(1)
       if e > 0:
         options.logger.error('%d svnhead indexing operations failed' % e)
