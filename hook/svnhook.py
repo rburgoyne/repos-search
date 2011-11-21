@@ -106,6 +106,9 @@ parser.add_option("", "--prefix", dest="prefix", default="",
 
 parser.add_option("", "--loglevel", dest="loglevel", default="info",
   help="The loglevel (standard Log4J levels, lowercase). Defaults to 'svnlook' in PATH.")
+parser.add_option("", "--logfile", dest="logfile",
+  help="Log output path. If not set logging is done to standard out.")
+
 parser.add_option("", "--svnlook", dest="svnlook", default="svnlook",
   help="The svnlook command, defaults to 'svnlook' in PATH.")
 parser.add_option("", "--curl", dest="curl", default="curl",
@@ -452,11 +455,13 @@ def getLogger(options):
             'critical': logging.CRITICAL}
   level = LEVELS.get(options.loglevel)
   if not level:
-      raise NameError("Invalid log level %s" % options.loglevel)
+    raise NameError("Invalid log level %s" % options.loglevel)
   logger = logging.getLogger("Repos Search hook")
   logger.setLevel(level)
-  # console
-  ch = logging.StreamHandler()
+  if not options.logfile:
+    ch = logging.StreamHandler()
+  else:
+    ch = logging.FileHandler(options.logfile)
   ch.setLevel(level)
   ch.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
   logger.addHandler(ch)

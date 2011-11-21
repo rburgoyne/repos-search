@@ -472,5 +472,6 @@ if __name__ == '__main__':
   createRepository()
   createInitialStructure()
   unittest.main()
+  # TODO proper teardown so cleanup is done in case of errors too
   rmtree(repo)
   
