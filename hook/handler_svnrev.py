@@ -8,6 +8,7 @@ from subprocess import Popen
 from subprocess import PIPE
 
 import hashlib
+import sys
 
 from changehandlerbase import ReposSearchChangeHandlerBase
 
@@ -39,7 +40,7 @@ class ReposSearchSvnrevChangeHandler(ReposSearchChangeHandlerBase):
     
   def getDigest(self, rev, path, commandName):
     # Read the content via svnlook cat
-    p1 = Popen([self.options.svnlook, "cat", "-r %d" % rev, self.options.repo, path], stdout=PIPE)
+    p1 = Popen([self.options.svnlook, "cat", "-r %d" % rev, self.options.repo, path.encode(sys.stdout.encoding)], stdout=PIPE)
     # Create the hash object
     h = commandName()
     # Read the file in 4k blocks

@@ -180,13 +180,17 @@ def isBranch(path, copyFromPath):
 ### ----- hook backend to read from repository ----- ###
 
 def svnrun(command):
-  ''' runs subversion command, handles error, returns decoded output '''
+  '''
+  Runs subversion command, handles error, returns decoded output (not unicode).
+  Note that arguments that might have non-ascii chars must be encoded
+  using .encode(sys.stdout.encoding)
+  '''
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   output, error = p.communicate()
   if p.returncode:
     raise CalledProcessError(p.returncode, command)#, output=error)
   # assuming utf8 system locale
-  return output.decode('utf8')
+  return output.decode(sys.stdout.encoding)
 
 def repositoryHistoryReader(options, revision, changeHandlers):
   '''
@@ -263,7 +267,7 @@ def repositoryGetFile(options, revision, path):
   '''
   (f, fpath) = mkstemp()
   options.logger.debug("Writing %s to temp %s" % (path, fpath))    
-  catp = Popen([options.svnlook, "cat", "-r %d" % revision, options.repo, path], stdout=f)
+  catp = Popen([options.svnlook, "cat", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding)], stdout=f)
   catp.communicate()
   if not catp.returncode is 0:
     options.logger.debug("Cat failed for %s. It might be a folder." % (path))
@@ -277,12 +281,10 @@ def repositoryGetProplist(options, revision, path):
   '''
   Returns proplist as dictionary with propname:value pairs
   '''
-  p = Popen([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path], stdout=PIPE, stderr=PIPE)
-  (propxml, error) = p.communicate()
-  if p.returncode:
-    raise NameError('Proplist failed. %s' % error) # for example if svn version is <1.6
+  propxml = svnrun([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding)])
+  # TODO handle command error from svn version <1.6
   try:
-    return proplistToDict(propxml)
+    return proplistToDict(propxml.encode('utf8'))
   except xml.parsers.expat.ExpatError, e:
     raise NameError('Failed to parse svnlook proplist xml, line %d offset %d in: %s' % (e.lineno, e.offset, propxml))
 
