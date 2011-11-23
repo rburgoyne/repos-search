@@ -183,14 +183,14 @@ def svnrun(command):
   '''
   Runs subversion command, handles error, returns decoded output (not unicode).
   Note that arguments that might have non-ascii chars must be encoded
-  using .encode(sys.stdout.encoding)
+  using .encode(sys.stdout.encoding or 'utf8')
   '''
   p = Popen(command, stdout=PIPE, stderr=PIPE)
   output, error = p.communicate()
   if p.returncode:
     raise CalledProcessError(p.returncode, command)#, output=error)
   # assuming utf8 system locale
-  return output.decode(sys.stdout.encoding)
+  return output.decode(sys.stdout.encoding or 'utf8')
 
 def repositoryHistoryReader(options, revision, changeHandlers):
   '''
@@ -267,7 +267,7 @@ def repositoryGetFile(options, revision, path):
   '''
   (f, fpath) = mkstemp()
   options.logger.debug("Writing %s to temp %s" % (path, fpath))    
-  catp = Popen([options.svnlook, "cat", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding)], stdout=f)
+  catp = Popen([options.svnlook, "cat", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding or 'utf8')], stdout=f)
   catp.communicate()
   if not catp.returncode is 0:
     options.logger.debug("Cat failed for %s. It might be a folder." % (path))
@@ -281,7 +281,7 @@ def repositoryGetProplist(options, revision, path):
   '''
   Returns proplist as dictionary with propname:value pairs
   '''
-  propxml = svnrun([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding)])
+  propxml = svnrun([options.svnlook, "proplist", "-v", "--xml", "-r %d" % revision, options.repo, path.encode(sys.stdout.encoding or 'utf8')])
   # TODO handle command error from svn version <1.6
   try:
     return proplistToDict(propxml.encode('utf8'))
