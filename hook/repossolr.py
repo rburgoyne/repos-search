@@ -119,7 +119,7 @@ class ReposSolr(object):
     if status is 200:
       self.options.logger.info("%s committed" % schema)
     else:
-      self.options.logger.error("Commit %s failed: %d %b" % (schema, status, body))
+      self.options.logger.error("Commit %s failed: %d %s" % (schema, status, body))
     
   def indexOptimizeSchema(self, schema):  
     '''
