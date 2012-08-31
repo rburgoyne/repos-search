@@ -45,8 +45,8 @@ class ReposSearchChangeHandlerBase(ReposSearchChangeHandler):
 
   def onStartOver(self):
     if hasattr(self, 'coreName'):
-      self.reposSolr.deleteByQuery(self.coreName, 'id:' + 
-            self.reposSolr.value(self.getDocId('/', None)) + '*')
+      self.reposSolr.deleteByQuery(self.coreName, 'id:"' + 
+            self.reposSolr.value(self.getDocId('/', None)) + '*"')
 
   def onOptimize(self):
     if hasattr(self, 'coreName'):

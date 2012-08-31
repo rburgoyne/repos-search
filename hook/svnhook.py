@@ -348,7 +348,7 @@ def handleFolderDelete(options, revision, path):
   Deletes folder and all sub-items in svnhead, recursive delete operations are not needed.
   '''
   folderId = reposSolr.getDocId(path, None)
-  query = 'id:%s' % reposSolr.value(folderId) + '*'
+  query = 'id:"%s"' % reposSolr.value(folderId) + '*'
   options.logger.debug("%s folder delete %s" % ('svnhead', query))
   reposSolr.deleteByQuery('svnhead', query)
 
