@@ -19,7 +19,7 @@ class ReposSolr(object):
     Escapes field value for use in solr query. Note that entire queries
     cannot be escaped with this because : will be \:
     '''
-    return fieldValue.replace(':', '\\:').replace('^', '\\^')
+    return fieldValue.replace(':', '\\:').replace('^', '\\^').replace('/', '\\/')
 
   def escapePropname(self, svnProperty):
     '''
