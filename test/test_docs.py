@@ -95,14 +95,14 @@ def curl(url):
   r = urllib2.urlopen(url)
   return r.read()
 
-def search(query, queryType='standard', schema='svnhead', sort='id asc'):
+def search(query, queryType='select', schema='svnhead', sort='id asc'):
   '''
-  queryType: standard/None, meta, content
+  queryType: select/None, meta, content
   query: solr escaped but not urlencoded query
   sort: on id for predictable result ordering, set to empty to test ranking
   '''
   # todo encode and stuff
-  r = curl(solr + schema + '/select?qt=' + queryType + '&q=' + quote(query) + '&wt=json&sort=' + quote(sort))
+  r = curl(solr + schema + '/' + queryType + '?q=' + quote(query) + '&wt=json&sort=' + quote(sort))
   #print '\n' + r 
   return json.loads(r)
 
@@ -135,7 +135,7 @@ class ReposSearchTest(unittest.TestCase):
     
   def testFilename(self):
     self.assertEqual(s1('meta', 'shouldBeUNIQUEfilename'), 
-                     '/docs/filenames/shouldBeUniqueFilename.txt')
+                     '/docs/filenames/shouldBeUniqueFilename.txt', 'camel case')
 
   def testDerivedFieldSearch(self):
     r = search('name:shouldBeUniqueFilename.txt')
@@ -154,7 +154,7 @@ class ReposSearchTest(unittest.TestCase):
                      '/docs/filenames/shouldBeUniqueFilename.txt')
     
   def testFilenameTokenizeDash(self):
-    self.assertEqual(s1('standard', 'name:(subversion AND related AND document2)'), 
+    self.assertEqual(s1('select', 'name:(subversion AND related AND document2)'), 
                      '/docs/filenames/Subversion-related Document2, 2010-02-10.txt',
                      'dash should be searchable as space')
     # How do we handle dashes when the adjacent chars are digits?
@@ -186,7 +186,7 @@ class ReposSearchTest(unittest.TestCase):
                      'accented chars should be searchable without accent')
   
   def testFilenameTokenizeWhitespaceComma(self):
-    self.assertEqual(s1('standard', 'name:(short AND not AND long AND filename AND txt)'),
+    self.assertEqual(s1('select', 'name:(short AND not AND long AND filename AND txt)'),
                      '/docs/filenames/short, not long, filename.txt',
                      'commas should be ignored, common words like "not" should be kept')
     
@@ -278,7 +278,7 @@ class ReposSearchTest(unittest.TestCase):
 
   def testSearchEmbeddedPDFSubject(self):
     # TODO Should subject be matched in meta query?    
-    self.assertEqual(s1('standard', 'subject:"PDF subject"'),
+    self.assertEqual(s1('select', 'subject:"PDF subject"'),
                      '/docs/svnprops/shortpdf.pdf',
                      'should match on part of PDF embedded Subject')
     
@@ -321,16 +321,16 @@ class ReposSearchTest(unittest.TestCase):
                      'longpropertyvalue.txt is not indexed, maybe the server can\'t handle 30k http headers')
     
   def testMd5(self):
-    r = search('md5:64458944e1162dfcf05673d24dfdd0f6', 'standard', 'svnrev')
+    r = search('md5:64458944e1162dfcf05673d24dfdd0f6', 'select', 'svnrev')
     self.assertEqual(r['response']['numFound'], 1)    
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/OpenOffice Calc.ods@1' % reponame)
     self.assertEqual(r['response']['docs'][0]['rev'], 1);
-    r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'standard', 'svnrev')
+    r = search('md5:68b329da9893e34099c7d8ad5cb9c940', 'select', 'svnrev')
     self.assertEqual(r['response']['numFound'], 5, "all test documents with only a newline")
   
   def testSha1(self):
-    r = search('sha1:43b02cb0b0681f1dbe34145af744fb7b2a587eca', 'standard', 'svnrev')
+    r = search('sha1:43b02cb0b0681f1dbe34145af744fb7b2a587eca', 'select', 'svnrev')
     self.assertEqual(r['response']['numFound'], 1)
     self.assertEqual(r['response']['docs'][0]['id'], 
                      '%s^/docs/OpenOffice Calc.ods@1' % reponame)
@@ -424,14 +424,14 @@ class ReposSearchTest(unittest.TestCase):
     run(['svn', 'mv', url + '/folder2', url + '/trunk', '-m', 'Move folder'])
     head = search('copytestfile')
     self.assertEqual(head['response']['numFound'], 2) # HEAD should have one original and one copy-of-copy    
-    rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'standard', 'svnrev')
+    rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'select', 'svnrev')
     self.assertEqual(rev['response']['numFound'], 3) # rev should have original, a copy that has later been moved and a copy-of-copy
     run(['svn', 'mkdir', url + '/branches', '-m', 'Create branches folder according to naming convention'])
     # testing with move instead of copy, the hook does not detect that so with default options it should result in -1 hit on contents
     run(['svn', 'mv', url + '/trunk', url + '/branches/1.0', '-m', 'Make a typical branch operation'])
     head = search('copytestfile')
     self.assertEqual(head['response']['numFound'], 1) # branch contents should be ignored when running hook with default options
-    rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'standard', 'svnrev')
+    rev = search('sha1:d42b3a3e79abf906c3be39410f4aa6f64a7d1c93', 'select', 'svnrev')
     self.assertEqual(rev['response']['numFound'], 3) # branch contents should be ignored when running hook with default options
  
   def testMoveFolderWithFileChange(self):
@@ -459,7 +459,7 @@ class ReposSearchTest(unittest.TestCase):
     self.assertEqual(s1('content', 'copytestIImodified'), '/copytest2/folder3/copytest2file.txt')
     self.assertEqual(search('svnprop_copytestprop:copytestvalue')['response']['numFound'], 2)
     # svnrev, should be three copies with a modification in the last one
-    revs = search('id:' + reponame + '*/copytest2file.txt@*', 'standard', 'svnrev')['response']['docs']
+    revs = search('id:' + reponame + '*/copytest2file.txt@*', 'select', 'svnrev')['response']['docs']
     self.assertEqual(len(revs), 3)
     self.assertTrue(revs[0]['id'].find('/folder/copytest2file.txt@')>0, 'got:' + revs[0]['id'])
     self.assertEqual(revs[0]['sha1'], '550339a3b71669b5ada7ae06bb3e3c1efb7a5596')
