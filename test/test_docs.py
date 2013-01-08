@@ -134,6 +134,18 @@ class ReposSearchTest(unittest.TestCase):
     self.assertTrue(r['response']['numFound'] > 0)
     
   def testFilename(self):
+    self.assertEqual(s1('meta', 'OpenOffice'),
+                     '/docs/OpenOffice Calc.ods', 'whitespaces')
+    self.assertEqual(s1('meta', 'openoffice'),
+                     '/docs/OpenOffice Calc.ods', 'should be case insensitive')
+    self.assertEqual(s1('meta', 'gpsphotolinker'),
+                     '/docs/images/testJPEG_gpsphotolinker.jpg', 'underscore')
+    self.assertEqual(s1('meta', 'testJPEG_gpsphotolinker'),
+                     '/docs/images/testJPEG_gpsphotolinker.jpg', 'and specific')
+    self.assertEqual(s1('meta', 'testjpeg_gpsphotolinker.jpg'),
+                     '/docs/images/testJPEG_gpsphotolinker.jpg', 'and full name')
+    self.assertEqual(s1('meta', 'testkeywords'),
+                     '/docs/testkeywords-gen.sh', 'dash')
     self.assertEqual(s1('meta', 'shouldBeUNIQUEfilename'), 
                      '/docs/filenames/shouldBeUniqueFilename.txt', 'camel case')
 
