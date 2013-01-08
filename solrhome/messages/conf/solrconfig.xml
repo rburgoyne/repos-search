@@ -21,7 +21,7 @@
  It is *not* a good example to work from. 
 -->
 <config>
-  <luceneMatchVersion>LUCENE_30</luceneMatchVersion>
+  <luceneMatchVersion>LUCENE_40</luceneMatchVersion>
 
   <updateHandler class="solr.DirectUpdateHandler2" />
 
@@ -34,10 +34,17 @@
   <requestHandler name="/update/json" class="solr.XmlUpdateRequestHandler" />  
   <requestHandler name="/admin/" class="org.apache.solr.handler.admin.AdminHandlers" />
       
+  <!--  Automatically populate id field -->
+  <updateRequestProcessorChain name="uuid">
+    <processor class="solr.UUIDUpdateProcessorFactory">
+      <str name="fieldName">id</str>
+    </processor>
+    <processor class="solr.RunUpdateProcessorFactory" />
+  </updateRequestProcessorChain> 
+      
   <!-- config for the admin interface --> 
   <admin>
     <defaultQuery>solr</defaultQuery>
   </admin>
 
 </config>
-
