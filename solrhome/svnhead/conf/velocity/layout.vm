@@ -1,11 +1,9 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html>
 <head>
   #parse("head.vm")
 </head>
   <body>
-    <div id="admin"><a href="#url_for_solr/admin">Solr Admin</a></div>
+    <div id="admin"><a href="#url_root/#/#core_name">Solr Admin</a></div>
     <div id="header">
       #parse("header.vm")
     </div>
