@@ -152,7 +152,12 @@
    		For multiple parent paths or servers arbitrary prefixes must be given at index time.
    -->
    <field name="id_repo" type="prefixFromPath" indexed="true" stored="true"/>
-   <!-- indexed revision -->   
+   <!-- Filename extension -->
+   <field name="extension" type="extensionFromPath" indexed="true" stored="true"/>
+   <!-- The part of the path up to and including last slash -->
+   <!-- descendent_path would be useful if we had a path without repo prefix to copyFrom <field name="folder" type="descendent_path" indexed="true" stored="true"/> -->
+   <field name="folder" type="folderFromPath" indexed="true" stored="true"/>
+   <!-- indexed revision -->
    <field name="svnrevision" type="long" indexed="true" stored="true"/>
    <!-- svn properties -->
    <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
@@ -262,6 +267,8 @@
    
    <!-- Repos Search -->
    <copyField source="id" dest="id_repo"/>
+   <copyField source="id" dest="folder"/>
+   <copyField source="name" dest="extension"/>   
    
    <!-- svn:keywords is not a good name so it must be overridden-->
    <copyField source="keywords" dest="allkeywords"/>
@@ -295,6 +302,29 @@
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 		</analyzer>
 	</fieldType>
+	
+	<!-- this extension rule produces undefined results if there is no . in filename -->
+	<fieldType name="extensionFromPath" class="solr.TextField">
+		<analyzer type="index">
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\.(\w{1,5})$" group="1" />
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>
+		<analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+			<filter class="solr.LowerCaseFilterFactory"/>
+		</analyzer>
+	</fieldType>
+	
+	<!-- path to parent folder of the indexed item, with trailing slash -->
+	<fieldType name="folderFromPath" class="solr.TextField">
+		<analyzer type="index">
+			<tokenizer class="solr.PatternTokenizerFactory" pattern=".*\^(.*\/)" group="1" />
+			<!-- don't make it lowercase, should be useful for building URLs -->
+		</analyzer>
+		<analyzer type="query">
+			<tokenizer class="solr.KeywordTokenizerFactory"/>
+		</analyzer>
+	</fieldType>	
 	
     <!-- filenames -->
     <fieldType name="path" class="solr.TextField">
