@@ -98,7 +98,7 @@
    -->
         
    <field name="id" type="string" indexed="true" stored="true" required="true" multiValued="false" /> 
-   <field name="name" type="text_general" indexed="true" stored="true"/>
+   <field name="name" type="path" indexed="true" stored="true"/>
 
    <!-- Common metadata fields, named specifically to match up with
      SolrCell metadata when parsing rich documents such as Word, PDF.
@@ -268,6 +268,7 @@
   <types>
   
   	<!-- Repos Search -->
+  	
   	<!-- prefix is everything up to the root marker -->
 	<fieldType name="prefixFromPath" class="solr.TextField">
 		<analyzer type="index">
@@ -277,6 +278,24 @@
 			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
 		</analyzer>
 	</fieldType>
+	
+    <!-- Filenames, interpret camel case as word delimiter -->
+    <fieldType name="path" class="solr.TextField">
+      <analyzer type="index">
+        <!-- in order to support unicode we can't use \W, must explicitly state all valid non-word filename characters -->
+      	<tokenizer class="solr.PatternTokenizerFactory" pattern="[ /().]+" />
+        <filter class="solr.WordDelimiterFilterFactory"
+             preserveOriginal="1" splitOnNumerics="1" splitOnCaseChange="1"
+             catenateWords="0" catenateNumbers="0" catenateAll="0"
+             generateWordParts="1" generateNumberParts="1"
+             stemEnglishPossessive="0" />
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+      <analyzer type="query">
+        <!-- if query is detailed, for example containing path segmets, let it be -->
+      	<tokenizer class="solr.KeywordTokenizerFactory"/>
+      </analyzer>
+    </fieldType>
   
     <!-- field type definitions. The "name" attribute is
        just a label to be used by field definitions.  The "class"
