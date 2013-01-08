@@ -154,6 +154,7 @@ class ReposSearchTest(unittest.TestCase):
                      '/docs/filenames/shouldBeUniqueFilename.txt', 'camel case')
 
   def testDerivedFieldSearch(self):
+    # TODO when filename query has multiple tokens, require all to match (and in same order?)
     r = search('name:shouldBeUniqueFilename.txt')
     self.assertEqual(r['response']['numFound'], 1)
     r = search('name:shouldBeUniqueFilename.txt AND extension:txt')
@@ -211,10 +212,12 @@ class ReposSearchTest(unittest.TestCase):
                      u'/docs/filenames/In Swedish Åäö.txt')
 
   def testContentXslAndOds(self):
+    # TODO ods extraction broken? getting "???  Page   ??? (???)  09/05/2009, 11:53:56  Page  /    " content for OpenOffice Calc.ods
     r = searchContent('"cell B2"')
     self.assertEqual(r['response']['numFound'], 2)
   
   def testContentDocAndOdt(self):
+    # TODO odt extraction broken? getting empty content for the .odt
     r = searchContent('"Repos Search is ok"')
     self.assertEqual(r['response']['numFound'], 2)
     
@@ -223,6 +226,7 @@ class ReposSearchTest(unittest.TestCase):
                      '/docs/svnprops/shortpdf.pdf')
   
   def testContentInvalidXml(self):
+    # TODO make the text_error field work again
     r = searchMeta('invalid not closed')
     self.assertEqual(r['response']['numFound'], 1)
     error = r['response']['docs'][0]['text_error']
@@ -232,6 +236,7 @@ class ReposSearchTest(unittest.TestCase):
                      'svn properties should be indexed even if document can not be parsed')
     
   def testSvnPropsTextfile(self):
+    # TODO requires the fix for exact filename search, now we find all .txt files
     r = searchMeta('textwithsvnprops.txt')
     self.assertEqual(r['response']['numFound'], 1)
     self.assertEqual(r['response']['docs'][0]['svnrevision'], 2)

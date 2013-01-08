@@ -159,6 +159,10 @@
    <!-- override for specific properties -->
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
+   
+   <!-- when fulltext extraction fails but properties can be indexed 
+   		an error message should be stored here -->
+   <field name="text_error" type="text_ws" indexed="true" stored="true"/>   
 
    <!-- Dynamic field definitions allow using convention over configuration
        for fields via the specification of patterns to match field names. 
@@ -279,24 +283,18 @@
 		</analyzer>
 	</fieldType>
 	
-    <!-- Filenames, interpret camel case as word delimiter -->
+    <!-- filenames -->
     <fieldType name="path" class="solr.TextField">
       <analyzer type="index">
-      	<tokenizer class="solr.KeywordTokenizerFactory" />
+      	<!-- together with preserveOriginal this decides how specific searches can be, note that dash is considered part of a word -->
+      	<tokenizer class="solr.PatternTokenizerFactory" pattern="[ /,;.()_]+" />
         <filter class="solr.WordDelimiterFilterFactory"
-             preserveOriginal="1" splitOnNumerics="1" splitOnCaseChange="1"
-             catenateWords="0" catenateNumbers="0" catenateAll="0"
-             generateWordParts="1" generateNumberParts="1"
-             stemEnglishPossessive="0" />
+            preserveOriginal="1" 
+            stemEnglishPossessive="0" />
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
       <analyzer type="query">
-      	<tokenizer class="solr.KeywordTokenizerFactory" />
-        <filter class="solr.WordDelimiterFilterFactory"
-             preserveOriginal="1" splitOnNumerics="1" splitOnCaseChange="1"
-             catenateWords="0" catenateNumbers="0" catenateAll="0"
-             generateWordParts="1" generateNumberParts="1"
-             stemEnglishPossessive="0" />
+      	<tokenizer class="solr.PatternTokenizerFactory" pattern="[ /,;.()_]+" />
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
