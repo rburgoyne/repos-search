@@ -199,7 +199,7 @@
    <dynamicField name="*_pi"  type="pint"    indexed="true"  stored="true"/>
    <dynamicField name="*_c"   type="currency" indexed="true"  stored="true"/>
 
-   <dynamicField name="ignored_*" type="ignored" multiValued="true"/>
+   <!-- <dynamicField name="ignored_*" type="ignored" multiValued="true"/> --><dynamicField indexed="false" stored="true" name="ignored_*" type="ignored" multiValued="true"/>
    <dynamicField name="attr_*" type="text_general" indexed="true" stored="true" multiValued="true"/>
 
    <dynamicField name="random_*" type="random" />
@@ -208,7 +208,7 @@
         field name or dynamic field, rather than reporting them as an error. 
         alternately, change the type="ignored" to some other type e.g. "text" if you want 
         unknown fields indexed and/or stored by default --> 
-   <dynamicField name="*" type="ignored" multiValued="true" />
+   <!--dynamicField name="*" type="ignored" multiValued="true" /-->
    
  </fields>
 
