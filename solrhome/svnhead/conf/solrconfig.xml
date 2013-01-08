@@ -780,7 +780,7 @@
     <lst name="defaults">
      <str name="defType">dismax</str>
 	 <str name="echoParams">explicit</str>
-	 <str name="qf">name title^0.8 keywords^0.6</str>
+	 <str name="qf">name title^0.8 allkeywords^0.6</str>
 	 <float name="tie">0.1</float>
     </lst>
   </requestHandler>

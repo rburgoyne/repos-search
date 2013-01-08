@@ -160,6 +160,10 @@
    <dynamicField name="svnprop_svn_*"  type="ignored"/>
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
    
+   <!-- one keywords field to rule them all, space separated, case sensitive,
+   		multiValued because it "can appear multiple times in a document" (see solr wiki) -->
+   <field name="allkeywords" type="keywords" indexed="true" stored="true" multiValued="true"/>   
+   
    <!-- when fulltext extraction fails but properties can be indexed 
    		an error message should be stored here -->
    <field name="text_error" type="text_ws" indexed="true" stored="true"/>   
@@ -257,7 +261,16 @@
    <copyField source="author" dest="author_s"/>
    
    <!-- Repos Search -->
-   <copyField source="id" dest="id_repo"/>	
+   <copyField source="id" dest="id_repo"/>
+   
+   <!-- svn:keywords is not a good name so it must be overridden-->
+   <copyField source="keywords" dest="allkeywords"/>
+   <!-- this has to be customized for namespaces because *_keywords would include svn:keywords -->
+   <copyField source="*r_keywords" dest="allkeywords"/>
+   <copyField source="*s_keywords" dest="allkeywords"/>
+   <copyField source="*_tags" dest="allkeywords"/>
+   <!-- most applications using XMP, Dublin Core, save keywords to "subject" -->
+   <copyField source="subject" dest="allkeywords"/>   	
    
    <!-- Above, multiple source fields are copied to the [text] field. 
 	  Another way to map multiple source fields to the same 
@@ -295,6 +308,14 @@
       </analyzer>
       <analyzer type="query">
       	<tokenizer class="solr.PatternTokenizerFactory" pattern="[ /,;.()_]+" />
+        <filter class="solr.LowerCaseFilterFactory"/>
+      </analyzer>
+    </fieldType>
+    
+    <!-- the allkeywords field -->
+    <fieldType name="keywords" class="solr.TextField">
+      <analyzer>
+        <tokenizer class="solr.WhitespaceTokenizerFactory"/>
         <filter class="solr.LowerCaseFilterFactory"/>
       </analyzer>
     </fieldType>
