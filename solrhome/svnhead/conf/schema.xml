@@ -145,6 +145,21 @@
    <field name="timestamp" type="date" indexed="true" stored="true" default="NOW" multiValued="false"/>
      -->
 
+   <!-- Repos Search fields, subversion related -->
+   <!-- Identifies the repository.
+   		For single repository setups this can be empty.
+   		For one parent path with multiple repositories this can be the repo name (i.e. "base").
+   		For multiple parent paths or servers arbitrary prefixes must be given at index time.
+   -->
+   <field name="id_repo" type="prefixFromPath" indexed="true" stored="true"/>
+   <!-- indexed revision -->   
+   <field name="svnrevision" type="long" indexed="true" stored="true"/>
+   <!-- svn properties -->
+   <dynamicField name="svnprop_*" type="string" indexed="true"  stored="true"/>
+   <!-- override for specific properties -->
+   <dynamicField name="svnprop_svn_*"  type="ignored"/>
+   <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
+
    <!-- Dynamic field definitions allow using convention over configuration
        for fields via the specification of patterns to match field names. 
        EXAMPLE:  name="*_i" will match any field ending in _i (like myid_i, z_i)
@@ -236,7 +251,10 @@
 
    <!-- Create a string version of author for faceting -->
    <copyField source="author" dest="author_s"/>
-	
+   
+   <!-- Repos Search -->
+   <copyField source="id" dest="id_repo"/>	
+   
    <!-- Above, multiple source fields are copied to the [text] field. 
 	  Another way to map multiple source fields to the same 
 	  destination field is to use the dynamic field syntax. 
@@ -248,6 +266,18 @@
    <!-- <copyField source="name" dest="alphaNameSort"/> -->
  
   <types>
+  
+  	<!-- Repos Search -->
+  	<!-- prefix is everything up to the root marker -->
+	<fieldType name="prefixFromPath" class="solr.TextField">
+		<analyzer type="index">
+			<tokenizer class="solr.PatternTokenizerFactory" pattern="\^.*" />
+		</analyzer>
+		<analyzer type="query">
+			<tokenizer class="solr.WhitespaceTokenizerFactory"/>
+		</analyzer>
+	</fieldType>
+  
     <!-- field type definitions. The "name" attribute is
        just a label to be used by field definitions.  The "class"
        attribute and any other attributes determine the real
