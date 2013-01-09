@@ -689,7 +689,9 @@
        of SearchComponents (see below) and supports distributed
        queries across multiple shards
     -->
-  <requestHandler name="/select" class="solr.SearchHandler">
+  <!-- Legacy support for qt param, can't have "/select" see https://wiki.apache.org/solr/SolrRequestHandler#Old_handleSelect.3Dtrue_Resolution_.28qt_param.29
+  <requestHandler name="/select" class="solr.SearchHandler"> -->
+  <requestHandler name="select" default="true" class="solr.SearchHandler">
     <!-- default values for query parameters can be specified, these
          will be overridden by parameters in the request
       -->
