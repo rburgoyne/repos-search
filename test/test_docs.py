@@ -154,16 +154,15 @@ class ReposSearchTest(unittest.TestCase):
                      '/docs/filenames/shouldBeUniqueFilename.txt', 'camel case')
 
   def testDerivedFieldSearch(self):
-    # TODO when filename query has multiple tokens, require all to match (and in same order?)
     r = search('name:shouldBeUniqueFilename.txt')
     self.assertEqual(r['response']['numFound'], 1)
     r = search('name:shouldBeUniqueFilename.txt AND extension:txt')
     self.assertEqual(r['response']['numFound'], 1)
-    r = search('folder:/docs/filenames/')
+    r = search('folder:\/docs\/filenames\/')
     self.assertTrue(r['response']['numFound'] > 0)
-    r = search('folder:"/docs/filenames"')
+    r = search('folder:"\/docs\/filenames"')
     self.assertEqual(r['response']['numFound'], 0, 'should not match if the trailing slash is not there') # or can we match both?
-    r = search('folder:"/docs/images/howto screenshots/"')
+    r = search('folder:"\/docs\/images\/howto screenshots\/"')
     self.assertTrue(r['response']['numFound'] > 0, 'should match folder with whitespace')
 
   def testFilenameWithExtension(self):
