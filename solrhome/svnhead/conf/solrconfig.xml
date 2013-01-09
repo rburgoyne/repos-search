@@ -861,6 +861,7 @@
        <str name="facet.field">author</str>
        <!-- <str name="facet.query">ipod</str> -->
        <!-- <str name="facet.query">GB</str> -->
+       <str name="facet.limit">10</str>       
        <str name="facet.mincount">1</str>
        <!-- <str name="facet.pivot">cat,inStock</str> -->
        <str name="facet.range.other">after</str>
