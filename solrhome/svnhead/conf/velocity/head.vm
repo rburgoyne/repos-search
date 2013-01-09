@@ -6,6 +6,7 @@
   <script type="text/javascript" src="#{url_root}/js/lib/jquery-1.7.2.min.js"></script>
   <link rel="stylesheet" type="text/css" href="#{url_for_solr}/admin/file?file=/velocity/main.css&contentType=text/css"/>
   <link rel="stylesheet" href="#{url_for_solr}/admin/file?file=/velocity/jquery.autocomplete.css&contentType=text/css" type="text/css" />
+  <link rel="stylesheet" type="text/css" href="#{url_for_solr}/admin/file?file=/velocity/cust-repos.css&contentType=text/css"/>  
   <script type="text/javascript" src="#{url_for_solr}/admin/file?file=/velocity/jquery.autocomplete.js&contentType=text/javascript"></script>
 
 
