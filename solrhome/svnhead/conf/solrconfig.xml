@@ -833,7 +833,7 @@
        <str name="wt">velocity</str>
        <str name="v.template">browse</str>
        <str name="v.layout">layout</str>
-       <str name="title">Solritas</str>
+       <str name="title">Repos Search Faceting</str>
 
        <!-- Query settings -->
        <str name="defType">edismax</str>
@@ -858,22 +858,22 @@
        <str name="facet">on</str>
        <str name="facet.field">id_repo</str>
        <str name="facet.field">content_type</str>
-       <str name="facet.field">author_s</str>
+       <str name="facet.field">author</str>
        <!-- <str name="facet.query">ipod</str> -->
        <!-- <str name="facet.query">GB</str> -->
        <str name="facet.mincount">1</str>
        <!-- <str name="facet.pivot">cat,inStock</str> -->
        <str name="facet.range.other">after</str>
-       <!-- <str name="facet.range">price</str> -->
-       <int name="f.price.facet.range.start">0</int>
-       <int name="f.price.facet.range.end">600</int>
-       <int name="f.price.facet.range.gap">50</int>
-       <!-- <str name="facet.range">manufacturedate_dt</str> -->
-       <str name="f.manufacturedate_dt.facet.range.start">NOW/YEAR-10YEARS</str>
-       <str name="f.manufacturedate_dt.facet.range.end">NOW</str>
-       <str name="f.manufacturedate_dt.facet.range.gap">+1YEAR</str>
-       <str name="f.manufacturedate_dt.facet.range.other">before</str>
-       <str name="f.manufacturedate_dt.facet.range.other">after</str>
+       <str name="facet.range">svnrevision</str>
+       <int name="f.svnrevision.facet.range.start">0</int>
+       <int name="f.svnrevision.facet.range.end">600</int>
+       <int name="f.svnrevision.facet.range.gap">1000</int>
+       <str name="facet.range">date</str>
+       <str name="f.date.facet.range.start">NOW/YEAR-10YEARS</str>
+       <str name="f.date.facet.range.end">NOW</str>
+       <str name="f.date.facet.range.gap">+1YEAR</str>
+       <str name="f.date.facet.range.other">before</str>
+       <str name="f.date.facet.range.other">after</str>
 
        <!-- Highlighting defaults -->
        <str name="hl">on</str>
@@ -907,7 +907,7 @@
        <str>spellcheck</str>
      </arr>
   </requestHandler>
-
+  
 
   <!-- Update Request Handler.  
        
