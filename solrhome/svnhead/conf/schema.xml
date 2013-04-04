@@ -553,6 +553,8 @@
    <field name="svnprop_svn_mime_type" type="string" indexed="true" stored="true"/>
    <!-- tokenize keywords on space, includes svn:keywords -->
    <dynamicField name="*_keywords" type="text_ws" indexed="true" stored="true"/>
+   <!-- explicit dynamic field needed in Solr 4.2.0 to allow copyField -->
+   <dynamicField name="*_tags" type="text_ws" indexed="true" stored="true"/>    
    
    <!-- one keywords field to rule them all, space separated, case sensitive,
    		multiValued because it "can appear multiple times in a document" (see solr wiki) -->
