@@ -93,11 +93,11 @@ ReposSearch.init = function(options) {
 // The point with this initialization method is that
 // no additional scripts should be needed to get the default GUI
 // Set "ReposSearch_onready = false;" to disable automatic initialization 
-ReposSearch_onready = ReposSearch.onready || ReposSearch.init;
+window.ReposSearch_onready = ReposSearch.onready || ReposSearch.init;
 
 $(document).ready(function() {
-	if (ReposSearch_onready) {
-		ReposSearch_onready();
+	if (window.ReposSearch_onready) {
+		window.ReposSearch_onready();
 	}
 });
 
@@ -216,14 +216,14 @@ function ReposSearchRequest(options) {
 		dataType: 'json',
 		success: function(json) {
 			// old global event
-			$().trigger('repossearch-query-returned', [params.qt, json]);
+			$(document).trigger('repossearch-query-returned', [params.qt, json]);
 			// new handling based on callback
 			instance.json = json;
 			options.success(instance);
 		},
 		error: function (xhr, textStatus, errorThrown) {
 			// old global event
-			$().trigger('repossearch-query-failed', [params.qt, xhr.status, xhr.statusText]);
+			$(document).trigger('repossearch-query-failed', [params.qt, xhr.status, xhr.statusText]);
 			// new handling based on callback
 			options.error(instance, xhr.status, xhr.statusText);
 		}
@@ -258,9 +258,9 @@ ReposSearchRequest.prototype.url = './';
  * Results are appended to the resultList using a
  * microformat.
  * 
- * @param {String} type Query type: 'meta', 'content' or any other type from the Solr schema
- * @param {String} userQuery The search query
- * @param {String} parentUrl For presentation of the results, the prefix to base and path
+ * @param {string} type Query type: 'meta', 'content' or any other type from the Solr schema
+ * @param {string} userQuery The search query
+ * @param {string} parentUrl For presentation of the results, the prefix to base and path
  */
 function ReposSearchQuery(type, userQuery, parentUrl) {
 	this.type = type;
@@ -307,7 +307,7 @@ ReposSearchQuery.prototype.exec = function(resultList) {
 
 /**
  * Produces event for search result.
- * @param {String} json Response from Solr wt=json
+ * @param {string} json Response from Solr wt=json
  * @param {jQuery} listQ OL or UL, possibly containing old results
  */
 ReposSearchQuery.prototype.presentResults = function(json, listQ) {
@@ -401,7 +401,7 @@ ReposSearch.getPropFields = function(json) {
 ReposSearch.EventLogger = function(consoleApi) {
 	var logger = consoleApi;
 	// root event bound to document node
-	$().bind('repossearch-created', function(ev, id, container) {
+	$(document).bind('repossearch-created', function(ev, id, container) {
 		logger.log(ev.type, this, id, container);
 		
 		$(container).bind('enabled', function() {
@@ -422,8 +422,8 @@ ReposSearch.EventLogger = function(consoleApi) {
 			$(r).bind('repossearch-query-failed', function(ev, searchRequest, httpStatus, httpStatusText) {
 				logger.log(ev.type, this, searchRequest, 'status=' + httpStatus + ' statusText=' + httpStatusText);
 			});
+			/* too verbose
 			$(r).bind('repossearch-result', function(ev, microformatElement, solrDoc, hitNumber) {
-				return; // to verbose
 				var e = microformatElement;
 				logger.log(ev.type, this, e, hitNumber,
 					'base=' + $('.repossearch-resultbase', e).text(),
@@ -431,6 +431,7 @@ ReposSearch.EventLogger = function(consoleApi) {
 					'file=' + $('.repossearch-resultfile', e).text(),
 					solrDoc);
 			});
+			*/
 			$(r).bind('repossearch-displayed', function(ev, start, shown, numFound) {
 				logger.log(ev.type, this, 'showed from index ' + (start) + ' to ' + (start+shown) + ', total count ' + numFound);
 			});
@@ -438,7 +439,7 @@ ReposSearch.EventLogger = function(consoleApi) {
 	});
 
 	// LightUI's events, triggered on the divs
-	$().bind('repossearch-dialog-open', function(ev, dialog) {
+	$(document).bind('repossearch-dialog-open', function(ev, dialog) {
 		logger.log(ev.type, dialog);
 	});
 
@@ -497,11 +498,6 @@ ReposSearch.SampleSearchBox = function(options) {
 		}
 	});
 	// handle search term change, hash may change for other reasons so we have to diff
-	// TODO Complete back button support in result paging, requires:
-	//  - No call to search() in page link click in the UI
-	//  - Handle the fact that when queries are enabled they need to change the hash again (risk of infinite loop)
-	//  - Abort or hide ongoing queries if the user does repeated clicks on back quickly
-	//  - It would help if it was possible to do $.bbq.pushState without triggering hashchange
 	var lastq = '';
 	$(window).bind("hashchange.repossearch", function(e) {
 		var q = $.deparam.fragment().repossearch || '';
@@ -511,17 +507,17 @@ ReposSearch.SampleSearchBox = function(options) {
 				settings.box.val(q);
 				options.searchhandler(q);
 			} else {
-				$().trigger('repossearch-exited');
+				$(document).trigger('repossearch-exited');
 			}
 		}
 	});
 	// check for search terms from load
 	$(window).trigger("hashchange.repossearch");
 	// remove search term on gui close, and publish exit event like when the search box is cleared manually
-	$().bind('repossearch-dialog-close', function(ev, dialog) {
-		$().trigger('repossearch-exited');
+	$(document).bind('repossearch-dialog-close', function(ev, dialog) {
+		$(document).trigger('repossearch-exited');
 	});
-	$().bind('repossearch-exited', function() {
+	$(document).bind('repossearch-exited', function() {
 		settings.box.val('');
 		$.bbq.removeState('repossearch');
 	});
@@ -540,7 +536,6 @@ ReposSearch.LightUI = function(options) {
 	}, options);
 	
 	// for closure scope, 
-	var _that = this;
 	var uiCss = this.settings.css;
 	var uiSettings = this.settings;
 
@@ -552,9 +547,9 @@ ReposSearch.LightUI = function(options) {
 	 */	
 	this.destroy = function(ev) {
 		var d = $('#' + uiSettings.id + 'dialog');
-		$().trigger('repossearch-dialog-close', [d[0]]);
+		$(document).trigger('repossearch-dialog-close', [d[0]]);
 		d.hide();
-		_that.clearQuerySpecs();
+		this.clearQuerySpecs();
 	};
 	
 	/**
@@ -574,7 +569,7 @@ ReposSearch.LightUI = function(options) {
 	
 	/**
 	 * Creates interactive search result presentation with default query types.
-	 * @param {String} query Valid solr query from the user
+	 * @param {string} query Valid solr query from the user
 	 */
 	this.startDefault = function(query) {
 		this.clearQuerySpecs();
@@ -639,7 +634,7 @@ ReposSearch.LightUI = function(options) {
 	
 	/**
 	 * @param {Object} querySpec Settings for new query
-	 * @param {String} searchQuery The query input, normally directly from the user
+	 * @param {string} searchQuery The query input, normally directly from the user
 	 */
 	this.addQuerySpec = function(querySpec, searchQuery) {
 		var spec = $.extend({
@@ -778,8 +773,8 @@ ReposSearch.LightUI = function(options) {
 	
 	/**
 	 * Creates container for a query type.
-	 * @param {String} id The query type id
-	 * @param {String} headline Text to explain the query
+	 * @param {string} id The query type id
+	 * @param {string} headline Text to explain the query
 	 * @return {jQuery} the div, UI events will be triggered on this div
 	 * @private Not tested to be callable from outside LightUI
 	 */
@@ -796,7 +791,7 @@ ReposSearch.LightUI = function(options) {
 				div.trigger('disabled', [id]);
 			}
 		});
-		$().bind('repossearch-exited', function() {
+		$(document).bind('repossearch-exited', function() {
 			div.trigger('disabled', [id]);
 			// remove hash state
 			$.bbq.removeState(id + '-start');
@@ -805,7 +800,7 @@ ReposSearch.LightUI = function(options) {
 		div.bind('enable', function() {
 			var c = $(':checkbox', this);
 			if (!c.is(':checked')) {
-				c.attr('checked', true).trigger('change');
+				c.prop('checked', true).trigger('change');
 			}
 		});
 		// there's always someting	
@@ -813,7 +808,7 @@ ReposSearch.LightUI = function(options) {
 		// show
 		div.appendTo(this.dialog);
 		// trigger event that contains the div, which can be used to bind to repossearch-query-sent
-		$().trigger('repossearch-created', [id, div]);
+		$(document).trigger('repossearch-created', [id, div]);
 		// return the element that gets the events, use .parent() to get the div
 		return div;
 	};
@@ -835,7 +830,7 @@ ReposSearch.LightUI = function(options) {
 	this.fixIE = function(context) {
 		$(':checkbox', context).click(function(ev) {
 			ev.stopPropagation();
-			$(this).attr('checked', $(this).is(':checked')).trigger('change');
+			$(this).prop('checked', $(this).is(':checked')).trigger('change');
 		});
 	};
 
@@ -848,6 +843,6 @@ ReposSearch.LightUI = function(options) {
 	$('body').append(this.dialog.hide());
 	
 	// publish page wide event so extensions can get hold of search events
-	$().trigger('repossearch-dialog-open', [this.dialog[0]]);	
+	$(document).trigger('repossearch-dialog-open', [this.dialog[0]]);	
 	
 };
