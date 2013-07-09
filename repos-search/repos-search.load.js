@@ -47,7 +47,7 @@ if (!$.bbq) {
  * Sample search interface for Repos Search.
  * Add this script to Repos Style head to get a search box in the menu bar.
  * Requires jQuery 1.3+
- * $LastChangedRevision$
+ * $LastChangedRevision: 1273 $
  */
 
 // namespace
@@ -212,6 +212,7 @@ function ReposSearchRequest(options) {
 	// Query the proxy
 	$.ajax({
 		url: instance.url,
+		cache: false,
 		data: params,
 		dataType: 'json',
 		success: function(json) {
@@ -710,6 +711,16 @@ ReposSearch.LightUI = function(options) {
 							'Start index ' + start + ' does not exist. There are ' + numFound + ' results.');
 					return;
 				}				
+
+				// display the number of shown results
+				var resultsOnPage;
+				if (numFound - start < pagesize) resultsOnPage = numFound - start;
+				else resultsOnPage = pagesize;
+				var resultsshown = $('<span class="repossearch-resultsshown"/>').text('You have access to ' + shown + ' of ' + resultsOnPage + ' results.').css(uiCss.resultinfo).prependTo(this);
+				list.one('repossearch-query-sent', function() {
+					resultsshown.remove();
+				});
+
 				if (numFound <= pagesize) return;
 				if (start % pagesize !== 0) {
 					return; // paging not supported if start index does not match page size
