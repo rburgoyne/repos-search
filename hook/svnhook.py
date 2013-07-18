@@ -357,10 +357,10 @@ def handleFileAdd(options, revision, path):
   schema at [prefix][base][path]'''
   indexSubmitFile_curl(options, revision, path)
 
-def handleFileChange(optins, revision, path):
+def handleFileChange(options, revision, path):
   indexSubmitFile_curl(options, revision, path)
   
-def indexSubmitFile_curl(optons, revision, path):
+def indexSubmitFile_curl(options, revision, path):
   ''' Python's httplib is not capable of POSTing files
   (multipart upload) so we use command line curl instead '''
   schema = options.schemahead
