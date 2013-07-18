@@ -403,7 +403,8 @@ def indexSubmitFile_curl(optons, revision, path):
       options.logger.error("Failed to index %s in %s; fallback failed with status %d" % (id, schema, status2))
 
 def getCurlCommand(options):
-  curl = [options.curl, '-s', '-S']
+  # make curl time out after a long wait
+  curl = [options.curl, '-s', '-S', '-m', str(TIMEOUT)]
   # ignore output of response xml (we could also capture it using Popen to get QTime)
   #curl = curl + ['-o', '/dev/null']
   # fail if status is not 200
