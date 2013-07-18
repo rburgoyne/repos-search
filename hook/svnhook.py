@@ -43,7 +43,9 @@ single script for ease of inclusion from post-commit hook:
 * Solr communication
 * Startup from command line
 
-Use rebuild_index.py to reindex a repository from revision 0 to HEAD.
+Do not use rebuild_index.py to reindex a repository from revision 0 to HEAD.
+rebuild_index.py is deprecated. Use the revision range option of
+svnhook.py instead.
 '''
 
 import sys
@@ -98,6 +100,7 @@ parser.add_option("-r", "--revision", dest="rev",
     " or \"*\" to drop and reindex 1:HEAD followed by commit and optimize." +
     " The difference between *:3 and 1:3 is that the former is preceded by a drop." + 
     " Ranges to HEAD will cause optimize after revisions.")
+parser.add_option("-t", "--timeout", dest="timeout", help="Optionally fail to index a file if it takes longer than the specified timeout.")
 parser.add_option("", "--nobase", dest="nobase", action='store_true', default=False,
   help="Disable prefixed with repo name (i.e. @base) when indexing. Defaults to %default")
 parser.add_option("", "--prefix", dest="prefix", default="",
@@ -403,8 +406,9 @@ def indexSubmitFile_curl(options, revision, path):
       options.logger.error("Failed to index %s in %s; fallback failed with status %d" % (id, schema, status2))
 
 def getCurlCommand(options):
-  # make curl time out after a long wait
-  curl = [options.curl, '-s', '-S', '-m', str(TIMEOUT)]
+  curl = [options.curl, '-s', '-S']
+  if (options.timeout):
+    curl.extend(['-m', options.timeout])
   # ignore output of response xml (we could also capture it using Popen to get QTime)
   #curl = curl + ['-o', '/dev/null']
   # fail if status is not 200
