@@ -208,7 +208,9 @@ def repositoryHistoryReader(options, revision, changeHandlers):
   changed = svnrun([options.svnlook, "changed", "--copy-info", "-r %d" % revision, options.repo])
   for handler in changeHandlers:
     handler.onRevisionBegin(revision)
-  errors = repositoryChangelistHandler(options, revision, changeHandlers, changed.splitlines())
+  # split on '\n' only instead of splitlines() to avoid errors on some Windows
+  # files with special characters that could be interpreted as newlines
+  errors = repositoryChangelistHandler(options, revision, changeHandlers, changed.split('\n'))
   for handler in changeHandlers:
     handler.onRevisionComplete(revision)
   return errors
