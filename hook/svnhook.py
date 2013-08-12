@@ -221,6 +221,8 @@ def repositoryChangelistHandler(options, revision, changeHandlers, changeList):
   copyfrommatch = re.compile(r"^\s+\(from (.*):r(\d+)\)$")  
   errors = 0
   iscopy = False # flag that next line has copy-from info
+  # remove empty lines from changeList
+  changeList = filter(None, changeList)
   for change in changeList:
     try:
       if iscopy:
