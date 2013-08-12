@@ -811,7 +811,7 @@ ReposSearch.LightUI = function(options) {
 		div.bind('enable', function() {
 			var c = $(':checkbox', this);
 			if (!c.is(':checked')) {
-				c.prop('checked', true).trigger('change');
+				c.attr('checked', true).trigger('change');
 			}
 		});
 		// there's always someting	
@@ -841,7 +841,7 @@ ReposSearch.LightUI = function(options) {
 	this.fixIE = function(context) {
 		$(':checkbox', context).click(function(ev) {
 			ev.stopPropagation();
-			$(this).prop('checked', $(this).is(':checked')).trigger('change');
+			$(this).attr('checked', $(this).is(':checked')).trigger('change');
 		});
 	};
 
