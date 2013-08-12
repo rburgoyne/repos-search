@@ -258,7 +258,9 @@ def repositoryChangelistHandlerFolderCopy(options, revision, changeHandlers, cha
     raise NameError("Unexpected foldercopy option value: %s" % options.foldercopy)
   # use folder tree as change list
   tree = svnrun([options.svnlook, "tree", "--full-paths", "-r %d" % revision, options.repo, p])
-  copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.splitlines()[1:]]
+  # split on '\n' only instead of splitlines() to avoid errors on some Windows
+  # files with special characters that could be interpreted as newlines
+  copypaths = ['A   ' + p[1:] + t[len(p):] for t in tree.split('\n')[1:]]
   options.logger.debug('Folder copy for %s handled as:\n%s' % (p, '\n'.join(copypaths)));
   # call only the change handlers that wish to treat this as add
   changeHandlersForCopy = [h for h in changeHandlers if h.onFolderCopyBegin(p, pfrom) is not False]
