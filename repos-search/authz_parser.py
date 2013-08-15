@@ -21,6 +21,9 @@ def read(authz_file):
     is a member can be obtained. Currently, this module only authorizes for
     reading, so map each path and user to True (the user has authorization to
     read the path), or False (not).
+
+    @type  authz_file: string
+    @param authz_file: The absolute or relative path to the Subversion authz file.
     """
     parser = ConfigParser.RawConfigParser()
     parser.optionxform = str
@@ -78,7 +81,7 @@ def read(authz_file):
             # in C++ to assign by reference.
             rules[path] = [path_rules]
 
-def authorize(user, repo, path):
+def authorize(user, repo, path, path_rules_ptr=None):
     """
     Given a repository and a path, start with the full path, then work
     backwards, looking for a collection of rules that match it. At each step,
@@ -87,51 +90,73 @@ def authorize(user, repo, path):
     searches.
 
     Once a collection of rules that matches the path has been found, search it
-    for a rule that matches the given user. If none is found, search for a
-    rule that matches all users, and then a rule that matches any group the
-    user is in. Once a rule is found, the rule is saved directly with the user
+    for a rule that matches the given user. If none is found, search for a rule
+    that matches any group the user is in, and then a rule that matches all 
+    users. Once a rule is found, the rule is saved directly with the user
     name so that group and wildcard searches will not have to be attempted
     for that particular rule again.
-    """ 
-    path_rules = None
-    path_rules_ptr = [None]
+
+    @type  user:           string
+    @param user:           The username of the user to be authorized.
+    @type  repo:           string
+    @param repo:           The repository where the requested file is located.
+    @type  path:           string
+    @param path:           The path to the requested file.
+    @type  path_rules_ptr: list of dictionaries
+    @param path_rules_ptr: A single-element list containing a dictionary describing
+                           the rules for the requested file. When the function is
+                           called externally, this should be `None`. When it is
+                           called recursively, this parameter is used to maintain the
+                           pointer.
+    @rtype:                boolean
+    @return:               True if the user is authorized to read the requested file,
+                           False otherwise.
+    """
+    if not path_rules_ptr:
+        path_rules_ptr = [None]
     # Remove trailing slashes from query path for consistency.
     path = path.rstrip('/')
-    # First, check if a rule is defined for the specific path
-    path_rules = rules.get(repo + ":" + path)
-    if not path_rules:
-        # Iterate over all parent paths in reverse
-        path = path.lstrip('/')
-        split_path = path.split('/')
-        for parentpath_length in reversed(range(len(split_path))):
-            parentpath = repo + ":/" + "/".join(split_path[0:parentpath_length])
-            path_rules = rules.get(parentpath)
-            if path_rules:
-                path_rules_ptr[0] = path_rules[0]
-                break
-            else:
-                rules[parentpath] = path_rules_ptr
-    if not path_rules:
-        # Get the rules for root 
-        path_rules = rules.get('/')
-    if path_rules:
-        path_rules_ptr[0] = path_rules[0]
+    # Full paths are of the form `Repo:/path/to/file`, `Repo:/` for empty paths, or
+    # `/` for the root
+    fullpath = ""
+    if repo:
+        if path:
+            fullpath = repo + ":" + path
+        else:
+            fullpath = repo + ":/"
     else:
-        # No rules are defined for the given path.
-        rules['/'] = [None]
-        return False
-
-    if not path_rules[0]:
-       return False
-    authorized = path_rules[0].get(user)
-    if authorized is None:
-        for group in group_membership[user]:
-            authorized = path_rules[0].get('@' + group)
+        fullpath = "/"
+    path_rules = rules.get(fullpath)
+    if path_rules:
+        # Set the pointer to point to the rules for this path. Previously traversed
+        # subdirectories and files with empty rule sets will have their rules set to 
+        # these rules.
+        path_rules_ptr[0] = path_rules[0]
+        authorized = path_rules[0].get(user)
+        if authorized is None:
+            for group in group_membership[user]:
+                authorized = path_rules[0].get('@' + group)
+                if authorized is not None:
+                    break
+            if authorized is None:
+                authorized = path_rules[0].get('*')
             if authorized is not None:
-                break
-        if authorized is None:
-            authorized = path_rules[0].get('*')
-        if authorized is None:
-            authorized = False
-        path_rules[0][user] = authorized
-    return authorized
+                # This will cache a rule for the user, so that future lookups do not
+                # need so search groups or the wildcard.
+                path_rules[0][user] = authorized
+        if authorized is not None:
+            return authorized
+    else:
+        # This creates a cache for the rules for this path. When the recursive
+        # function finally returns, `path_rules_ptr` will be set, and future lookups
+        # on this path will be able to return without continuing the recursion.
+        rules[fullpath] = path_rules_ptr
+    if not repo:
+        # This is the base case.
+        return False
+    if not path:
+        # The path has been reduced to nothing, so perform one more recursion to
+        # examine the root.
+        repo = ""
+    # Remove the last item in the path and try again.
+    return authorize(user, repo, path[0:path.rfind("/")], path_rules_ptr)
